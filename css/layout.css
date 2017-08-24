@@ -1,0 +1,44 @@
+* {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+body {
+    /*min-height: 2000px;*/
+    padding-top: 70px;
+}
+
+.main-container{
+    min-width: 800px;
+    margin: 0px 20px;
+}
+
+.btn-toolbar{
+    padding-bottom: 10px;
+}
+
+.left-menu{
+    padding-left: 0px;
+}
+
+.editor-container{
+    height: 400px;
+    width: 100%;
+    border: 1px solid #eee;
+}
+
+#editor{
+    width: 100%;
+    height: 100%;
+}
+
+#result{
+    width: 100%;
+    height: 100%;
+}
+
+.col{
+    /*padding: 20px;*/
+    /*border: #2ECC40 1px solid;*/
+}
