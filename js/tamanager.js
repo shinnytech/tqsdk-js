@@ -4,7 +4,7 @@ function ma(C) {
 };
 function macd(C) {
     C.IN("CLOSE").setMemo("this is close");
-    C.OUT("BR", C.IN("CLOSE")(C.P) + C.PARAM("N"));
+    C.OUT("BR", C.IN("CLOSE")(C.P) + C.PARAM("N")).setColor(123).setWidth(4);
 };
 var ta_funcs = [ma, macd];
 // ---------------------------------------------------------------------------
@@ -22,6 +22,14 @@ function ParamDefine(name){
     };
     f.setDefault = function(default_value){
         f.default_value = default_value;
+        return f;
+    };
+    f.setMin = function(min_value){
+        f.min_value = min_value;
+        return f;
+    };
+    f.setMax = function(max_value){
+        f.max_value = max_value;
         return f;
     };
     return f;
@@ -56,15 +64,15 @@ function OutputSerialDefine(name) {
         return f;
     };
     f.setColor = function(color){
-        f.style = color;
+        f.color = color;
         return f;
     };
     f.setWidth = function(width){
-        f.style = width;
+        f.width = width;
         return f;
     };
     f.setAxis = function(axis){
-        f.style = axis;
+        f.axis = axis;
         return f;
     };
     return f;
@@ -84,40 +92,30 @@ var ta_class_map = {};
             tm_update_class_define(f);
         }
         ta_instance_map[1] = {
+            "ta_class_name": "ma",
             "instance_id": 1,
-            "epoch":	3,
-            "func": ma,
+            "epoch": 3,
             "params": {
+                //system params
+                "_INS_ID": "IF1709",
+                "_DUR_NANO": 3600000000000,
+                //user params
                 "N": 3123,
-            },
-            "xaxis":{
-                "ins_id": "IF1709",
-                "dur_id": 3600000000000,
             },
             "input_serials": {
                 "HIGH":{
                     "ins_id": "IF1709",
-                    "dur_id": 3600000000000,
                     "serial_id": "high"
                 },
                 "LOW":{
                     "ins_id": "IF1709",
-                    "dur_id": 3600000000000,
                     "serial_id": "low"
                 },
                 "CLOSE":{
                     "ins_id": "IF1709",
-                    "dur_id": 3600000000000,
                     "serial_id": "close"
                 }
             },
-            "output_serials":	[{
-                "name":	"diff",
-                "style":	1,
-                "color":	1,
-                "width":	3,
-                "yflags":	0
-            }]
         };
     }
 
@@ -157,6 +155,7 @@ var ta_class_map = {};
             }
         */
     }
+
     function tm_update_class_define(ta_func){
         var indicator_name = ta_func.name;
         //调用指标函数，提取指标信息
@@ -234,7 +233,9 @@ var ta_class_map = {};
     }
 
     function tm_recalc_indicators() {
-        //重计算有变更的指标值，目前先做一个全部重算的版本
+        // 重计算有变更的指标值
+        // @todo: 目前先做一个全部重算的版本, 待后续优化
+        return;
         for (var instance_id in ta_instance_map) {
             var indicator_instance = ta_instance_map[instance_id];
             console.log('start === ', instance_id);
@@ -248,7 +249,7 @@ var ta_class_map = {};
     function get_input_serial_func(instance, serial_selector){
         var d = instance.input_serials[serial_selector];
         return function (P) {
-            return DM.get_kdata(d.ins_id, d.dur_id, P, d.serial_id);
+            return DM.get_kdata(d.ins_id, instance.params._DUR_NANO, P, d.serial_id);
         }
     }
     function recalcInstance(ta_instance) {
@@ -274,21 +275,24 @@ var ta_class_map = {};
             },
             "out_values": {}
         }
-        var [data_left, data_right] = DM.get_kdata_range(ta_instance.xaxis.ins_id, ta_instance.xaxis.dur_id);
+        var [data_left, data_right] = DM.get_kdata_range(ta_instance.params._INS_ID, ta_instance.params._DUR_NANO);
         console.log("data_left" + data_left);
         console.log("data_right" + data_right);
+        //@todo: 这里目前是对整个序列全部重算，后续需要优化(已经计算过，且原始数据未改变的不用重算；只计算可见窗口附近的数据)
         for (var i = data_left; i <= data_right; i++) {
             // console.log("calc:" + i);
             context_calc["P"] = i;
-            ta_instance["func"](context_calc);
+            window[ta_instance.ta_class_name](context_calc);
         }
         console.log("finish" + context_calc.out_values);
+        //@todo: 还需要将计算结果发给主进程
     }
 
     function tm_set_indicator_instance(instance_pack){
-        var instance_id = instance_pack["id"];
+        var instance_id = instance_pack.id;
+        instance_pack.func = window[instance_pack.ta_class_name];
         ta_instance_map[instance_id] = instance_pack;
-        recalcInstance(ta_instance_map[instance_id]);
+        recalcInstance(instance_pack);
     }
 
     this.TM = {

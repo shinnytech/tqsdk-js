@@ -5,7 +5,7 @@ DM.init(function(){});
 TM.init();
 
 //连接到主进程
-initWebsocket();
+WS.init();
 
 // list_init
 
