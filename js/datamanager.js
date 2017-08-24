@@ -143,14 +143,20 @@
     }
 
     function dm_get_k_range(ins_id, dur_id){
-        var d = DM.datas.klines[ins_id];
+        var d = DM.datas;
+        d = d.klines;
         if (d === undefined){
-            console.log("1");
+            console.log("dm_get_k_range.0:" + JSON.stringify(DM.datas));
+            return undefined;
+        }
+        d = d[ins_id];
+        if (d === undefined){
+            console.log("dm_get_k_range.1:" + ins_id);
             return undefined;
         }
         d = d[dur_id];
         if (d === undefined){
-            console.log("2");
+            console.log("dm_get_k_range.2" + dur_id);
             return undefined;
         }
         var sorted_keys = Object.keys(d["data"]).sort();
@@ -158,6 +164,7 @@
     }
     function dm_clear_data() {
         // 清空数据
+        console.log("dm_clear_data");
         var state = DM.datas.state;
         DM.datas = { state: state };
     }

@@ -1,13 +1,6 @@
 
-var WS_URL = "ws://www.zhongqijiaoyi.com/api/t/md/front/mobile";
+var WS_URL = "ws://127.0.0.1:7777/";
 
-var demo_d = {
-    aid: "set_chart",
-    chart_id: "demo_d",
-    ins_list: "IF1709",
-    duration: 3600 * 1000 * 1000 * 1000, // 小时线
-    view_width: 500
-};
 
 (function () {
     var openObserver = Rx.Observer.create(function(e) {
@@ -15,7 +8,16 @@ var demo_d = {
         // cs = TM.get_indicator_class_list();
         // socket.onNext(JSON.stringify(cs));
         // cs = TM.get_indicator_class_list();
+        //初始化行情数据存储区
+        DM.init(function(){});
+        //请求全部数据同步
+        var demo_d = {
+            aid: "sync_datas",
+            sync_datas: {},
+        };
         socket.onNext(JSON.stringify(demo_d));
+        //初始化指标类
+        TM.init();
     });
 
     var closingObserver = Rx.Observer.create(function() {
@@ -34,7 +36,10 @@ var demo_d = {
             closingObserver);
         socket.subscribe(
             function(e) {
-                decoded = JSON.parse(e.data);
+                console.log("ws_get:" + e.data);
+                decoded = JSON.parse(e.data, function (key, value) {
+                    return value === "NaN"  ? NaN : value;
+                });
                 if (decoded.aid == "rtn_data") {
                     //收到行情数据包，更新到数据存储区
                     for (var i = 0; i < decoded.data.length; i++) {
@@ -53,6 +58,7 @@ var demo_d = {
                     TM.recalc_indicators();
                 } else if (decoded.aid == "set_indicator_instance") {
                     //主进程要求创建或修改指标实例
+                    console.log("set_indicator_instance:" + e.data);
                     TM.set_indicator_instance(decoded["set_indicator_instance"]);
                 }
                 socket.onNext('{"aid":"peek_message"}');
@@ -69,6 +75,7 @@ var demo_d = {
     {
         var s = JSON.stringify(obj);
         socket.onNext(s);
+        console.log("ws_send:"+s);
     }
     this.WS = {
         init: initWebsocket,

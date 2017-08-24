@@ -1,5 +1,3 @@
-// list_init
-
 $(function () {
     //初始化行情数据存储区
     DM.init(function () {});
@@ -9,6 +7,7 @@ $(function () {
 
     //连接到主进程
     WS.init();
+
 
     // ui init
     var editor = ace.edit('editor');

@@ -1,5 +1,7 @@
 // ---------------------------------------------------------------------------
 function ma(C) {
+    var h = C.IN("HIGH")(C.P);
+    var n = C.PARAM("N");
     C.OUT("BR", C.IN("HIGH")(C.P) + C.PARAM("N"));
 };
 function macd(C) {
@@ -51,7 +53,7 @@ function OutputSerialDefine(name) {
     var f = function(){return 123};
     f.sname = name;
     f.memo = "";
-    f.style = 0;
+    f.style = 1;
     f.color = 0;
     f.width = 1;
     f.yaxis = 0;
@@ -91,32 +93,31 @@ var ta_class_map = {};
             var f = ta_funcs[i];
             tm_update_class_define(f);
         }
-        ta_instance_map[1] = {
-            "ta_class_name": "ma",
-            "instance_id": 1,
-            "epoch": 3,
-            "params": {
-                //system params
-                "_INS_ID": "IF1709",
-                "_DUR_NANO": 3600000000000,
-                //user params
-                "N": 3123,
-            },
-            "input_serials": {
-                "HIGH":{
-                    "ins_id": "IF1709",
-                    "serial_id": "high"
-                },
-                "LOW":{
-                    "ins_id": "IF1709",
-                    "serial_id": "low"
-                },
-                "CLOSE":{
-                    "ins_id": "IF1709",
-                    "serial_id": "close"
-                }
-            },
-        };
+        // ta_instance_map[1] = {
+        //     "ta_class_name": "ma",
+        //     "instance_id": 1,
+        //     "epoch": 3,
+        //     "ins_id": "IF1709",
+        //     "dur_nano": 3600000000000,
+        //     "params": {
+        //         //user params
+        //         "N": 3123,
+        //     },
+        //     "input_serials": {
+        //         "HIGH":{
+        //             "ins_id": "IF1709",
+        //             "serial_id": "high"
+        //         },
+        //         "LOW":{
+        //             "ins_id": "IF1709",
+        //             "serial_id": "low"
+        //         },
+        //         "CLOSE":{
+        //             "ins_id": "IF1709",
+        //             "serial_id": "close"
+        //         }
+        //     },
+        // };
     }
 
     function tm_get_indicator_class_list() {
@@ -224,9 +225,12 @@ var ta_class_map = {};
             })
         });
         ta_class_map[indicator_name] = ta_class_define;
-        //@todo: 发送到主进程
-        var j = JSON.stringify(ta_class_define);
-        console.log("finish define:"+j);
+        //发送指标类信息到主进程
+        var pack = {
+            "aid": "register_indicator_class",
+            "register_indicator_class": ta_class_define
+        }
+        WS.sendJson(pack);
     }
 
     function tm_set_indicator_class_list() {
@@ -235,7 +239,6 @@ var ta_class_map = {};
     function tm_recalc_indicators() {
         // 重计算有变更的指标值
         // @todo: 目前先做一个全部重算的版本, 待后续优化
-        return;
         for (var instance_id in ta_instance_map) {
             var indicator_instance = ta_instance_map[instance_id];
             console.log('start === ', instance_id);
@@ -249,43 +252,53 @@ var ta_class_map = {};
     function get_input_serial_func(instance, serial_selector){
         var d = instance.input_serials[serial_selector];
         return function (P) {
-            return DM.get_kdata(d.ins_id, instance.params._DUR_NANO, P, d.serial_id);
+            return DM.get_kdata(d.ins_id, instance.dur_nano, P, d.serial_id);
         }
     }
     function recalcInstance(ta_instance) {
-        /*
-            ta_instance = {
-                "func": arbr2,
-                "params": {
-                    "N": 50,
-                }
+        // try {
+            var xrange = DM.get_kdata_range(ta_instance.ins_id, ta_instance.dur_nano);
+            if (xrange === undefined)
+                return;
+            var [data_left, data_right] = xrange;
+            context_calc = {
+                "P": 0,
+                "IN": function (serial_selector) {
+                    return get_input_serial_func(ta_instance, serial_selector);
+                },
+                "OUT": function(serial_name, value){
+                    context_calc.out_values[context_calc.P] = context_calc.out_values[context_calc.P] || {};
+                    context_calc.out_values[context_calc.P][serial_name] = value;
+                },
+                "PARAM": function (param_name) {
+                    return get_instance_param_value(ta_instance, param_name);
+                },
+                "out_values": {}
             }
-        */
-        context_calc = {
-            "P": 0,
-            "IN": function (serial_selector) {
-                return get_input_serial_func(ta_instance, serial_selector);
-            },
-            "OUT": function(serial_name, value){
-                context_calc.out_values[context_calc.P] = context_calc.out_values[context_calc.P] || {};
-                context_calc.out_values[context_calc.P][serial_name] = value;
-            },
-            "PARAM": function (param_name) {
-                return get_instance_param_value(ta_instance, param_name);
-            },
-            "out_values": {}
-        }
-        var [data_left, data_right] = DM.get_kdata_range(ta_instance.params._INS_ID, ta_instance.params._DUR_NANO);
-        console.log("data_left" + data_left);
-        console.log("data_right" + data_right);
-        //@todo: 这里目前是对整个序列全部重算，后续需要优化(已经计算过，且原始数据未改变的不用重算；只计算可见窗口附近的数据)
-        for (var i = data_left; i <= data_right; i++) {
-            // console.log("calc:" + i);
-            context_calc["P"] = i;
-            window[ta_instance.ta_class_name](context_calc);
-        }
-        console.log("finish" + context_calc.out_values);
-        //@todo: 还需要将计算结果发给主进程
+            console.log("data_left" + data_left);
+            console.log("data_right" + data_right);
+            //@todo: 这里目前是对整个序列全部重算，后续需要优化(已经计算过，且原始数据未改变的不用重算；只计算可见窗口附近的数据)
+            var func = window[ta_instance.ta_class_name];
+            for (var i = data_left; i <= data_right; i++) {
+                // console.log("calc:" + i);
+                context_calc["P"] = i;
+                func(context_calc);
+            }
+            console.log("finish" + context_calc.out_values);
+            //将计算结果发给主进程
+            var pack = {
+                "aid": "set_indicator_data",
+                "set_indicator_data": [{
+                    instance_id: ta_instance.instance_id,
+                    epoch: ta_instance.epoch,
+                    points: context_calc.out_values
+                }]
+            }
+            WS.sendJson(pack);
+        // }
+        // catch (e) {
+        //     console.log("error:" + e + e.stack);
+        // }
     }
 
     function tm_set_indicator_instance(instance_pack){
