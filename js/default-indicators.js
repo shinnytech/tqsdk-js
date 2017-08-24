@@ -1,4 +1,25 @@
+var MA_str = `function MA(C) {
+    C.OUT("BR", C.IN("HIGH")(C.P) + C.PARAM("N"));
+};`
+var MACD_str = `function MACD(C) {
+    C.IN("CLOSE").setMemo("this is close");
+    C.OUT("BR", C.IN("CLOSE")(C.P) + C.PARAM("N")).setColor(123).setWidth(4);
+};`
+
 var Indicator = {};
+Indicator.SourceCode = [
+    {
+        name: "MA",
+        code: MA_str
+    },
+    {
+        name: "MACD",
+        code: MACD_str
+    }
+]
+
+
+// var ta_funcs = [ma, macd];
 Indicator.Class = [
     {
         name: "MA",
