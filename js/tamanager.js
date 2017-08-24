@@ -6,7 +6,7 @@ function macd(C) {
     C.IN("CLOSE").setMemo("this is close");
     C.OUT("BR", C.IN("CLOSE")(C.P) + C.PARAM("N"));
 };
-var ta_funcs = [ma];
+var ta_funcs = [ma, macd];
 // ---------------------------------------------------------------------------
 
 function ParamDefine(name){
@@ -158,34 +158,76 @@ var ta_class_map = {};
         */
     }
     function tm_update_class_define(ta_func){
-        let indicator_name = ta_func.name;
-        ta_class_map[indicator_name] = {
+        var indicator_name = ta_func.name;
+        //调用指标函数，提取指标信息
+        var params = new Map();
+        var input_serials = new Map();
+        var output_serials = new Map();
+        var context_define = {
+            "P": 0,
+            "PARAM": function (param_name) {
+                var param_define = params.get(param_name);
+                if(param_define === undefined){
+                    param_define = ParamDefine(param_name);
+                    params.set(param_name, param_define);
+                }
+                return param_define;
+            },
+            "IN": function (serial_selector) {
+                var input_serial_define = input_serials.get(serial_selector);
+                if(input_serial_define === undefined){
+                    input_serial_define = InputSerialDefine(serial_selector);
+                    input_serials.set(serial_selector, input_serial_define);
+                }
+                return input_serial_define;
+            },
+            "OUT": function(serial_name, value){
+                var output_serial_define = output_serials.get(serial_name);
+                if(output_serial_define === undefined){
+                    output_serial_define = OutputSerialDefine(serial_name);
+                    output_serials.set(serial_name, output_serial_define);
+                }
+                return output_serial_define;
+            },
+        }
+        ta_func(context_define);
+        //指标信息格式整理
+        ta_class_define = {
             "name": indicator_name,
             "params": [],
             "input_serials": [],
             "output_serials": [],
         };
-        let class_define = ta_class_map[indicator_name];
-        context_define = {
-            "P": 0,
-            "PARAM": function (param_name) {
-                var param_define = ParamDefine(param_name);
-                class_define.params.push(param_define);
-                return param_define;
-            },
-            "IN": function (serial_selector) {
-                var input_serial_define = InputSerialDefine(serial_selector);
-                class_define.input_serials.push(input_serial_define);
-                return input_serial_define;
-            },
-            "OUT": function(serial_name, value){
-                var output_serial_define = OutputSerialDefine(serial_name);
-                class_define.output_serials.push(output_serial_define);
-                return output_serial_define;
-            },
-        }
-        ta_func(context_define);
-        console.log("finish define");
+        params.forEach(function(value, key) {
+            ta_class_define["params"].push({
+                "name": value["sname"],
+                "memo": value["memo"],
+                "default_value": value["default_value"],
+                "min_value": value["min_value"],
+                "max_value": value["max_value"],
+            })
+        });
+        input_serials.forEach(function(value, key) {
+            ta_class_define["input_serials"].push({
+                "name": value["sname"],
+                "memo": value["memo"],
+                "selector": value["selector"],
+            })
+        });
+        output_serials.forEach(function(value, key) {
+            ta_class_define["output_serials"].push({
+                "name": value["sname"],
+                "memo": value["memo"],
+                "style": value["style"],
+                "color": value["color"],
+                "width": value["width"],
+                "yaxis": value["yaxis"],
+            })
+        });
+        ta_class_map[indicator_name] = ta_class_define;
+        //@todo: 发送到主进程
+        var j = JSON.stringify(ta_class_define);
+        console.log("finish define:"+j);
     }
 
     function tm_set_indicator_class_list() {

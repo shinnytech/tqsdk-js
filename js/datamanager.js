@@ -117,7 +117,7 @@
     }
 
     function dm_get_kdata(ins_id, dur_id, data_id, serial_selector){
-        console.log("dm_get_kdata" + ins_id + dur_id + data_id + serial_selector);
+        // console.log("dm_get_kdata" + ins_id + dur_id + data_id + serial_selector);
         var d = DM.datas.klines[ins_id];
         if (d === undefined){
             console.log("1");
