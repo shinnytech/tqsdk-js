@@ -1,11 +1,7 @@
-//初始化行情数据存储区
-DM.init(function(){});
-
-//初始化指标类
-TM.init();
 
 //连接到主进程
 WS.init();
+
 
 // list_init
 
