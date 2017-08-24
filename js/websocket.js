@@ -49,20 +49,9 @@ function initWebsocket()
                 }
                 //重计算相关的指标值
                 TM.recalc_indicators();
-            } else if (decoded.aid == "indicator_instance") {
-                /*
-                    //主进程要求创建指标实例
-                    {
-                      aid: indicator_instance,
-                      indicator_instance: {
-                        instance_id: "reuri",
-                        epoch: 3232,
-                        x_axis: "cu1703.M1",
-                        params: [328, 322, 323],
-                      }
-                    }
-                */
-
+            } else if (decoded.aid == "set_indicator_instance") {
+                //主进程要求创建或修改指标实例
+                TM.set_indicator_instance(decoded["set_indicator_instance"]);
             }
             socket.onNext('{"aid":"peek_message"}');
         },

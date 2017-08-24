@@ -116,6 +116,46 @@
         return d;
     }
 
+    function dm_get_kdata(ins_id, dur_id, data_id, serial_selector){
+        console.log("dm_get_kdata" + ins_id + dur_id + data_id + serial_selector);
+        var d = DM.datas.klines[ins_id];
+        if (d === undefined){
+            console.log("1");
+            return NaN;
+        }
+        d = d[dur_id];
+        if (d === undefined){
+            console.log("2");
+            return NaN;
+        }
+        d = d["data"];
+        if (d === undefined){
+            console.log("3");
+            return NaN;
+        }
+        d = d[data_id];
+        if (d === undefined){
+            console.log("4");
+            return NaN;
+        }
+        d = d[serial_selector];
+        return d;
+    }
+
+    function dm_get_k_range(ins_id, dur_id){
+        var d = DM.datas.klines[ins_id];
+        if (d === undefined){
+            console.log("1");
+            return undefined;
+        }
+        d = d[dur_id];
+        if (d === undefined){
+            console.log("2");
+            return undefined;
+        }
+        var sorted_keys = Object.keys(d["data"]).sort();
+        return [sorted_keys[0], sorted_keys[sorted_keys.length - 1]];
+    }
     function dm_clear_data() {
         // 清空数据
         var state = DM.datas.state;
@@ -127,6 +167,8 @@
         init: dm_init,
         run: dm_run,
         get_data: dm_get,
+        get_kdata: dm_get_kdata,
+        get_kdata_range: dm_get_k_range,
         update_data: dm_update_data,
         clear_data: dm_clear_data
     }
