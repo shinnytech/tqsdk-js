@@ -64,7 +64,7 @@ var WS_URL = "ws://127.0.0.1:7777/";
                 socket.onNext('{"aid":"peek_message"}');
             },
             function(e) {
-                // console.error('error: %s', e);
+                console.error('error: %s', e);
             },
             function() {
                 console.info('socket has been closed');
