@@ -1,55 +1,323 @@
-var ComListMenu = function(div_id){
-    this.container = $('#'+div_id);
-    this.dom = $('<div></div>').addClass('list-group');
-    this.dom.append($('<div><img width="40" height="40" src="/img/loading.svg"></img></div>').addClass('list-group-item'));
-    this.container.append(this.dom)
-    this.item_doms = {};
+var CMenu = function () {
+    return {
+        sys_dom: null,
+        sys_item_doms: [],
+        sys_datas: [],
+
+        container: null,
+        dom: null,
+        editModal: null,
+        trashModal: null,
+
+        editor: null,
+
+        datas: [],
+        item_doms: {},
+        editing: {},
+        doing: '' // edit / new / copy
+    }
+}();
+
+CMenu.initSysIndicators = function () {
+    CMenu.sys_dom = $('#system-indicators');
+    $.get('/defaults/defaults.json').then(function (response) {
+        var all_promises = [];
+        for (var name in response) {
+            all_promises.push(function (name, memo) {
+                return $.get('/defaults/' + response[name].file_name).then(function (response) {
+                    var item = {
+                        // key: name,
+                        name: name,
+                        memo: memo,
+                        type: 'system',
+                        draft: {
+                            code: response
+                        }
+                    };
+                    CMenu.sys_datas.push(item);
+                });
+            }(response[name].name, response[name].memo));
+        }
+        Promise.all(all_promises).then(function () {
+            for (var i = 0; i < CMenu.sys_datas.length; i++) {
+                var tr = CMenu.getOneSysIndicator(CMenu.sys_datas[i], CMenu.sysSelectCallback, CMenu.copyCallback);
+                CMenu.sys_item_doms.push(tr);
+                CMenu.sys_dom.append(tr);
+            }
+            CMenu.sysSelectCallback(CMenu.sys_item_doms[0][0], CMenu.sys_datas[0]);
+        });
+    });
 }
 
-ComListMenu.prototype.init = function(list){
-    this.dom.empty();
-    for(var i=0; i<list.length; i++){
-        this.item_doms[list[i]] = $('<a>'+list[i]+'</a>').addClass('list-group-item').attr('href', '#');
-        var that = this;
-        this.item_doms[list[i]].on('click', function(e){
-            for(var k in that.item_doms){
-                console.log(that.item_doms[k][0].classList.remove('active'));
-            }
-            e.target.classList.add('active');
-            that.select(e.target.innerText);
+CMenu.init = function (div_id) {
+    CMenu.initSysIndicators();
+
+    CMenu.container = $('table#' + div_id);
+    CMenu.dom = $('<tbody></tbody>').append($('<div><img width="40" height="40" src="/img/loading.svg"></img></div>'));
+    CMenu.container.append(CMenu.dom);
+
+    CMenu.editModal = $('#EditModal');
+    CMenu.trashModal = $('#TrashModal');
+
+    CMenu.editor = ace.edit('editor');
+    CMenu.editor.$blockScrolling = Infinity;
+    CMenu.editor.getSession().on('changeMode', function () {
+        CMenu.editor.getSession().$worker.send("changeOptions", [{undef: true, loopfunc: true}]);
+    });
+    CMenu.editor.getSession().setMode("ace/mode/javascript");
+
+    IStore.init().then(function (s) {
+        IStore.getAll().then(function (list) {
+            // 显示UI
+            CMenu.datas = list;
+            CMenu.dom.empty();
+            CMenu.updateUI();
+        }, function (e) {
+            console.log(e);
         });
-        this.dom.append(this.item_doms[list[i]]);
+    });
+}
+
+CMenu.addAction = function () {
+    CMenu.doing = 'new';
+    CMenu.editModal.find('#indicator-name').val('');
+    CMenu.editModal.find('#indicator-memo').val('');
+    CMenu.editModal.modal('show');
+}
+
+CMenu.copyCallback = function (tr, data) {
+    CMenu.doing = 'copy';
+    CMenu.editModal.find('#indicator-name').val(data.name);
+    CMenu.editModal.find('#indicator-memo').val(data.memo);
+    CMenu.editModal.attr('data_code', data.draft.code);
+    CMenu.editModal.modal('show');
+}
+
+CMenu.editIndicator = function (e) {
+    var name = $('#indicator-name').val();
+    var memo = $('#indicator-memo').val();
+    if (CMenu.doing == 'new') {
+        IStore.add({
+            name: name,
+            memo: memo,
+        }).then(function (i) {
+            CMenu.update();
+            CMenu.editModal.modal('hide');
+        }, function (e) {
+            if (e == 'ConstraintError') {
+                alert('指标名称重复')
+            } else {
+                alert(e);
+            }
+        });
+    } if (CMenu.doing == 'copy') {
+        IStore.add({
+            name: name,
+            memo: memo,
+            draft:{
+                code: CMenu.editModal.attr('data_code')
+            }
+        }).then(function (i) {
+            CMenu.update();
+            CMenu.editModal.modal('hide');
+        }, function (e) {
+            if (e == 'ConstraintError') {
+                alert('指标名称重复')
+            } else {
+                alert(e);
+            }
+        });
+    }  else {
+        IStore.saveDraft({
+            key: CMenu.editing.key,
+            name: name,
+            memo: memo,
+        }).then(function (i) {
+            CMenu.update();
+            CMenu.editModal.modal('hide');
+        }, function (e) {
+            if (e == 'ConstraintError') {
+                alert('指标名称重复')
+            } else {
+                alert(e);
+            }
+        });
     }
-    return list[0];
-};
+}
 
+CMenu.trashIndicator = function (e) {
+    CMenu.item_doms[CMenu.editing.key].remove();
+    delete CMenu.item_doms[CMenu.editing.key];
+    IStore.remove(CMenu.editing.key).then(function (i) {
+        CMenu.update();
+        CMenu.trashModal.modal('hide');
+    }, function (e) {
+        if (e == 'ConstraintError') {
+            alert('指标名称重复')
+        } else {
+            alert(e);
+        }
+    });
+}
 
-ComListMenu.prototype.on = function(event_name, func){
-    this[event_name] = func;
-};
+CMenu.saveDraftIndicator = function (e) {
+    IStore.saveDraft({
+        key: CMenu.editing.key,
+        name: CMenu.editing.name,
+        memo: CMenu.editing.memo,
+        draft: {
+            code: CMenu.editor.getValue()
+        }
+    }).then(function (result) {
+        CMenu.editing = result;
+        console.log('saved');
+    }, function (e) {
+        alert(e);
+    });
+}
 
-//
-// var list_menu = document.getElementById('list_menu');//$('#');
-// var list_items = list_menu.getElementsByTagName('a');
-//
-// Rx.Observable.fromEvent(list_menu, 'click')
-// // .throttleTime(1000)
-// // .scan(count => count + 1, 0)
-//     .subscribe(function($event){
-//         for(var i=0; i<list_items.length; i++){
-//             list_items[i].classList.remove('active');
-//         }
-//         $event.target.classList.add('active');
-//
-//         var indicator = $event.target.outerText;
-//         console.log(indicator)
-//         editor.setValue(localStorage.getItem(indicator));
-//     });
+CMenu.saveFinalIndicator = function (e) {
+    IStore.saveFinal({
+        key: CMenu.editing.key,
+        name: CMenu.editing.name,
+        memo: CMenu.editing.memo,
+        draft: {
+            code: CMenu.editor.getValue()
+        }
+    }).then(function (result) {
+        CMenu.editing = result;
+        // todo: generate indicator class
+        console.log('saved && generate indicator class');
+    }, function (e) {
+        alert(e);
+    });
+}
 
+CMenu.resetIndicator = function (e) {
+    IStore.reset(CMenu.editing.key).then(function (result) {
+        CMenu.editing = result;
+        CMenu.editor.setValue(result.draft.code, 1);
+    });
+}
 
-// <ul class="list-group"  id="list_menu">
-//     <a href="#" class="list-group-item active">MA5</a>
-//     <a href="#" class="list-group-item">MA10</a>
-//     <a href="#" class="list-group-item">MACD</a>
-//     <a href="#" class="list-group-item">KDJ</a>
-//     </ul>
+CMenu.selectCallback = function (tr, key) {
+    $('#btn_editor_save').attr('disabled', false);
+    $('#btn_editor_run').attr('disabled', false);
+    $('#btn_editor_reset').attr('disabled', false);
+
+    for (var k in CMenu.item_doms) {
+        CMenu.item_doms[k][0].classList.remove('active');
+    }
+    for (var k in CMenu.sys_item_doms) {
+        CMenu.sys_item_doms[k][0].classList.remove('active');
+    }
+    tr.classList.add('active');
+
+    IStore.getByKey(key).then(function (result) {
+        CMenu.editing = result;
+        CMenu.editor.setValue(result.draft.code, 1);
+        CMenu.editor.setReadOnly(false);
+    });
+}
+
+CMenu.editCallback = function (tr, key) {
+    CMenu.doing = 'edit';
+    IStore.getByKey(key).then(function (result) {
+        CMenu.editModal.find('#indicator-name').val(result.name);
+        CMenu.editModal.find('#indicator-memo').val(result.memo);
+        CMenu.editModal.modal('show');
+    });
+}
+
+CMenu.trashCallback = function (tr, key) {
+    CMenu.doing = 'edit';
+    IStore.getByKey(key).then(function (result) {
+        CMenu.trashModal.find('#trash-indicator-name').text(result.name);
+        CMenu.trashModal.modal('show');
+    });
+}
+
+CMenu.update = function () {
+    IStore.getAll().then(function (list) {
+        CMenu.datas = list;
+        CMenu.updateUI();
+    }, function (e) {
+        console.log(e);
+    });
+}
+
+CMenu.updateUI = function () {
+    for (var i = 0; i < CMenu.datas.length; i++) {
+        var indicator = CMenu.datas[i];
+        if (!CMenu.item_doms[indicator.key]) {
+            CMenu.item_doms[indicator.key] = CMenu.getOneIndicator(indicator, CMenu.selectCallback, CMenu.editCallback, CMenu.trashCallback);
+            CMenu.dom.append(CMenu.item_doms[indicator.key]);
+        } else {
+            CMenu.item_doms[indicator.key].find('td:first').text(indicator.name);
+        }
+    }
+}
+
+CMenu.getBtn = function (type) {
+    var btn = $('<span class="glyphicon glyphicon-' + type + '"></span>')
+    return ($('<td width="10%"></td>').append(btn));
+}
+
+CMenu.getTdName = function (data) {
+    return $('<td>' + data.name + '</td>');
+}
+
+CMenu.getOneIndicator = function (data, selectCallback, editCallback, trashCallback) {
+    var tr = $('<tr></tr>');
+    tr.on('click', function (e) {
+        var tr = e.target.parentElement;
+        if (e.target.parentElement.parentElement.nodeName == 'TR') {
+            tr = e.target.parentElement.parentElement;
+        }
+        selectCallback(tr, data.key);
+    });
+    tr.append($('<td width="80%">' + data.name + '</td>'));
+    var edit_btn = CMenu.getBtn('edit');
+    edit_btn.on('click', function (e) {
+        editCallback(tr, data.key);
+    });
+    var trash_btn = CMenu.getBtn('trash');
+    trash_btn.on('click', function (e) {
+        trashCallback(tr, data.key);
+    });
+    return tr.append(edit_btn).append(trash_btn);
+}
+
+CMenu.sysSelectCallback = function (tr, data) {
+    $('#btn_editor_save').attr('disabled', true);
+    $('#btn_editor_run').attr('disabled', true);
+    $('#btn_editor_reset').attr('disabled', true);
+
+    for (var k in CMenu.item_doms) {
+        CMenu.item_doms[k][0].classList.remove('active');
+    }
+    for (var k in CMenu.sys_item_doms) {
+        CMenu.sys_item_doms[k][0].classList.remove('active');
+    }
+    tr.classList.add('active');
+    CMenu.editing = data;
+    CMenu.editor.setValue(data.draft.code, 1);
+    CMenu.editor.setReadOnly(true);
+}
+
+CMenu.getOneSysIndicator = function (data, selectCallback, copyCallback, trashCallback) {
+    var tr = $('<tr></tr>');
+    tr.on('click', function (e) {
+        var tr = e.target.parentElement;
+        if (e.target.parentElement.parentElement.nodeName == 'TR') {
+            tr = e.target.parentElement.parentElement;
+        }
+        selectCallback(tr, data);
+    });
+    tr.append($('<td colspan="2">' + data.name + '</td>'));
+    var copy_btn = CMenu.getBtn('duplicate');
+    copy_btn.on('click', function (e) {
+        copyCallback(tr, data);
+    });
+    return tr.append(copy_btn);
+}

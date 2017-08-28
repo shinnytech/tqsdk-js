@@ -1,0 +1,3 @@
+
+C.IN("CLOSE").setMemo("this is close");
+C.OUT("BR", C.IN("CLOSE")(C.P) + C.PARAM("N")).setColor(123).setWidth(4);
