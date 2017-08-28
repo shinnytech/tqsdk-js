@@ -1,0 +1,4 @@
+
+var h = C.IN("HIGH")(C.P);
+var n = C.PARAM("N");
+C.OUT("BR", C.IN("HIGH")(C.P) + C.PARAM("N"));

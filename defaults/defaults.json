@@ -1,0 +1,12 @@
+{
+  "MA": {
+    "name": "MA",
+    "memo": "MAMAMAMAMA",
+    "file_name": "ma.txt"
+  },
+  "MACD": {
+    "name": "MACD",
+    "memo": "MACDMACDMACD",
+    "file_name": "macd.txt"
+  }
+}
