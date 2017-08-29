@@ -9,36 +9,41 @@ body {
     padding-top: 70px;
 }
 
-.main-container{
+table.table {
+    word-break: break-all;
+    word-wrap: break-word;
+}
+
+.main-container {
     min-width: 800px;
     margin: 0px 20px;
 }
 
-.btn-toolbar{
+.btn-toolbar {
     padding-bottom: 10px;
 }
 
-.left-menu{
+.left-menu {
     padding-left: 0px;
 }
 
-.editor-container{
+.editor-container {
     height: 400px;
     width: 100%;
     border: 1px solid #eee;
 }
 
-#editor{
+#editor {
     width: 100%;
     height: 100%;
 }
 
-#result{
+#result {
     width: 100%;
     height: 100%;
 }
 
-.col{
+.col {
     /*padding: 20px;*/
     /*border: #2ECC40 1px solid;*/
 }
