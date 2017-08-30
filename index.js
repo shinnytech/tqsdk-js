@@ -1,6 +1,6 @@
 $(function () {
-    // //连接到主进程
-    // WS.init();
+    //连接到主进程
+    WS.init();
 
     // init 指标类
     CMenu.init('list_menu');
@@ -17,6 +17,11 @@ $(function () {
         // todo: generate indicator class
         var code = CMenu.editor.getSession().getValue();
         CMenu.saveFinalIndicator();
+        var func_name = CMenu.editing.name;
+        func_code = func_name + "= function(){" + code + "};";
+        eval(func_code);
+        var func = window[func_name];
+        TM.update_class_define(func);
     });
 
     $('#edit-btn').on('click', CMenu.editIndicator);

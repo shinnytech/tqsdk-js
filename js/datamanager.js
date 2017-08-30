@@ -134,8 +134,7 @@
             return NaN;
         }
         d = d[data_id];
-        if (d === undefined){
-            console.log("4");
+        if (d === undefined || d === null){
             return NaN;
         }
         d = d[serial_selector];
@@ -159,7 +158,12 @@
             console.log("dm_get_k_range.2" + dur_id);
             return undefined;
         }
-        var sorted_keys = Object.keys(d["data"]).sort();
+        d = d.data;
+        if (d === undefined){
+            console.log("dm_get_k_range.3");
+            return undefined;
+        }
+        var sorted_keys = Object.keys(d).sort();
         return [sorted_keys[0], sorted_keys[sorted_keys.length - 1]];
     }
     function dm_clear_data() {

@@ -36,7 +36,7 @@ var WS_URL = "ws://127.0.0.1:7777/";
             closingObserver);
         socket.subscribe(
             function(e) {
-                console.log("ws_get:" + e.data);
+                // console.log("ws_get:" + e.data);
                 decoded = JSON.parse(e.data, function (key, value) {
                     return value === "NaN"  ? NaN : value;
                 });
@@ -75,7 +75,7 @@ var WS_URL = "ws://127.0.0.1:7777/";
     {
         var s = JSON.stringify(obj);
         socket.onNext(s);
-        console.log("ws_send:"+s);
+        // console.log("ws_send:"+s);
     }
     this.WS = {
         init: initWebsocket,
