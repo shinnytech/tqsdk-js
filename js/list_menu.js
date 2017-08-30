@@ -14,9 +14,14 @@ var CMenu = function () {
         datas: [],
         item_doms: {},
         editing: {},
-        doing: '' // edit / new / copy
+        doing: '', // edit / new / copy
+
+        regExp: /^[a-zA-Z\_\$][0-9a-zA-Z\_\$]*$/
     }
 }();
+
+// [a-zA-Z\_\$][0-9a-zA-Z\_\$]* 可以匹配由字母或下划线、$开头，后接任意个由一个数字、字母或者下划线、$组成的字符串，也就是JavaScript允许的变量名
+// [a-zA-Z\_\$][0-9a-zA-Z\_\$]{0, 19} 限制了变量的长度是1-20个字符
 
 CMenu.initSysIndicators = function () {
     CMenu.sys_dom = $('#system-indicators');
@@ -96,6 +101,11 @@ CMenu.copyCallback = function (tr, data) {
 CMenu.editIndicator = function (e) {
     var name = $('#indicator-name').val();
     var memo = $('#indicator-memo').val();
+    if (!CMenu.regExp.test(name)) {
+        alert('指标名称应符合 JavaScript 变量名命名规则。\n 第一个字符必须是字母、下划线（_）或美元符号（$）\n' +
+            '余下的字符可以是下划线（_）、美元符号（$）或任何字母或数字字符');
+        return;
+    }
     if (CMenu.doing == 'new') {
         IStore.add({
             name: name,
@@ -110,11 +120,12 @@ CMenu.editIndicator = function (e) {
                 alert(e);
             }
         });
-    } if (CMenu.doing == 'copy') {
+    }
+    if (CMenu.doing == 'copy') {
         IStore.add({
             name: name,
             memo: memo,
-            draft:{
+            draft: {
                 code: CMenu.editModal.attr('data_code')
             }
         }).then(function (i) {
@@ -127,7 +138,7 @@ CMenu.editIndicator = function (e) {
                 alert(e);
             }
         });
-    }  else {
+    } else {
         IStore.saveDraft({
             key: CMenu.editing.key,
             name: name,
