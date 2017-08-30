@@ -1,160 +1,108 @@
-// ---------------------------------------------------------------------------
-function ma(C) {
-    var h = C.IN("HIGH")(C.P);
-    var n = C.PARAM("N");
-    C.OUT("BR", C.IN("HIGH")(C.P) + C.PARAM("N"));
-};
-function macd(C) {
-    C.IN("CLOSE").setMemo("this is close");
-    C.OUT("BR", C.IN("CLOSE")(C.P) + C.PARAM("N")).setColor(123).setWidth(4);
-};
-var ta_funcs = [ma, macd];
-// ---------------------------------------------------------------------------
+//所有位置都使用同一个AUTO定义
+const DEFAULT = 0xFFFFFFFF;
 
-function ParamDefine(name){
-    var f = function(){return 123};
-    f.sname = name;
-    f.memo = "";
-    f.default_value = NaN;
-    f.min_value = NaN;
-    f.max_value = NaN;
-    f.setMemo = function(memo){
-        f.memo = memo;
-        return f;
-    };
-    f.setDefault = function(default_value){
-        f.default_value = default_value;
-        return f;
-    };
-    f.setMin = function(min_value){
-        f.min_value = min_value;
-        return f;
-    };
-    f.setMax = function(max_value){
-        f.max_value = max_value;
-        return f;
-    };
+//绘图类型
+const LINE = 0x00000001;
+const DOT = 0x00000002;
+const HISTRO = 0x00000003;
+const DOT_LINE = 0x00000004;
+const BAR = 0x00000005;
+const KLINE = 0x00000006;
+
+//颜色定义
+function RGB(r, g, b)
+{
+    return r | (g << 8) | (b << 16);
+}
+const RED = RGB(0xFF, 0, 0);
+const GREEN = RGB(0, 0xFF, 0);
+const BLUE = RGB(0, 0, 0xFF);
+
+//指标类型定义
+const IKLINE = 0x00000001;
+const ITICK = 0x00000002;
+const IMAIN = 0x10000000; //必须使用主图
+const ISUB = 0x20000000; //必须使用主图
+
+const RANGE_MINMAX = 0x00100000; //Y轴应该按关联数据的最小最大值确定范围
+const RANGE_ZEROMAX = 0x00200000; //Y轴应该按关联数据的0 - 最大值确定范围
+const RANGE_SYMMETRY = 0x00400000; //Y轴应该以特定值为中轴对称(中值需要指定)
+const RANGE_ZERO_SYMMETRY = 0x00800000; //Y轴应该以0为中轴对称
+
+const DT_PRICE = 0x00000001;	//Y轴表示的是价格，小数位数由图表主合约决定
+const DT_FLOAT1 = 0x00000008;	//Y轴表示的是1位小数的float
+
+const YAXIS_DEFAULT = IMAIN | DT_FLOAT1 | RANGE_MINMAX;
+
+
+
+function MA(serial, n){
+    var f = function(p){
+        var s = 0;
+        for(var i=p-n+1; i<=p; i++){
+            s += serial(i);
+        }
+        return s/n;
+    }
+    f.valueOf = function(){
+        return this(P);
+    }
+    return f;
+}
+EMA = MA;
+
+function SUB(fa, fb){
+    var f = (p) => fa(p) - fb(p);
+    f.valueOf = function(){
+        return this(P);
+    }
     return f;
 }
 
-function InputSerialDefine(name) {
-    var f = function(){return 123};
-    f.sname = name;
-    f.memo = "";
-    f.selector = name;
-    f.setMemo = function(memo){
-        f.memo = memo;
-        return f;
-    };
-    return f;
+// ---------------------------------------------------------------------------
+function ma() {
+    DEFINE({TYPE: IKLINE, YAXIS: YAXIS_DEFAULT});
+    var n = PARAM(10, "N");
+    var v = MA(SERIAL("close"), n);
+    OUT_LINE(v, "ma", {COLOR: RED, WIDTH: 3});
 };
 
-function OutputSerialDefine(name) {
-    var f = function(){return 123};
-    f.sname = name;
-    f.memo = "";
-    f.style = 1;
-    f.color = 0;
-    f.width = 1;
-    f.yaxis = 0;
-    f.setMemo = function(memo){
-        f.memo = memo;
-        return f;
-    };
-    f.setStyle = function(style){
-        f.style = style;
-        return f;
-    };
-    f.setColor = function(color){
-        f.color = color;
-        return f;
-    };
-    f.setWidth = function(width){
-        f.width = width;
-        return f;
-    };
-    f.setAxis = function(axis){
-        f.axis = axis;
-        return f;
-    };
-    return f;
-};
+function macd() {
+    // DIFF : EMA(CLOSE,SHORT) - EMA(CLOSE,LONG);//短周期与长周期的收盘价的指数平滑移动平均值做差。
+    // DEA  : EMA(DIFF,M);//DIFF的M个周期指数平滑移动平均
+    // 2*(DIFF-DEA),COLORSTICK;//DIFF减DEA的2倍画柱状线
+    DEFINE({TYPE: IKLINE, YAXIS: YAXIS_DEFAULT});
+    //输入
+    var vshort = PARAM(20, "SHORT", {MIN: 5, STEP: 5});
+    var vlong = PARAM(35, "LONG", {MIN: 5, STEP: 5});
+    var vm = PARAM(10, "M", {MIN: 5, STEP: 5});
+    //计算
+    var sclose = SERIAL("CLOSE");
+    var diff = SUB(EMA(sclose, vshort), EMA(sclose, vlong));
+    var dea = EMA(diff, vm);
+    var bar = 2*(diff - dea);
+    //输出
+    OUT_LINE(diff, "diff", {COLOR: RED});
+    OUT_LINE(dea, "dea", {COLOR: BLUE, WIDTH: 2});
+    OUT_BAR(bar, "bar", {COLOR: RED});
+}
 
+var ta_funcs = [ma, macd];
+// ---------------------------------------------------------------------------
 
 var ta_instance_map = {};
 var ta_class_map = {};
 
 (function () {
-
     function tm_init() {
-        //todo: 初始化
         //更新所有指标类定义, 并发送到主进程
         for (var i = 0; i < ta_funcs.length; i++) {
             var f = ta_funcs[i];
             tm_update_class_define(f);
         }
-        // ta_instance_map[1] = {
-        //     "ta_class_name": "ma",
-        //     "instance_id": 1,
-        //     "epoch": 3,
-        //     "ins_id": "IF1709",
-        //     "dur_nano": 3600000000000,
-        //     "params": {
-        //         //user params
-        //         "N": 3123,
-        //     },
-        //     "input_serials": {
-        //         "HIGH":{
-        //             "ins_id": "IF1709",
-        //             "serial_id": "high"
-        //         },
-        //         "LOW":{
-        //             "ins_id": "IF1709",
-        //             "serial_id": "low"
-        //         },
-        //         "CLOSE":{
-        //             "ins_id": "IF1709",
-        //             "serial_id": "close"
-        //         }
-        //     },
-        // };
     }
 
     function tm_get_indicator_class_list() {
-        /*
-        //todo: 提取所有指标类的描述信息
-            每个指标发送以下包:
-            {
-              aid: register_indicator,
-              register_indicator: {
-                name: "MACD",
-                memo: "this is macd",
-                params: [
-                    {
-                       "name": "M",
-                       "default_value": 3023,
-                       "min_value": 2302,
-                       "memo": "this is M",
-                    },
-                ],
-                input_serials: [
-                    {
-                        "selector": "OPEN.cu1703",
-                        "reassign": 0,
-                        "memo": "this is M",
-                    },
-                ],
-                output_serials: [
-                    {
-                        "name": "diff",
-                        "yaxis": 0,
-                        "style": "LINE",
-                        "width": 3,
-                        "color": "AUTO",
-                    }
-                ],
-            }
-        */
     }
 
     function tm_update_class_define(ta_func){
@@ -163,66 +111,40 @@ var ta_class_map = {};
         var params = new Map();
         var input_serials = new Map();
         var output_serials = new Map();
-        var context_define = {
-            "P": 0,
-            "PARAM": function (param_name) {
-                var param_define = params.get(param_name);
-                if(param_define === undefined){
-                    param_define = ParamDefine(param_name);
-                    params.set(param_name, param_define);
-                }
-                return param_define;
-            },
-            "IN": function (serial_selector) {
-                var input_serial_define = input_serials.get(serial_selector);
-                if(input_serial_define === undefined){
-                    input_serial_define = InputSerialDefine(serial_selector);
-                    input_serials.set(serial_selector, input_serial_define);
-                }
-                return input_serial_define;
-            },
-            "OUT": function(serial_name, value){
-                var output_serial_define = output_serials.get(serial_name);
-                if(output_serial_define === undefined){
-                    output_serial_define = OutputSerialDefine(serial_name);
-                    output_serials.set(serial_name, output_serial_define);
-                }
-                return output_serial_define;
-            },
-        }
-        ta_func(context_define);
-        //指标信息格式整理
+        //在global环境中准备全部的系统函数
         ta_class_define = {
             "name": indicator_name,
             "params": [],
-            "input_serials": [],
-            "output_serials": [],
         };
+        DEFINE = function (options){
+            ta_class_define.type = options.TYPE;
+            ta_class_define.yaxis = options.YAXIS;
+        }
+        PARAM = function (param_default_value, param_name, options) {
+            var param_define = params.get(param_name);
+            if(param_define === undefined){
+                param_define = {
+                    "name": param_name,
+                    "default": param_default_value,
+                };
+                if (!(options === undefined)){
+                    param_define.memo = options.MEMO;
+                    param_define.min = options.MIN;
+                    param_define.max = options.MAX;
+                    param_define.step = options.STEP;
+                }
+                params.set(param_name, param_define);
+            }
+            return param_define;
+        };
+        SERIAL = function(selector){};
+        OUT_LINE = function(){};
+        OUT_BAR = function(){};
+        P = 0;
+        ta_func();
+        //指标信息格式整理
         params.forEach(function(value, key) {
-            ta_class_define["params"].push({
-                "name": value["sname"],
-                "memo": value["memo"],
-                "default_value": value["default_value"],
-                "min_value": value["min_value"],
-                "max_value": value["max_value"],
-            })
-        });
-        input_serials.forEach(function(value, key) {
-            ta_class_define["input_serials"].push({
-                "name": value["sname"],
-                "memo": value["memo"],
-                "selector": value["selector"],
-            })
-        });
-        output_serials.forEach(function(value, key) {
-            ta_class_define["output_serials"].push({
-                "name": value["sname"],
-                "memo": value["memo"],
-                "style": value["style"],
-                "color": value["color"],
-                "width": value["width"],
-                "yaxis": value["yaxis"],
-            })
+            ta_class_define["params"].push(value)
         });
         ta_class_map[indicator_name] = ta_class_define;
         //发送指标类信息到主进程
@@ -250,9 +172,9 @@ var ta_class_map = {};
         return instance.params[param_name];
     }
     function get_input_serial_func(instance, serial_selector){
-        var d = instance.input_serials[serial_selector];
         return function (P) {
-            return DM.get_kdata(d.ins_id, instance.dur_nano, P, d.serial_id);
+            //@todo: 现在serial_selector只支持简单格式
+            return DM.get_kdata(instance.ins_id, instance.dur_nano, P, serial_selector);
         }
     }
     function recalcInstance(ta_instance) {
@@ -261,37 +183,67 @@ var ta_class_map = {};
             if (xrange === undefined)
                 return;
             var [data_left, data_right] = xrange;
-            context_calc = {
-                "P": 0,
-                "IN": function (serial_selector) {
-                    return get_input_serial_func(ta_instance, serial_selector);
-                },
-                "OUT": function(serial_name, value){
-                    context_calc.out_values[context_calc.P] = context_calc.out_values[context_calc.P] || {};
-                    context_calc.out_values[context_calc.P][serial_name] = value;
-                },
-                "PARAM": function (param_name) {
-                    return get_instance_param_value(ta_instance, param_name);
-                },
-                "out_values": {}
-            }
+            //准备计算环境
+            out_values = {};
+            P = 0;
+            PARAM = function (param_default_value, param_name) {
+                return get_instance_param_value(ta_instance, param_name);
+            };
+            SERIAL = function (serial_selector) {
+                return get_input_serial_func(ta_instance, serial_selector.toLowerCase());
+            };
+            var outSerial = function (style, serial_name, options){
+                out_values[serial_name] = out_values[serial_name] || {};
+                var serial = out_values[serial_name];
+                if (serial.style === undefined){
+                    serial.values = {};
+                    serial.style = style;
+                    serial.width = 1;
+                    serial.color = RGB(0xFF, 0x00, 0x00);
+                    serial.yaxis = YAXIS_DEFAULT;
+                    if(options != undefined){
+                        if ('WIDTH' in options)
+                            serial.width = options["WIDTH"];
+                        if ('COLOR' in options)
+                            serial.color = options["COLOR"];
+                        if ('YAXIS' in options)
+                            serial.yflags = options["YAXIS"];
+                        if ('MEMO' in options)
+                            serial.memo = options["MEMO"];
+                    }
+                }
+                //@todo: options
+                return serial;
+            };
+            OUT_LINE = function(value, serial_name, options){
+                var serial = outSerial(LINE, serial_name, options);
+                serial.values[P] = [value.valueOf()];
+            };
+            OUT_BAR = function(value, serial_name, options){
+                var serial = outSerial(BAR, serial_name, options);
+                serial.values[P] = [value.valueOf()];
+            };
+            OUT_KLINE = function (vo, vh, vl, vc, serial_name, options){
+                var serial = outSerial(KLINE, serial_name, options);
+                serial.values[P] = [vo.valueOf(), vh.valueOf(), vl.valueOf(), vc.valueOf()];
+            };
             console.log("data_left" + data_left);
             console.log("data_right" + data_right);
             //@todo: 这里目前是对整个序列全部重算，后续需要优化(已经计算过，且原始数据未改变的不用重算；只计算可见窗口附近的数据)
             var func = window[ta_instance.ta_class_name];
             for (var i = data_left; i <= data_right; i++) {
                 // console.log("calc:" + i);
-                context_calc["P"] = i;
-                func(context_calc);
+                P = i;
+                func();
             }
-            console.log("finish" + context_calc.out_values);
+            // console.log("finish" + out_values);
             //将计算结果发给主进程
             var pack = {
                 "aid": "set_indicator_data",
                 "set_indicator_data": [{
                     instance_id: ta_instance.instance_id,
                     epoch: ta_instance.epoch,
-                    points: context_calc.out_values
+                    serials: out_values
                 }]
             }
             WS.sendJson(pack);
@@ -302,7 +254,7 @@ var ta_class_map = {};
     }
 
     function tm_set_indicator_instance(instance_pack){
-        var instance_id = instance_pack.id;
+        var instance_id = instance_pack.instance_id;
         instance_pack.func = window[instance_pack.ta_class_name];
         ta_instance_map[instance_id] = instance_pack;
         recalcInstance(instance_pack);
@@ -310,6 +262,7 @@ var ta_class_map = {};
 
     this.TM = {
         init: tm_init,
+        update_class_define: tm_update_class_define,
         get_indicator_class_list: tm_get_indicator_class_list,
         set_indicator_class_list: tm_set_indicator_class_list,
         recalc_indicators: tm_recalc_indicators,

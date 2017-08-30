@@ -134,8 +134,7 @@
             return NaN;
         }
         d = d[data_id];
-        if (d === undefined){
-            console.log("4");
+        if (d === undefined || d === null){
             return NaN;
         }
         d = d[serial_selector];
