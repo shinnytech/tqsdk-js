@@ -67,7 +67,7 @@ CMenu.init = function (div_id) {
     CMenu.editor = ace.edit('editor');
     CMenu.editor.$blockScrolling = Infinity;
     CMenu.editor.getSession().on('changeMode', function () {
-        CMenu.editor.getSession().$worker.send("changeOptions", [{undef: true, loopfunc: true}]);
+        CMenu.editor.getSession().$worker.send("changeOptions", [{loopfunc: true}]);
     });
     CMenu.editor.getSession().setMode("ace/mode/javascript");
 
@@ -75,6 +75,8 @@ CMenu.init = function (div_id) {
         IStore.getAll().then(function (list) {
             // 显示UI
             CMenu.datas = list;
+            //初始化指标类
+            TM.init();
             CMenu.dom.empty();
             CMenu.updateUI();
         }, function (e) {

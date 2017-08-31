@@ -1,11 +1,11 @@
 {
-  "MA": {
-    "name": "MA",
+  "DEFAULT_MA": {
+    "name": "DEFAULT_MA",
     "memo": "MAMAMAMAMA",
     "file_name": "ma.txt"
   },
-  "MACD": {
-    "name": "MACD",
+  "DEFAULT_MACD": {
+    "name": "DEFAULT_MACD",
     "memo": "MACDMACDMACD",
     "file_name": "macd.txt"
   }
