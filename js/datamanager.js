@@ -35,8 +35,14 @@ var DM = function () {
         if (diff.klines) {
             for (var key in diff.klines) {
                 for (var dur in diff.klines[key]) {
-                    var p = key + '.' + dur;
-                    set_invalid(p);
+                    for(var data_id in diff.klines[key][dur].data){
+
+                        for(var serial_selector in diff.klines[key][dur].data[data_id]){
+                            var p = key + '.' + dur + '.' + serial_selector;
+
+                            set_invalid(p);
+                        }
+                    }
                 }
             }
         }
@@ -58,10 +64,12 @@ var DM = function () {
         if (!DM.instances_map[instance_id]) {
             DM.instances_map[instance_id] = {
                 rel: [],
-                invalid: false
+                invalid: false,
+                left_id: -1,
+                right_id: -1
             }
         }
-        var path = ins_id + '.' + dur_id;
+        var path = ins_id + '.' + dur_id + '.' + serial_selector;
         if (DM.instances_map[instance_id]['rel'].indexOf(path) == -1) {
             DM.instances_map[instance_id]['rel'].push(path);
         }
@@ -76,14 +84,46 @@ var DM = function () {
         }
     }
 
-    function dm_get_k_range(ins_id, dur_id) {
+    function dm_get_k_range(ins_id, dur_id, instance_id) {
+        console.log('dm_get_k_range')
+        // 记录实例依赖关系
+        if (!DM.instances_map[instance_id]) {
+            DM.instances_map[instance_id] = {
+                rel: [],
+                invalid: false,
+                left_id: undefined,
+                right_id: undefined
+            }
+        }
+        // 返回数据
         var d = DM.datas;
         if (d && d.klines && d.klines[ins_id] && d.klines[ins_id][dur_id] && d.klines[ins_id][dur_id].data) {
             var res = d.klines[ins_id][dur_id].data;
             var sorted_keys = Object.keys(res).sort();
-            return [sorted_keys[0], sorted_keys[sorted_keys.length - 1]];
+            if (DM.instances_map[instance_id].left_id == undefined || DM.instances_map[instance_id].right_id == undefined){
+                DM.instances_map[instance_id].left_id = sorted_keys[0];
+            }else{
+                DM.instances_map[instance_id].left_id = DM.instances_map[instance_id].right_id;
+            }
+            DM.instances_map[instance_id].right_id = sorted_keys[sorted_keys.length - 1];
+            return [DM.instances_map[instance_id].left_id, DM.instances_map[instance_id].right_id];
         } else {
             return undefined;
+        }
+    }
+
+    function dm_reset_kdata_range(instance_id){
+        if (!DM.instances_map[instance_id]) {
+            DM.instances_map[instance_id] = {
+                rel: [],
+                invalid: false,
+                left_id: undefined,
+                right_id: undefined
+            }
+        }else{
+            // reset_kdata_range
+            DM.instances_map[instance_id].left_id = undefined;
+            DM.instances_map[instance_id].right_id = undefined;
         }
     }
 
@@ -98,6 +138,7 @@ var DM = function () {
         datas: {},
         get_kdata: dm_get_kdata,
         get_kdata_range: dm_get_k_range,
+        reset_indicator_instance: dm_reset_kdata_range,
         update_data: dm_update_data,
         clear_data: dm_clear_data
     }
