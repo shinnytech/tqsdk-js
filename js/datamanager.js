@@ -27,27 +27,52 @@ var DM = function () {
         }
     }
 
+    function set_invalid_by_prefix(perfix, diff) {
+        for (var instance_id in DM.instances_map) {
+            var instance = DM.instances_map[instance_id];
+            if (!instance.invalid) {
+                for (var i = 0; i < instance.rel.length; i++) {
+                    if (instance.rel[i].includes(perfix)) {
+                        var list = instance.rel[i].split('.');
+                        var serial_selector = list.pop();
+                        var dur_id = list.pop();
+                        var ins_id = list.pop();
+                        for (var data_id in diff.klines[ins_id][dur_id].data) {
+                            if (data_id > instance.right_id) {
+                                instance.invalid = true;
+                                break;
+                            } else {
+                                var old_d = DM.datas.klines[ins_id][dur_id].data[data_id][serial_selector];
+                                var new_d = diff.klines[ins_id][dur_id].data[data_id][serial_selector];
+
+                                instance.invalid = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (instance.invalid) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     function dm_update_data(diff) {
-        // 将 diff 中所有数据更新到 datas 中
-        merge_object(DM.datas, diff);
         // 将 diff 中所有数据涉及的 instance 设置 invalid 标志
         // 只检查了 klines ins_id dur_id 里的数据
         if (diff.klines) {
             for (var key in diff.klines) {
                 for (var dur in diff.klines[key]) {
-                    for(var data_id in diff.klines[key][dur].data){
-
-                        for(var serial_selector in diff.klines[key][dur].data[data_id]){
-                            var p = key + '.' + dur + '.' + serial_selector;
-
-                            set_invalid(p);
-                        }
-                    }
+                    var perfix = key + '.' + dur;
+                    set_invalid_by_prefix(perfix, diff);
                 }
             }
+            // 重新计算 instance
+            dm_recalculate();
         }
-        // 重新计算 instance
-        dm_recalculate();
+        // 将 diff 中所有数据更新到 datas 中
+        merge_object(DM.datas, diff);
     }
 
     function dm_recalculate() {
@@ -65,8 +90,8 @@ var DM = function () {
             DM.instances_map[instance_id] = {
                 rel: [],
                 invalid: false,
-                left_id: -1,
-                right_id: -1
+                left_id: undefined,
+                right_id: undefined
             }
         }
         var path = ins_id + '.' + dur_id + '.' + serial_selector;
@@ -100,9 +125,9 @@ var DM = function () {
         if (d && d.klines && d.klines[ins_id] && d.klines[ins_id][dur_id] && d.klines[ins_id][dur_id].data) {
             var res = d.klines[ins_id][dur_id].data;
             var sorted_keys = Object.keys(res).sort();
-            if (DM.instances_map[instance_id].left_id == undefined || DM.instances_map[instance_id].right_id == undefined){
+            if (DM.instances_map[instance_id].left_id == undefined || DM.instances_map[instance_id].right_id == undefined) {
                 DM.instances_map[instance_id].left_id = sorted_keys[0];
-            }else{
+            } else {
                 DM.instances_map[instance_id].left_id = DM.instances_map[instance_id].right_id;
             }
             DM.instances_map[instance_id].right_id = sorted_keys[sorted_keys.length - 1];
@@ -112,7 +137,7 @@ var DM = function () {
         }
     }
 
-    function dm_reset_kdata_range(instance_id){
+    function dm_reset_kdata_range(instance_id) {
         if (!DM.instances_map[instance_id]) {
             DM.instances_map[instance_id] = {
                 rel: [],
@@ -120,7 +145,9 @@ var DM = function () {
                 left_id: undefined,
                 right_id: undefined
             }
-        }else{
+        } else {
+            DM.instances_map[instance_id].rel = [];
+            DM.instances_map[instance_id].invalid= false,
             // reset_kdata_range
             DM.instances_map[instance_id].left_id = undefined;
             DM.instances_map[instance_id].right_id = undefined;
