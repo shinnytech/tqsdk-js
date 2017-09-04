@@ -88,6 +88,9 @@ CMenu.init = function (div_id) {
 CMenu.addAction = function () {
     CMenu.doing = 'new';
     CMenu.editModal.find('#indicator-name').val('');
+    CMenu.editModal.find("#indicator-type-tq").show();
+    CMenu.editModal.find("#indicator-type-wh").show();
+    CMenu.editModal.find("input[name='indicator-type']").eq('0').click();
     CMenu.editModal.find('#indicator-memo').val('');
     CMenu.editModal.modal('show');
 }
@@ -95,6 +98,9 @@ CMenu.addAction = function () {
 CMenu.copyCallback = function (tr, data) {
     CMenu.doing = 'copy';
     CMenu.editModal.find('#indicator-name').val(data.name);
+    CMenu.editModal.find("#indicator-type-tq").show();
+    CMenu.editModal.find("#indicator-type-wh").hide();
+    CMenu.editModal.find("input[name='indicator-type']").eq('0').click();
     CMenu.editModal.find('#indicator-memo').val(data.memo);
     CMenu.editModal.attr('data_code', data.draft.code);
     CMenu.editModal.modal('show');
@@ -102,6 +108,8 @@ CMenu.copyCallback = function (tr, data) {
 
 CMenu.editIndicator = function (e) {
     var name = $('#indicator-name').val();
+    var type = CMenu.editModal.find("input[name='indicator-type']:checked").val();
+    type = type == '0' ? 'custom' : 'custom_wh';
     var memo = $('#indicator-memo').val();
     if (!CMenu.regExp.test(name)) {
         alert('指标名称应符合 JavaScript 变量名命名规则。\n 第一个字符必须是字母、下划线（_）或美元符号（$）\n' +
@@ -111,6 +119,7 @@ CMenu.editIndicator = function (e) {
     if (CMenu.doing == 'new') {
         IStore.add({
             name: name,
+            type: type,
             memo: memo,
         }).then(function (i) {
             CMenu.update();
@@ -126,6 +135,7 @@ CMenu.editIndicator = function (e) {
     if (CMenu.doing == 'copy') {
         IStore.add({
             name: name,
+            type: type,
             memo: memo,
             draft: {
                 code: CMenu.editModal.attr('data_code')
@@ -144,6 +154,7 @@ CMenu.editIndicator = function (e) {
         IStore.saveDraft({
             key: CMenu.editing.key,
             name: name,
+            type: type,
             memo: memo,
         }).then(function (i) {
             CMenu.update();
@@ -237,6 +248,15 @@ CMenu.editCallback = function (tr, key) {
     CMenu.doing = 'edit';
     IStore.getByKey(key).then(function (result) {
         CMenu.editModal.find('#indicator-name').val(result.name);
+        if (result.type == 'custom') {
+            CMenu.editModal.find("#indicator-type-tq").show();
+            CMenu.editModal.find("#indicator-type-wh").hide();
+            CMenu.editModal.find("input[name='indicator-type']").eq('0').click();
+        } else if (result.type == 'custom_wh') {
+            CMenu.editModal.find("#indicator-type-tq").hide();
+            CMenu.editModal.find("#indicator-type-wh").show();
+            CMenu.editModal.find("input[name='indicator-type']").eq('1').click();
+        }
         CMenu.editModal.find('#indicator-memo').val(result.memo);
         CMenu.editModal.modal('show');
     });
@@ -266,7 +286,8 @@ CMenu.updateUI = function () {
             CMenu.item_doms[indicator.key] = CMenu.getOneIndicator(indicator, CMenu.selectCallback, CMenu.editCallback, CMenu.trashCallback);
             CMenu.dom.append(CMenu.item_doms[indicator.key]);
         } else {
-            CMenu.item_doms[indicator.key].find('td:first').text(indicator.name);
+            var type = CMenu.getTypeTag(indicator.type);
+            CMenu.item_doms[indicator.key].find('td:first').empty().append(type).append(indicator.name);
         }
     }
 }
@@ -289,7 +310,10 @@ CMenu.getOneIndicator = function (data, selectCallback, editCallback, trashCallb
         }
         selectCallback(tr, data.key);
     });
-    tr.append($('<td width="80%">' + data.name + '</td>'));
+    var td = $('<td  width="80%"></td>').append(CMenu.getTypeTag(data.type));
+    td.append(data.name);
+    tr.append(td);
+
     var edit_btn = CMenu.getBtn('edit');
     edit_btn.on('click', function (e) {
         editCallback(tr, data.key);
@@ -327,10 +351,26 @@ CMenu.getOneSysIndicator = function (data, selectCallback, copyCallback, trashCa
         }
         selectCallback(tr, data);
     });
-    tr.append($('<td colspan="2">' + data.name + '</td>'));
+    var td = $('<td colspan="2"></td>').append(CMenu.getTypeTag('custom'));
+    td.append(data.name);
+    tr.append(td);
     var copy_btn = CMenu.getBtn('duplicate');
     copy_btn.on('click', function (e) {
         copyCallback(tr, data);
     });
     return tr.append(copy_btn);
+}
+
+CMenu.getTypeTag = function (type) {
+    var setting = {
+        custom: {
+            label_name: 'danger',
+            label_text: '天勤',
+        },
+        custom_wh: {
+            label_name: 'info',
+            label_text: '文华',
+        }
+    }
+    return $('<span class="label label-' + setting[type].label_name + '">' + setting[type].label_text + '</span>');
 }
