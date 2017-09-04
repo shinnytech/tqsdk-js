@@ -27,6 +27,21 @@ var DM = function () {
         }
     }
 
+    function dm_get_data(ins_id, dur_id, data_id, serial_selector){
+        if (DM.datas
+            && DM.datas.klines
+            && DM.datas.klines[ins_id]
+            && DM.datas.klines[ins_id][dur_id]
+            && DM.datas.klines[ins_id][dur_id].data
+            && DM.datas.klines[ins_id][dur_id].data[data_id]
+            && DM.datas.klines[ins_id][dur_id].data[data_id][serial_selector]
+        ) {
+            return DM.datas.klines[ins_id][dur_id].data[data_id][serial_selector];
+        } else {
+            return NaN;
+        }
+    }
+
     function set_invalid_by_prefix(perfix, diff) {
         for (var instance_id in DM.instances_map) {
             var instance = DM.instances_map[instance_id];
@@ -42,11 +57,12 @@ var DM = function () {
                                 instance.invalid = true;
                                 break;
                             } else {
-                                var old_d = DM.datas.klines[ins_id][dur_id].data[data_id][serial_selector];
+                                var old_d = dm_get_data(ins_id, dur_id, data_id, serial_selector);
                                 var new_d = diff.klines[ins_id][dur_id].data[data_id][serial_selector];
-
-                                instance.invalid = true;
-                                break;
+                                if(old_d != new_d){
+                                    instance.invalid = true;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -99,14 +115,7 @@ var DM = function () {
             DM.instances_map[instance_id]['rel'].push(path);
         }
         // 返回数据
-        var d = DM.datas;
-        if (d && d.klines && d.klines[ins_id] && d.klines[ins_id][dur_id] && d.klines[ins_id][dur_id].data) {
-            var res = d.klines[ins_id][dur_id].data;
-            if (res[data_id]) return res[data_id][serial_selector];
-            else return NaN;
-        } else {
-            return NaN;
-        }
+        return dm_get_data(ins_id, dur_id, data_id, serial_selector);
     }
 
     function dm_get_k_range(ins_id, dur_id, instance_id) {

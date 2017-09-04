@@ -1,7 +1,4 @@
 $(function () {
-    //连接到主进程
-    WS.init();
-
     // init 指标类
     CMenu.init('list_menu');
 
@@ -9,7 +6,7 @@ $(function () {
     $('#btn_editor_save').on('click', CMenu.saveDraftIndicator);
     $('#btn_editor_reset').on('click', CMenu.resetIndicator);
 
-    $('#btn_editor_run').on('click', function(e){
+    $('#btn_editor_run').on('click', function (e) {
         // todo: generate indicator class
         var code = CMenu.editor.getSession().getValue();
         CMenu.saveFinalIndicator();
@@ -22,6 +19,9 @@ $(function () {
 
     $('#edit-btn').on('click', CMenu.editIndicator);
     $('#trash-btn').on('click', CMenu.trashIndicator);
+
+    //连接到主进程
+    WS.init();
 });
 
 

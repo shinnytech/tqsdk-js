@@ -8,7 +8,7 @@
     var req_id = 0;
 
     // 自动重连开关
-    var reconnect = true;
+    var reconnect = false;
     var reconnectTask;
     var reconnectInterval = 3000;
 

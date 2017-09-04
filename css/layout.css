@@ -43,7 +43,10 @@ table.table {
     height: 100%;
 }
 
-.col {
-    /*padding: 20px;*/
-    /*border: #2ECC40 1px solid;*/
+table.table.wh-param-list td{
+    padding: 0;
+}
+table.table.wh-param-list td input{
+    border-radius: 0;
+    border:none;
 }
