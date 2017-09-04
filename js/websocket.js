@@ -2,7 +2,7 @@
     var isDebug = 0;
 
     var ws;
-    var server_url = 'ws://192.168.1.71:7777/';
+    var server_url = 'ws://127.0.0.1:7777/';
     var queue = [];
 
     var req_id = 0;

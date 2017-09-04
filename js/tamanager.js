@@ -87,6 +87,10 @@ function macd() {
 }
 
 var ta_funcs = [ma, macd];
+
+
+
+
 // ---------------------------------------------------------------------------
 
 var ta_instance_map = {};
@@ -161,12 +165,9 @@ var TM = function () {
             ta_class_define["params"].push(value)
         });
         ta_class_map[indicator_name] = ta_class_define;
+        ta_class_define.aid = "register_indicator_class";
         //发送指标类信息到主进程
-        var pack = {
-            "aid": "register_indicator_class",
-            "register_indicator_class": ta_class_define
-        }
-        WS.sendJson(pack);
+        WS.sendJson(ta_class_define);
     }
 
     function tm_set_indicator_class_list() {
@@ -252,12 +253,10 @@ var TM = function () {
         }
         //将计算结果发给主进程
         var pack = {
-            "aid": "set_indicator_data",
-            "set_indicator_data": [{
-                instance_id: ta_instance.instance_id,
-                epoch: ta_instance.epoch,
-                serials: out_values
-            }]
+            aid: "set_indicator_data",
+            instance_id: ta_instance.instance_id,
+            epoch: ta_instance.epoch,
+            serials: out_values,
         }
         WS.sendJson(pack);
     }
