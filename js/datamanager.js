@@ -133,7 +133,7 @@ var DM = function () {
         var d = DM.datas;
         if (d && d.klines && d.klines[ins_id] && d.klines[ins_id][dur_id] && d.klines[ins_id][dur_id].data) {
             var res = d.klines[ins_id][dur_id].data;
-            var sorted_keys = Object.keys(res).sort();
+            var sorted_keys = Object.keys(res).sort((a, b) => {return (parseInt(a) - parseInt(b))});
             if (DM.instances_map[instance_id].left_id == undefined || DM.instances_map[instance_id].right_id == undefined) {
                 DM.instances_map[instance_id].left_id = sorted_keys[0];
             } else {

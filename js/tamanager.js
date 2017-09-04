@@ -266,8 +266,12 @@ var TM = function () {
         var instance_id = instance_pack.instance_id;
         instance_pack.func = window[instance_pack.ta_class_name];
         ta_instance_map[instance_id] = instance_pack;
-        DM.reset_indicator_instance(instance_id);
-        recalcInstance(instance_pack);
+        setTimeout(() => {
+            DM.reset_indicator_instance(instance_id);
+            recalcInstance(instance_pack);
+        }, 500);
+
+
     }
 
     function tm_recalc_indicator_by_id(instance_id) {
