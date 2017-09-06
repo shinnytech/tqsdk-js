@@ -138,10 +138,10 @@ var DM = function () {
             var return_left_id, return_right_id;
             // left_id 没有变就只计算最后增加的几组数据
             // left_id 已经改变了就整个序列重算，因为 left_id、right_id 都可能改变了
-            if( sorted_keys[0] == DM.instances_map[instance_id].left_id) {
+            if (sorted_keys[0] == DM.instances_map[instance_id].left_id) {
                 return_left_id = DM.instances_map[instance_id].right_id;
                 return_right_id = sorted_keys[sorted_keys.length - 1];
-            }else{
+            } else {
                 return_left_id = sorted_keys[0];
                 return_right_id = sorted_keys[sorted_keys.length - 1];
             }
@@ -149,6 +149,7 @@ var DM = function () {
             DM.instances_map[instance_id].right_id = sorted_keys[sorted_keys.length - 1];
             return [return_left_id, return_right_id];
         } else {
+            DM.instances_map[instance_id].invalid = true;
             return undefined;
         }
     }

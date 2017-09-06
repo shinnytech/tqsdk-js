@@ -242,8 +242,7 @@ var TM = function () {
             var serial = outSerial(KLINE, serial_name, options);
             serial.values[P] = [vo.valueOf(), vh.valueOf(), vl.valueOf(), vc.valueOf()];
         };
-        // console.log(ta_instance.instance_id, "data_left", data_left);
-        // console.log(ta_instance.instance_id, "data_right", data_right);
+        console.log(ta_instance.instance_id, data_left, data_right);
         //@todo: 这里目前是对整个序列全部重算，后续需要优化(已经计算过，且原始数据未改变的不用重算；只计算可见窗口附近的数据)
         var func = window[ta_instance.ta_class_name];
         for (var i = data_left; i <= data_right; i++) {
@@ -266,10 +265,9 @@ var TM = function () {
         var instance_id = instance_pack.instance_id;
         instance_pack.func = window[instance_pack.ta_class_name];
         ta_instance_map[instance_id] = instance_pack;
-        setTimeout(() => {
-            DM.reset_indicator_instance(instance_id);
-            recalcInstance(instance_pack);
-        }, 500);
+
+        DM.reset_indicator_instance(instance_id);
+        recalcInstance(instance_pack);
 
 
     }
