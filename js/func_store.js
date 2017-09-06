@@ -4,7 +4,7 @@ var IStore = function () {
 
     function init() {
         return new Promise((resolve, reject) => {
-            var openRequest = window.indexedDB.open("TQApp", 4);
+            var openRequest = window.indexedDB.open("TQApp", 5);
             openRequest.onupgradeneeded = function (e) {
                 console.log('onupgradeneeded', e)
                 db = e.target.result;
@@ -97,11 +97,21 @@ var IStore = function () {
             final: {
                 dt: dt,
                 code: ""
-            }
+            },
+            prop: '',
+            params: {}
         }
+        // prop: indicator.prop,
+        //     params: indicator.params
         if (indicator.draft && indicator.draft.code) {
             indicator_obj.draft.code = indicator.draft.code;
             indicator_obj.final.code = indicator.draft.code;
+        }
+        if (indicator.prop) {
+            indicator_obj.prop = indicator.prop;
+        }
+        if (indicator.params) {
+            indicator_obj.params = indicator.params;
         }
         return new Promise((resolve, reject) => {
             var request = store.add(indicator_obj);
@@ -155,7 +165,9 @@ var IStore = function () {
                         final: {
                             dt: indicator.final.dt,
                             code: indicator.final.code
-                        }
+                        },
+                        prop: indicator_custom.prop,
+                        params: indicator_custom.params
                     };
                     resolve(save(indicator_custom.key, indicator_obj));
                 })
@@ -178,7 +190,9 @@ var IStore = function () {
                         final: {
                             dt: dt,
                             code: indicator_custom.draft.code
-                        }
+                        },
+                        prop: indicator_custom.prop,
+                        params: indicator_custom.params
                     }
                     resolve(save(indicator_custom.key, indicator_obj));
                 })
@@ -201,7 +215,9 @@ var IStore = function () {
                         final: {
                             dt: indicator.final.dt,
                             code: indicator.final.code
-                        }
+                        },
+                        prop: indicator.prop,
+                        params: indicator.params
                     }
                     resolve(save(key, indicator_obj));
                 })
@@ -220,85 +236,3 @@ var IStore = function () {
         remove: removeIndicator
     }
 }();
-
-// IStore.init().then(function (s) {
-// IStore.getAll().then(function (list) {
-//     console.log(list);
-// }, function (e) {
-//     console.log(e);
-// });
-
-// IStore.add({
-//     name: "MACC",
-//     memo: "yyyyyyyyy",
-//     final: {},
-//     draft: {
-//         code: "function (){console.log('this is ma')}"
-//     }
-// }).then(function(i){
-//     console.log(i);
-// }, function(e){
-//     if(e == 'ConstraintError'){
-//         console.log('指标名称重复')
-//     }else{
-//         console.log(e);
-//     }
-// });
-
-// IStore.add({
-//     name: "MA0",
-//     memo: "yyyyyyyyy",
-// }).then(function(i){
-//     console.log(i);
-// }, function(e){
-//     if(e == 'ConstraintError'){
-//         console.log('指标名称重复')
-//     }else{
-//         console.log(e);
-//     }
-// });
-
-// IStore.remove(2).then(function (i) {
-//
-//     IStore.getAll().then(function (list) {
-//         console.log(list);
-//     }, function (e) {
-//         console.log(e);
-//     });
-// }, function (e) {
-//     console.log(e); // 删除不存在的不会报错
-// });
-
-// IStore.saveDraft({
-//     key: 19,
-//     name: "MA",
-//     memo: "000000000",
-//     draft: {
-//         code: "function (){console.log('this is ma20000003')}"
-//     }
-// }).then(function (i) {
-//     console.log(i);
-// }, function (e) {
-//     console.log(e);
-// });
-
-// IStore.saveFinal({
-//     key: 19,
-//     name: "MA",
-//     memo: "000000000",
-//     draft: {
-//         code: "function (){console.log('this is ma23')}"
-//     }
-// }).then(function (i) {
-//     console.log(i);
-// }, function (e) {
-//     console.log(e);
-// });
-
-// IStore.reset(19).then(function (i) {
-//     console.log(i);
-// }, function (e) {
-//     console.log(e);
-// });
-
-// });

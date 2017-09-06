@@ -27,7 +27,7 @@ var DM = function () {
         }
     }
 
-    function dm_get_data(ins_id, dur_id, data_id, serial_selector){
+    function dm_get_data(ins_id, dur_id, data_id, serial_selector) {
         if (DM.datas
             && DM.datas.klines
             && DM.datas.klines[ins_id]
@@ -59,7 +59,7 @@ var DM = function () {
                             } else {
                                 var old_d = dm_get_data(ins_id, dur_id, data_id, serial_selector);
                                 var new_d = diff.klines[ins_id][dur_id].data[data_id][serial_selector];
-                                if(old_d != new_d){
+                                if (old_d != new_d) {
                                     instance.invalid = true;
                                     break;
                                 }
@@ -119,7 +119,6 @@ var DM = function () {
     }
 
     function dm_get_k_range(ins_id, dur_id, instance_id) {
-        console.log('dm_get_k_range')
         // 记录实例依赖关系
         if (!DM.instances_map[instance_id]) {
             DM.instances_map[instance_id] = {
@@ -133,14 +132,22 @@ var DM = function () {
         var d = DM.datas;
         if (d && d.klines && d.klines[ins_id] && d.klines[ins_id][dur_id] && d.klines[ins_id][dur_id].data) {
             var res = d.klines[ins_id][dur_id].data;
-            var sorted_keys = Object.keys(res).sort((a, b) => {return (parseInt(a) - parseInt(b))});
-            if (DM.instances_map[instance_id].left_id == undefined || DM.instances_map[instance_id].right_id == undefined) {
-                DM.instances_map[instance_id].left_id = sorted_keys[0];
-            } else {
-                DM.instances_map[instance_id].left_id = DM.instances_map[instance_id].right_id;
+            var sorted_keys = Object.keys(res).sort((a, b) => {
+                return (parseInt(a) - parseInt(b))
+            });
+            var return_left_id, return_right_id;
+            // left_id 没有变就只计算最后增加的几组数据
+            // left_id 已经改变了就整个序列重算，因为 left_id、right_id 都可能改变了
+            if( sorted_keys[0] == DM.instances_map[instance_id].left_id) {
+                return_left_id = DM.instances_map[instance_id].right_id;
+                return_right_id = sorted_keys[sorted_keys.length - 1];
+            }else{
+                return_left_id = sorted_keys[0];
+                return_right_id = sorted_keys[sorted_keys.length - 1];
             }
+            DM.instances_map[instance_id].left_id = sorted_keys[0];
             DM.instances_map[instance_id].right_id = sorted_keys[sorted_keys.length - 1];
-            return [DM.instances_map[instance_id].left_id, DM.instances_map[instance_id].right_id];
+            return [return_left_id, return_right_id];
         } else {
             return undefined;
         }
@@ -156,9 +163,9 @@ var DM = function () {
             }
         } else {
             DM.instances_map[instance_id].rel = [];
-            DM.instances_map[instance_id].invalid= false,
-            // reset_kdata_range
-            DM.instances_map[instance_id].left_id = undefined;
+            DM.instances_map[instance_id].invalid = false,
+                // reset_kdata_range
+                DM.instances_map[instance_id].left_id = undefined;
             DM.instances_map[instance_id].right_id = undefined;
         }
     }

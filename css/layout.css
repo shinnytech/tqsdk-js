@@ -1,11 +1,4 @@
-* {
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
-    box-sizing: border-box;
-}
-
 body {
-    /*min-height: 2000px;*/
     padding-top: 70px;
 }
 
@@ -16,21 +9,34 @@ table.table {
 
 .main-container {
     min-width: 800px;
-    margin: 0px 20px;
+    margin: 0px 15px;
 }
 
 .btn-toolbar {
     padding-bottom: 10px;
 }
 
-.left-menu {
+div.col.left-menu {
     padding-left: 0px;
+    padding-right: 0px;
+}
+
+div.col.left-menu span.label.label-brand {
+    font-size: 10px;
+    margin-right: 6px;
+    padding: 2px 3px;
+}
+
+div.col.right-menu {
+    padding-left: 0px;
+    padding-right: 0px;
 }
 
 .editor-container {
-    height: 400px;
+    height: 560px;
     width: 100%;
     border: 1px solid #eee;
+    border-radius: 3px;
 }
 
 #editor {
@@ -38,15 +44,27 @@ table.table {
     height: 100%;
 }
 
-#result {
-    width: 100%;
-    height: 100%;
+table.table.wh-param-list td {
+    padding: 0;
+    vertical-align: middle;
 }
 
-table.table.wh-param-list td{
-    padding: 0;
+table.table > thead > tr > th {
+    padding: 6px 4px;
 }
-table.table.wh-param-list td input{
+
+table.table.wh-param-list th,
+table.table.wh-param-list td {
+    width: 20%;
+    text-align: center;
+}
+
+table.table.wh-param-list td input.form-control {
     border-radius: 0;
-    border:none;
+    border: none;
+    padding: 3px 4px;
+}
+
+table.table.wh-param-list td input.form-control[readonly] {
+    background-color: #fff;
 }
