@@ -100,6 +100,24 @@ var DM = function () {
         }
     }
 
+    function dm_get_tdata(ins_id, data_id, serial_selector, instance_id) {
+        // 记录实例依赖关系
+        if (!DM.instances_map[instance_id]) {
+            DM.instances_map[instance_id] = {
+                rel: [],
+                invalid: false,
+                left_id: undefined,
+                right_id: undefined
+            }
+        }
+        var path = ins_id + '.' + 0 + '.' + serial_selector;
+        if (DM.instances_map[instance_id]['rel'].indexOf(path) == -1) {
+            DM.instances_map[instance_id]['rel'].push(path);
+        }
+        // 返回数据
+        return dm_get_data(ins_id, 0, data_id, serial_selector);
+    }
+
     function dm_get_kdata(ins_id, dur_id, data_id, serial_selector, instance_id) {
         // 记录实例依赖关系
         if (!DM.instances_map[instance_id]) {
@@ -119,7 +137,6 @@ var DM = function () {
     }
 
     function dm_get_k_range(ins_id, dur_id, instance_id) {
-        console.log('dm_get_k_range')
         // 记录实例依赖关系
         if (!DM.instances_map[instance_id]) {
             DM.instances_map[instance_id] = {
@@ -172,6 +189,7 @@ var DM = function () {
     return {
         instances_map: {},
         datas: {},
+        get_tdata: dm_get_tdata,
         get_kdata: dm_get_kdata,
         get_kdata_range: dm_get_k_range,
         reset_indicator_instance: dm_reset_kdata_range,

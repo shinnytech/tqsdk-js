@@ -79,23 +79,386 @@ js端需要完成的业务线：
 
 
 
+输出相关:
+    颜色:
+        BLACK, WHITE, GRAY,
+        RED, GREEN, BLUE, MAGENTA, YELLOW,
+        LIGHTGRAY, LIGHTRED, LIGHTGREEN, LIGHTBLUE, CYAN
+    线形:
+        KLINE
+        DOT
+        BAR
+        LINE
+
+
+
+
+DRAWKLINE COLORRED COLORCYAN
+DRAWKLINE 自定义K线颜色，实空心及宽度。
+
+用法：
+DRAWKLINE(WidthRatio,COLOR1,EMPTY1,COLOR2,EMPTY2);
+按照宽度比例WidthRatio画线，阳线以COLOR1和EMPTY1判断，阴线以COLOR2和EMPTY2判断。WidthRadio从0到1，COLOR1、COLOR2代表颜色，Empty非0为空心。
+
+注：
+1、不支持将该函数定义为变量，即不支持下面的写法：
+A:DRAWKLINE(WidthRatio,COLOR1,EMPTY1,COLOR2,EMPTY2);
+
+例1：
+DRAWKLINE(0.75,COLORRED,1,COLORCYAN,0);//绘制K线宽度比例为0.75,阳线为红色空心，阴线为绿色实心。
+
+OPEN, HIGH, LOW, CLOSE, VOL
+
+COLORYELLOW, COLORCYAN
+
+OPEN,BAMBOOLINE;
+TOWER;
+
+DRAWKLINE2(0.75,COLORRED,1,COLORCYAN,0);
+DRAWKLINE2 绘制K线。
+
+用法：
+DRAWKLINE2(WidthRatio,COLOR1,EMPTY1,COLOR2,EMPTY2);
+1、绘制K线，黑色背景下，盘整时K线显示为黄色；白色背景下，盘整时K线显示为蓝色。
+2、按照宽度比例WidthRatio画线，阳线以COLOR1和EMPTY1判断，阴线以COLOR2和EMPTY2判断。WidthRadio从0到1，COLOR1、COLOR2代表颜色，Empty非0为空心。
+
+注：
+1、绘制盘整K线的区间，根据函数PANZHENG进行计算
+2、不支持将该函数定义为变量，即不支持下面的写法：
+A:DRAWKLINE2(WidthRatio,COLOR1,EMPTY1,COLOR2,EMPTY2);
+
+例：
+DRAWKLINE2(0.75,COLORRED,1,COLORCYAN,0);//绘制K线宽度比例为0.75,阳线为红色空心，阴线为绿色实心。盘整时K线显示为黄色。
+
+
+REF
+引用X在N个周期前的值。
+
+注：
+1、当N为有效值，但当前的k线数不足N根，返回空值；
+2、N为0时返回当前X值；
+3、N为空值时返回空值。
+4、N可以为变量
+
+例1:
+ REF(CLOSE,5);表示引用当前周期前第5个周期的收盘价
+例2：
+AA:IFELSE(BARSBK>=1,REF(C,BARSBK),C);//取最近一次买开仓信号K线的收盘价
+//1）发出BK信号的当根k线BARSBK返回空值,则发出BK信号的当根k线REF(C,BARSBK)返回
+空值；
+//2）发出BK信号的当根k线BARSBK返回空值,不满足BARSBK>=1,则当根k线的收盘价。
+//3）发出BK信号之后的k线BARSBK返回买开仓的K线距离当前K线的周期数，REF(C,BARSBK)
+返回开仓k线的收盘价。
+//4）例：1、2、3 三根k线，1 K线为开仓信号的当根k线，则返回当根k线的收盘价，2、3
+K线返回 1 K线的收盘价。
 
 
 
 
 
+SARLINE:SAR(N,STEP1,MVALUE1),CIRCLEDOT;//N个周期的抛物转向，步长为STEP1，极限值为MVALUE1.
+SAR(N,STEP,MAX) 返回抛物转向值。
+
+根据公式SAR(n)=SAR(n-1)+AF*(EP(n-1)-SAR(n-1))计算
+
+其中：
+SAR(n-1)：上根K线SAR的绝对值
+AF：加速因子，当AF小于MAX时，逐根的通过AF+STEP累加，涨跌发生转换时，AF重新计算
+EP：一个涨跌内的极值，在上涨行情中为上根K线的最高价；下跌行情中为上根K线的最低价
+
+注：
+1、参数N,Step,Max均不支持变量
+
+例1：
+SAR(17,0.03,0.3);//表示计算17个周期抛物转向，步长为3%，极限值为30%
+
+SETTLE;
+A:=(3*C+L+O+H)/6;//3倍收盘价与最高价、最低价、开盘价之和的均值。
+SAR1
+SAR1(N,STEP,MAX) 返回抛物转向值。
+
+根据公式SAR1(n)=SAR1(n-1)+AF*(EP(n-1)-SAR1(n-1))计算
+
+其中：
+SAR1(n-1)：上根K线SAR1的绝对值
+
+AF：加速因子，当AF小于MAX时，
+上涨行情，H>HV(H,N)   AF = AF+STEP; H<=HV(H,N) AF = AF;
+下跌行情，L<lV(L,N)   AF = AF+STEP; L>=LV(L,N) AF = AF;
+涨跌发生转换时，AF重新计算
+EP：一个涨跌内的极值，在上涨行情中为前N根K线的最高价；下跌行情中为前N根K线的最低价
+
+注：
+1、参数N,Step,Max均不支持变量
+
+例1：
+SAR1(17,0.03,0.3);//表示计算17个周期抛物转向，步长为3%，极限值为30%
+
+DRAWCOLORLINE(RISING(N),MA(A,M),COLORRED,COLORGREEN);
+DRAWCOLORLINE（COND,DATA,COLOR1,COLOR2）;根据条件画相应颜色的线
+用法：当满足COND时，DATA为COLOR1颜色的线，不满足COND时，DATA为COLOR2颜色的线
+注：
+1、不支持将该函数直接定义为变量，即不支持下面的写法：
+A:DRAWCOLORLINE（COND,DATA,COLOR1,COLOR2）;
+2、该函数支持在函数后设置线型（LINETHICK1 - LINETHICK7、POINTDOT、DOT），即支持下面的写法：
+DRAWCOLORLINE(COND,DATA,COLOR1,COLOR2),LINETHICK;
+
+例1：
+MA1:=MA(C,5);
+DRAWCOLORLINE(MA1>REF(MA1,1),MA1,COLORRED,COLORGREEN); //如果当根5日均线的值大于前一根5日均线的值，MA1画红线，否则画绿线
+
+
+IFELSE
+IFELSE(COND,A,B) 若COND条件成立，则返回A，否则返回B
+
+注：
+1、COND是判断条件;A、B可以是条件，也可以是数值。
+2、该函数支持变量循环引用前一周期自身变量，即支持下面这样的写法Y: IFELSE(CON,X,REF(Y,1));
+例1：
+IFELSE(ISUP,H,L);//k线为阳线，取最高价，否则取最低价
+例2：
+A:=IFELSE(MA5>MA10,CROSS(DIFF,DEA),IFELSE(CROSS(D,K),2,0));//当MA5>MA10时，取是否满足DIFF上穿DEA，否则(MA5不大于MA10)，当K,D死叉时，令A赋值为2，若上述条件都不满足，A赋值为0
+A=1,BPK;//当MA5>MA10，以DIFF上穿DEA作为开多仓条件
+A=2,SPK;//当MA5不大于MA10，以K、D死叉作为开空仓条件
+
+
+MAX
+MAX(A,B)：取最大值。取A，B中较大者。
+
+注：
+若A=B，返回值为A或者B的值。
+
+例1：
+MAX(CLOSE,OPEN);//表示取开盘价和收盘价中较大者。
+例2：
+MAX(CLOSE-OPEN,0);//表示若收盘价大于开盘价返回它们的差值，否则返回0。
+例3：
+MAX(A,MAX(B,MAX(C,D)));//求 A B C D四者中的最大值
+
+
+SUM
+SUM(X,N) 求X在N个周期内的总和。
+
+注：
+1、N包含当前k线。
+2、若N为0则从第一个有效值开始算起。
+3、当N为有效值，但当前的k线数不足N根，按照实际的根数计算。
+4、N为空值时，返回空值。
+5、N可以为变量。
+
+例1：
+SUM(VOL,25);表示统计25周期内的成交量总和
+例2：
+N:=BARSLAST(DATE<>REF(DATE,1))+1;//分钟周期，日内k线根数
+SUM(VOL,N);//分钟周期上，取当天成交量总和。
+
+
+ABS
+ABS(X)：取的X的绝对值。
+
+注：
+1、正数的绝对值是它本身；
+2、负数的绝对值是它的相反数；
+3、0的绝对值还是0；
+
+例1：
+ABS(-10);//返回10。
+例2：
+ABS(CLOSE-10);//返回收盘价和的10价差的绝对值。
+例3：
+ABS(C-O);//当前K线实体长度
+
+AVEDEV
+AVEDEV(X,N)：返回X在N周期内的平均绝对偏差。
+
+注：
+1、N包含当前k线。
+2、N为有效值，但当前的k线数不足N根，该函数返回空值；
+3、N为0时，该函数返回空值；
+4、N为空值，该函数返回空值；
+5、N不能为变量
+
+算法举例：计算AVEDEV(C,3);在最近一根K线上的值。
+
+用麦语言函数可以表示如下：
+(ABS(C-(C+REF(C,1)+REF(C,2))/3)+ABS(REF(C,1)-(C+REF(C,1)+REF(C,2))/3)+ABS(REF(C,2)-(C+REF(C,1)+REF(C,2))/3))/3;
+
+例：
+AVEDEV(C,5);//返回收盘价在5周期内的平均绝对偏差。
+//表示5个周期内每个周期的收盘价与5周期收盘价的平均值的差的绝对值的平均值，判断收盘价与其均值的偏离程度
 
 
 
+COLORSTICK
+COLORSTICK 画柱线。
+
+用法：X,COLORSTICK;画柱线，柱高为X的值，X大于0为红色柱线，X小于0为青色柱线。
+
+注：不支持将该函数定义为变量，即不支持下面的写法：A:COLORSTICK；
+
+例：
+C-O,COLORSTICK;//画柱线，阳线时画红色向上柱线，阴线时画青色的向下柱线。
 
 
+BACKGROUNDSTYLE(1);
+BACKGROUNDSTYLE函数    设置背景的样式。
+
+用法：
+BACKGROUNDSTYLE(i)设置背景的样式。
+i = 0 或1或2。
+
+注：
+1.
+0 是保持本身坐标不变。
+1 是将坐标固定在0到100之间。
+2 是将坐标以0为中轴的坐标系。
+2、参数i的选择根据想要显示的指标数据范围而定。
+3、不支持将该函数直接定义为变量，即不支持下面的写法：A:BACKGROUNDSTYLE(i);
+
+例1：
+MA5:MA(C,5);
+MA10:MA(C,10);
+BACKGROUNDSTYLE(0);
+例2：
+DIFF : EMA(CLOSE,12) - EMA(CLOSE,26);
+DEA  : EMA(DIFF,9);
+2*(DIFF-DEA),COLORSTICK;
+BACKGROUNDSTYLE(2)
 
 
+COUNT
+COUNT(COND,N)：统计N周期中满足COND条件的周期数。
+
+注：
+1、N包含当前k线。
+2、若N为0则从第一个有效值算起；
+3、当N为有效值，但当前的k线数不足N根，从第一根统计到当前周期。
+4、N 为空值时返回值为空值 。
+5、N可以为变量
+
+例1：
+N:=BARSLAST(DATE<>REF(DATE,1))+1;//分钟周期，当日k线数。
+M:COUNT(ISUP,N);//统计分钟周期上开盘以来阳线的根数。
+例2：
+MA5:=MA(C,5);//定义5周期均线
+MA10:=MA(C,10);//定义10周期均线
+M:COUNT(CROSSUP(MA5,MA10),0);//统计从申请到的行情数据以来到当前这段时间内，5周期均线上穿10周期均线的次数。
 
 
+DMA
+DMA(X,A)：求X的动态移动平均，其中A必须小于1大于0。
+注：
+1、A可以为变量
+2、如果A<=0或者A>=1，返回无效值
+
+计算公式：DMA(X,A)=REF(DMA(X,A),1)*(1-A)+X*A
+
+例1：
+DMA3:=DMA(C,0.3);//计算结果为REF(DMA3,1)*(1-0.3)+C*0.3
+
+FORCAST
+FORCAST(X,N)：为X的N周期线性回归预测值。
+
+注：
+1、N包含当前k线。
+2、N为有效值，但当前的k线数不足N根，该函数返回空值；
+3、N为0时，该函数返回空值；
+4、N为空值，该函数返回空值；
+5、N可以是变量
+
+算法举例：用最小平方法计算FORCAST(C,3)在最近一根K线上的值
+1、建立一元线性方程：y=a+b*i+m
+2、y的估计值：y(i)^=a+b*i
+3、求残差：m^=y(i)-y(i)^=y(i)-a-b*i
+4、误差平方和：
+Q=m(1)*m(1)+...+m(3)*m(3)=[y(1)-a-b*1]*[y(1)-a-b*1]+...+[y(3)-a-b*3]*[y(3)-a-b*3]
+5、对线性方程中的参数a,b求一阶偏导:
+2*{[y(1)-a-b*1]+...+[y(3)-a-b*3]}*(-1)=0
+2*[y(1)-a-b*1]*(-1)+...+[y(3)-a-b*3]*(-3)=0
+6、联立以上两个公式，解出a,b的值：
+a=(y(1)+y(2)+y(3))/3-b(i(1)+i(2)+i(3))/3
+b=(y(1)*i(1)+y(2)*i(2)+y(3)*i(3)-(3*((i(1)+i(2)+i(3))/3)*((y(1)+y(2)+y(3))/3))/((i(1)^2+i(2)^2+i(3)^2)-3*((i(1)+i(2)+i(3))/3)^2)
+7、将a，b，i值带入1，求出y值
+
+以上公式用麦语言函数可以表示如下：
+BB:(3*C+2*REF(C,1)+REF(C,2)-(3*((1+2+3)/3)*MA(C,3)))/((SQUARE(1)+SQUARE(2)+SQUARE(3))-3*SQUARE((1+2+3)/3));
+AA:MA(C,3)-BB*(1+2+3)/3;
+YY:AA+BB*3;
+
+例:
+FORCAST(CLOSE,5);//表示求5周期线性回归预测值
 
 
+VOLUMESTICK
+VOLUMESTICK 画柱线，K线为阳线画红色空心柱，K线为阴线画青色实心柱。
 
+注：
+1、柱高表示数值大小。
+2、K线为阳线，则对应的柱显示为红色空心，K线为阴线，则对应的柱显示为青色实心。
+3、默认红柱为空心柱，画实心柱需要加入SOLID函数。
+
+例1：
+VOL,VOLUMESTICK;//画成交量柱状线，柱高表示成交量大小，阳线对应红色空心柱，阴线对应青色实心柱。
+
+例2：
+VOL,VOLUMESTICK,SOLID;//画成交量柱状线，柱线实心显示。
+
+
+CCL;
+M:=DUALVOLUME('M');
+DUALVOLUME 多空量函数
+
+该函数有两种用法：
+1、DUALVOLUME('M')：括号中填写M，则函数返回一定周期内的（主动买量-主动卖量）的平均数值。
+2、DUALVOLUME('N')：括号中填写N，则函数返回K线图上主动买量-主动卖量的差。
+
+注：
+1、用法1：“一定周期”由参数P的数值决定，如果不定义P，默认为5周期。P不能直接定义，需要在参数列表中定义。
+2、主动买量比例和主动卖量比例相等或者一边是100%，不画柱。
+3、在日、周、月周期上考虑交割信息（即交割后，重新挂牌，要重新计算）。
+4、在日线下以周期例如1分钟、3分钟不跨日计算（即新的交易日的第一根开始重新计算）。
+5、指数没有主动买和主动卖的概念，所以该函数在指数合约日线周期的比例是根据该指数的所有合约计算的；并且指数合约日线以下周期不支持该函数。
+
+例1：
+M:=DUALVOLUME('M');//5周期（主动买量-主动卖量）的平均数值。
+N:=DUALVOLUME('N');//主动买量-主动卖量的差
+DRAWCOLUMNCHART(N,SCALE>=0.5,M>=0);
+//当主动买大于主动卖的时候，向上画柱高为N的红柱。反之向下画柱高为N的绿柱
+
+例2：
+//在参数列表中定义P的缺省值为10。
+M:=DUALVOLUME('M');//10周期（主动买量-主动卖量）的平均数值。
+N:=DUALVOLUME('N');//主动买量-主动卖量的差
+DRAWCOLUMNCHART(N,SCALE>=0.5,M>=0);
+//当主动买大于主动卖的时候，向上画柱高为N的红柱。反之向下画柱高为N的绿柱
+
+
+DRAWCOLUMNCHART(N,SCALE>=0.5,M>=0);
+DRAWCOLUMNCHART 画柱形图。
+
+用法：
+DRAWCOLUMNCHART(X,C1,C2);
+X表示柱高，C1条件满足时从0轴向上画柱，不满足时从0轴向下画柱，C2条件满足时柱为红色，不满足时柱为青色
+
+注：
+1、C1、C2是判断条件。
+2、不支持将该函数定义为变量，即不支持下面的写法：
+A:DRAWCOLUMNCHART(X,C1,C2);
+3、该函数画图为独立坐标显示，0轴为画面中央。
+例1：
+DRAWCOLUMNCHART(10,C>O,C>O);//满足收阳条件从0轴向上10个高度画红色柱，不满足条件从0轴向下10个高度画青色柱。
+
+
+OPI,OPISTICK;
+OPI 取得K线图的持仓量。
+
+例1：
+OPID:OPI;//定义OPID为持仓量。
+例2：
+OPI>=REF(OPI,1);//持仓量大于前一个周期的持仓量，表示持仓量增加。
+例3：
+NN:=BARSLAST(DATE<>REF(DATE,1))+1;
+OPID:REF(OPI,NN);//取的昨天收盘时的持仓量
 
 
 
