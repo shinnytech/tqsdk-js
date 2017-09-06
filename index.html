@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>Bootstrap</title>
+    <title>天勤</title>
 
     <!-- base ui && js -->
     <link href="assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -14,94 +14,90 @@
     <link rel="stylesheet" href="css/layout.css">
 </head>
 <body>
- <!--Modal-->
- <div class="modal fade" id="EditModal" tabindex="-1" role="dialog" aria-labelledby="ModalTitle">
-     <div class="modal-dialog" role="document">
-         <div class="modal-content">
-             <div class="modal-header">
-                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
-                 </button>
-                 <h4 class="modal-title" id="EditModalTitle">编辑／添加 指标</h4>
-             </div>
-             <div class="modal-body">
-                 <form>
-                     <div class="form-group">
-                         <label for="indicator-name" class="control-label">指标名称:</label>
-                         <input type="text" class="form-control" id="indicator-name">
-                     </div>
-                     <div class="form-group">
-                         <label class="control-label">指标类型(选择后无法更改):</label>
-                         <div class="radio" id="indicator-type-tq">
-                             <label>
-                                 <input type="radio" name="indicator-type" value="0">
-                                 天勤脚本语言<span class="label label-danger">天勤</span>
-                             </label>
-                         </div>
-                         <div class="radio" id="indicator-type-wh">
-                             <label>
-                                 <input type="radio" name="indicator-type" value="1">
-                                 文华脚本语言<span class="label label-info">文华</span>
-                             </label>
-                         </div>
-                     </div>
-                     <div class="form-group">
-                         <label for="indicator-memo" class="control-label">备注:</label>
-                         <textarea class="form-control" id="indicator-memo"></textarea>
-                     </div>
-                 </form>
-             </div>
-             <div class="modal-footer">
-                 <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-                 <button type="button" class="btn btn-primary" id="edit-btn">保存</button>
-             </div>
-         </div>
-     </div>
- </div>
-
- <div class="modal fade" id="TrashModal" tabindex="-1" role="dialog" aria-labelledby="ModalTitle">
-     <div class="modal-dialog" role="document">
-         <div class="modal-content">
-             <div class="modal-header">
-                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
-                 </button>
-                 <h4 class="modal-title" id="TrashModalTitle">删除指标</h4>
-             </div>
-             <div class="modal-body">
-                 确认删除指标 <code id="trash-indicator-name"></code> ?
-             </div>
-             <div class="modal-footer">
-                 <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
-                 <button type="button" class="btn btn-primary" id="trash-btn">删除</button>
-             </div>
-         </div>
-     </div>
- </div>
-
+<!--Modal-->
+<div class="modal fade" id="EditModal" tabindex="-1" role="dialog" aria-labelledby="EditModalTitle">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="EditModalTitle">编辑／添加 指标</h4>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <label for="indicator-name" class="control-label">指标名称:</label>
+                        <input type="text" class="form-control" id="indicator-name">
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">指标类型(选择后无法更改):</label>
+                        <div class="radio" id="indicator-type-tq">
+                            <label>
+                                <input type="radio" name="indicator-type" value="0">
+                                天勤脚本语言<span class="label label-danger">天勤</span>
+                            </label>
+                        </div>
+                        <div class="radio" id="indicator-type-wh">
+                            <label>
+                                <input type="radio" name="indicator-type" value="1">
+                                文华脚本语言<span class="label label-info">文华</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="indicator-memo" class="control-label">备注:</label>
+                        <textarea class="form-control" id="indicator-memo"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="edit-btn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="TrashModal" tabindex="-1" role="dialog" aria-labelledby="TrashModalTitle">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="TrashModalTitle">删除指标</h4>
+            </div>
+            <div class="modal-body">
+                确认删除指标 <code id="trash-indicator-name"></code> ?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="trash-btn">删除</button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Fixed navbar -->
- <nav class="navbar navbar-default navbar-fixed-top">
-     <div class="container-fluid">
-         <div class="navbar-header">
-             <h4>
+<nav class="navbar navbar-default navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <h4>
                 <span>
                 <img src="assets/brand/letter-t.svg" width="30" height="30" class="d-inline-block align-top" alt="logo">
                 Translator
                 </span>
-             </h4>
-         </div>
-         <div class="navbar-header navbar-right">
-             <div class="" style="padding-top: 8px;">
-                 <button type="submit" class="btn btn-success">Sign in</button>
-             </div>
-         </div>
-     </div>
- </nav>
-
+            </h4>
+        </div>
+        <div class="navbar-header navbar-right">
+            <div class="" style="padding-top: 8px;">
+                <button type="submit" class="btn btn-success">Sign in</button>
+            </div>
+        </div>
+    </div>
+</nav>
 <!-- 主体内容区域 -->
-
 <div class="container-fluid main-container">
     <div class="row">
         <!-- 指标列表 -->
-        <div class="col col-xs-2 left-menu">
+        <div class="col col-xs-3 left-menu">
             <div class="btn-toolbar" role="toolbar">
                 <div class="btn-group btn-group-xs" role="group">
                     <button type="button" class="btn btn-default" id="btn_new_indicator">新建指标</button>
@@ -122,18 +118,17 @@
                         <th colspan="3">用户自定义指标</th>
                     </tr>
                     </thead>
+                    <tbody id="custom-indicators">
+
+                    </tbody>
                 </table>
             </div>
         </div>
         <div class="col col-xs-6">
             <div>
                 <div class="btn-toolbar" role="toolbar">
-                    <!--<div class="btn-group btn-group-xs" role="group">-->
-                    <!--<button type="button" class="btn btn-default">文华</button>-->
-                    <!--<button type="button" class="btn btn-default">JavaScript</button>-->
-                    <!--</div>-->
                     <div class="btn-group btn-group-xs" role="group">
-                        <button type="button" class="btn btn-default3" id="btn_editor_save">保存代码</button>
+                        <button type="button" class="btn btn-default" id="btn_editor_save">保存代码</button>
                     </div>
                     <div class="btn-group btn-group-xs" role="group">
                         <button type="button" class="btn btn-default" id="btn_editor_run">保存代码并更新指标</button>
@@ -148,120 +143,8 @@
                 </div>
             </div>
         </div>
-        <div class="col col-xs-4">
-            <div>
-                <!--<div class="btn-toolbar" role="toolbar">-->
-                    <!--<div class="btn-group btn-group-xs" role="group">-->
-                        <!--<button type="button" class="btn btn-default">Run</button>-->
-                    <!--</div>-->
-                    <!--<div class="btn-group btn-group-xs" role="group" id="btn_result_clean">-->
-                        <!--<button type="button" class="btn btn-default">Clean</button>-->
-                    <!--</div>-->
-                <!--</div>-->
-                <div class="panel panel-default">
-                    <!-- Default panel contents -->
-                    <div class="panel-heading">基本信息</div>
-                    <!--<div class="panel-body">-->
-                    <!--<p>...添加一些说明...</p>-->
-                    <!--</div>-->
-                    <!-- Table -->
-                    <table class="table">
-                        <!--<thead>-->
-                        <!--<tr>-->
-                            <!--<th>参数名</th>-->
-                            <!--<th>类型</th>-->
-                            <!--<th>备注</th>-->
-                        <!--</tr>-->
-                        <!--</thead>-->
-                        <tbody>
-                        <tr>
-                            <th>名称:</th>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <th>描述:</th>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <th>属性:</th>
-                            <td></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="panel panel-default">
-                    <!-- Default panel contents -->
-                    <div class="panel-heading">参数列表</div>
-                    <!--<div class="panel-body">-->
-                    <!--<p>...添加一些说明...</p>-->
-                    <!--</div>-->
-                    <!-- Table -->
-                    <table class="table table-bordered wh-param-list">
-                        <thead>
-                        <tr>
-                            <th>参数</th>
-                            <th>名称</th>
-                            <th>最大</th>
-                            <th>最小</th>
-                            <th>缺省</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>
-                                <input type="text" class="form-control">
-                            </td>
-                            <td>
-                                <input type="text" class="form-control">
-                            </td>
-                            <td>
-                                <input type="text" class="form-control">
-                            </td>
-                            <td>
-                                <input type="text" class="form-control">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>2</td>
-                            <td>
-                                <input type="text" readonly class="form-control">
-                            </td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td>3</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td>4</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td>5</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td>6</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
+        <div class="col col-xs-3 right-menu">
+            <div id="attachment-container">
             </div>
         </div>
     </div>

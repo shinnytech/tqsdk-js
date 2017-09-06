@@ -1,30 +1,212 @@
-var CMenu = function () {
+var CMenu;
+CMenu = function () {
     return {
-        sys_dom: null,
-        sys_item_doms: [],
-        sys_datas: [],
-
         container: null,
+        sys_dom: null,
         dom: null,
+        editor: null,
+
+        // 指标数据存储
+        sys_datas: [],
+        datas: [],
+
+        // 左侧指标节点
+        sys_item_doms: [],
+        item_doms: {},
+
+        // 编辑、删除对话框
         editModal: null,
         trashModal: null,
 
-        editor: null,
+        // info panel && // param panel
+        attach_container: null,
+        attach_info: {},
+        attach_param: {},
+        attach_btns: {},
 
-        datas: [],
-        item_doms: {},
         editing: {},
         doing: '', // edit / new / copy
-
-        regExp: /^[a-zA-Z\_\$][0-9a-zA-Z\_\$]*$/
     }
 }();
 
-// [a-zA-Z\_\$][0-9a-zA-Z\_\$]* 可以匹配由字母或下划线、$开头，后接任意个由一个数字、字母或者下划线、$组成的字符串，也就是JavaScript允许的变量名
-// [a-zA-Z\_\$][0-9a-zA-Z\_\$]{0, 19} 限制了变量的长度是1-20个字符
+CMenu.init = function (div_id) {
+    // 初始化对象
+    CMenu.container = $('table#' + div_id);
+    CMenu.sys_dom = CMenu.container.find('#system-indicators');
+    CMenu.sys_dom.append($('<div><img width="40" height="40" src="/img/loading.svg"></img></div>'));
+    CMenu.dom = CMenu.container.find('#custom-indicators');
+    CMenu.dom.append($('<div><img width="40" height="40" src="/img/loading.svg"></img></div>'));
+
+    // 附加信息区域
+    CMenu.initAttachUI();
+
+    // 初始化系统指标
+    // 初始化时默认选中第一个系统指标
+    CMenu.initSysIndicators();
+
+    // 初始化用户自定义指标
+    CMenu.editModal = $('#EditModal');
+    CMenu.trashModal = $('#TrashModal');
+    CMenu.initCustomIndicators();
+
+    // 初始化代码编辑区域
+    CMenu.editor = ace.edit('editor');
+    CMenu.editor.$blockScrolling = Infinity;
+    CMenu.editor.getSession().on('changeMode', function () {
+        CMenu.editor.getSession().$worker.send("changeOptions", [{loopfunc: true}]);
+    });
+    CMenu.editor.getSession().setMode("ace/mode/javascript");
+}
+
+CMenu.selectCallback = function (tr, data) {
+    for (var k in CMenu.sys_item_doms) {
+        CMenu.sys_item_doms[k][0].classList.remove('active');
+    }
+    for (var k in CMenu.item_doms) {
+        CMenu.item_doms[k][0].classList.remove('active');
+    }
+    tr.classList.add('active');
+    if (data.type == 'system') {
+        $('#btn_editor_save').attr('disabled', true);
+        $('#btn_editor_run').attr('disabled', true);
+        $('#btn_editor_reset').attr('disabled', true);
+        CMenu.editing = data;
+        CMenu.editor.setValue(data.draft.code, 1);
+        CMenu.editor.setReadOnly(true);
+        CMenu.updateAttachUI();
+    } else {
+        $('#btn_editor_save').attr('disabled', false);
+        $('#btn_editor_run').attr('disabled', false);
+        $('#btn_editor_reset').attr('disabled', false);
+        IStore.getByKey(data.key).then(function (result) {
+            CMenu.editing = result;
+            CMenu.editor.setValue(result.draft.code, 1);
+            CMenu.editor.setReadOnly(false);
+            CMenu.updateAttachUI();
+        });
+        if (data.type == 'custom') {
+
+        } else if (data.type == 'custom_wh') {
+
+        }
+    }
+}
+
+CMenu.initAttachUI = function () {
+    CMenu.attach_container = $('div#attachment-container');
+    // attach_info start
+    CMenu.attach_info = {
+        dom: $('<div class="panel panel-default"></div>').append($('<div class="panel-heading">基本信息</div>')),
+    };
+
+    var info_table = $(`<table class="table">
+                 <tbody>
+                    <tr>
+                        <th width="48px">名称:</th>
+                        <td class="name"></td>
+                    </tr>
+                    <tr>
+                        <th>类型:</th>
+                        <td class="type"></td>
+                    </tr>
+                    <tr>
+                        <th>描述:</th>
+                        <td class="memo"></td>
+                    </tr>
+                    <tr class="prop">
+                        <th>属性:</th>
+                        <td class="prop">
+                             <!-- Single button -->
+                            <div class="btn-group btn-group-justified"  role="group">
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" 
+                                        aria-haspopup="true" aria-expanded="false">
+                                    <span class="show-prop">主图K线形态</span> <span class="caret"></span>
+                                    </button>
+                                      <ul class="dropdown-menu">
+                                        <li><a href="#" class="indicator-prop">副图指标</a></li>
+                                        <li><a href="#" class="indicator-prop">主图K线形态</a></li>
+                                        <li><a href="#" class="indicator-prop">K线附属指标</a></li>
+                                      </ul>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                 </tbody>
+                </table>`);
+    info_table.find('.indicator-prop').on('click', function (e) {
+        info_table.find('button>span.show-prop').text(this.innerText);
+    });
+    CMenu.attach_info.dom.append(info_table);
+    // param_dom start
+
+    CMenu.attach_param = {
+        dom: $('<div class="panel panel-default"></div>').append($('<div class="panel-heading">参数列表</div>')),
+    };
+    var param_table = $('<table class="table table-bordered wh-param-list"></table>');
+    var param_thead = $(`<thead>
+                        <tr>
+                            <th>参数</th>
+                            <th>名称</th>
+                            <th>最大</th>
+                            <th>最小</th>
+                            <th>缺省</th>
+                        </tr>
+                        </thead>`);
+    var param_tbody = $('<tbody></tbody>');
+    for (var i = 1; i <= 6; i++) {
+        var tr = $('<tr></tr>');
+        var td_id = $('<td>' + i + '</td>');
+        var td_name = $('<td><input type="text" readonly class="form-control ' + ('name_' + i) + '"/></td>');
+        var td_max = $('<td><input type="number" readonly class="form-control ' + ('max_' + i) + '"/></td>');
+        var td_min = $('<td><input type="number" readonly class="form-control ' + ('min_' + i) + '"/></td>');
+        var td_default = $('<td><input type="number" readonly class="form-control ' + ('default_' + i) + '"/></td>');
+        tr.append(td_id).append(td_name).append(td_max).append(td_min).append(td_default);
+        param_tbody.append(tr);
+    }
+    param_tbody.find('input').on('click', function (e) {
+        $(this).attr('readonly', false);
+    })
+    param_table.append(param_thead).append(param_tbody);
+    CMenu.attach_param.dom.append(param_table);
+    // attach_btns start
+    CMenu.attach_btns = {
+        dom: $('<div class="btn-toolbar" role="toolbar"></div>'),
+    }
+    CMenu.attach_info.dom.find('tr.prop').hide();
+    CMenu.attach_param.dom.hide();
+    CMenu.attach_container.append(CMenu.attach_info.dom).append(CMenu.attach_param.dom);
+}
+
+CMenu.updateAttachUI = function () {
+    var indicator = CMenu.editing;
+    CMenu.attach_info.dom.find('.name').text(indicator.name);
+    CMenu.attach_info.dom.find('.memo').text(indicator.memo);
+    var type_str = {
+        system: '天勤脚本语言',
+        custom: '天勤脚本语言',
+        custom_wh: '文华脚本语言',
+    }
+    CMenu.attach_info.dom.find('.type').text(type_str[indicator.type]);
+    if (indicator.type == "system" || indicator.type == "custom") {
+        CMenu.attach_info.dom.find('tr.prop').hide();
+        CMenu.attach_param.dom.hide();
+    } else if (indicator.type == "custom_wh") {
+        CMenu.attach_info.dom.find('td span.show-prop').text(indicator.prop);
+        var trs = CMenu.attach_param.dom.find('tbody tr');
+        for (var i = 1; i <= 6; i++) {
+            trs.find('.name_' + i).val(indicator.params[i].name);
+            trs.find('.max_' + i).val(indicator.params[i].max);
+            trs.find('.min_' + i).val(indicator.params[i].min);
+            trs.find('.default_' + i).val(indicator.params[i].default_value);
+        }
+        CMenu.attach_info.dom.find('tr.prop').show();
+        CMenu.attach_param.dom.show();
+    }
+}
+
 
 CMenu.initSysIndicators = function () {
-    CMenu.sys_dom = $('#system-indicators');
     $.get('/defaults/defaults.json').then(function (response) {
         var all_promises = [];
         for (var name in response) {
@@ -44,33 +226,22 @@ CMenu.initSysIndicators = function () {
             }(response[name].name, response[name].memo));
         }
         Promise.all(all_promises).then(function () {
+            CMenu.sys_dom.empty();
             for (var i = 0; i < CMenu.sys_datas.length; i++) {
-                var tr = CMenu.getOneSysIndicator(CMenu.sys_datas[i], CMenu.sysSelectCallback, CMenu.copyCallback);
+                var tr = CMenu_Utils.getIndicatorTr(CMenu.sys_datas[i], {
+                    select: CMenu.selectCallback,
+                    copy: CMenu.copyCallback
+                });
                 CMenu.sys_item_doms.push(tr);
                 CMenu.sys_dom.append(tr);
             }
-            CMenu.sysSelectCallback(CMenu.sys_item_doms[0][0], CMenu.sys_datas[0]);
+            // 初始化时默认选中第一个系统指标
+            CMenu.sys_item_doms[0].find('td:first').click();
         });
     });
 }
 
-CMenu.init = function (div_id) {
-    CMenu.initSysIndicators();
-
-    CMenu.container = $('table#' + div_id);
-    CMenu.dom = $('<tbody></tbody>').append($('<div><img width="40" height="40" src="/img/loading.svg"></img></div>'));
-    CMenu.container.append(CMenu.dom);
-
-    CMenu.editModal = $('#EditModal');
-    CMenu.trashModal = $('#TrashModal');
-
-    CMenu.editor = ace.edit('editor');
-    CMenu.editor.$blockScrolling = Infinity;
-    CMenu.editor.getSession().on('changeMode', function () {
-        CMenu.editor.getSession().$worker.send("changeOptions", [{loopfunc: true}]);
-    });
-    CMenu.editor.getSession().setMode("ace/mode/javascript");
-
+CMenu.initCustomIndicators = function () {
     IStore.init().then(function (s) {
         IStore.getAll().then(function (list) {
             // 显示UI
@@ -85,6 +256,7 @@ CMenu.init = function (div_id) {
     });
 }
 
+
 CMenu.addAction = function () {
     CMenu.doing = 'new';
     CMenu.editModal.find('#indicator-name').val('');
@@ -97,7 +269,7 @@ CMenu.addAction = function () {
 
 CMenu.copyCallback = function (tr, data) {
     CMenu.doing = 'copy';
-    CMenu.editModal.find('#indicator-name').val(data.name);
+    CMenu.editModal.find('#indicator-name').val(data.name + '(copy)');
     CMenu.editModal.find("#indicator-type-tq").show();
     CMenu.editModal.find("#indicator-type-wh").hide();
     CMenu.editModal.find("input[name='indicator-type']").eq('0').click();
@@ -111,9 +283,9 @@ CMenu.editIndicator = function (e) {
     var type = CMenu.editModal.find("input[name='indicator-type']:checked").val();
     type = type == '0' ? 'custom' : 'custom_wh';
     var memo = $('#indicator-memo').val();
-    if (!CMenu.regExp.test(name)) {
+    if (!CMenu_Utils.validVariableName(name)) {
         alert('指标名称应符合 JavaScript 变量名命名规则。\n 第一个字符必须是字母、下划线（_）或美元符号（$）\n' +
-            '余下的字符可以是下划线（_）、美元符号（$）或任何字母或数字字符');
+            '余下的字符可以是下划线（_）、美元符号（$）或任何字母或数字字符。 \n 长度限制为20。');
         return;
     }
     if (CMenu.doing == 'new') {
@@ -131,8 +303,7 @@ CMenu.editIndicator = function (e) {
                 alert(e);
             }
         });
-    }
-    if (CMenu.doing == 'copy') {
+    } else if (CMenu.doing == 'copy') {
         IStore.add({
             name: name,
             type: type,
@@ -151,11 +322,17 @@ CMenu.editIndicator = function (e) {
             }
         });
     } else {
+        var wenhua = {prop: null, params: null};
+        if (type == 'custom_wh') {
+            wenhua = CMenu.getIndicatorWH_Prop_Params();
+        }
         IStore.saveDraft({
             key: CMenu.editing.key,
             name: name,
             type: type,
             memo: memo,
+            prop: wenhua.prop,
+            params: wenhua.params
         }).then(function (i) {
             CMenu.update();
             CMenu.editModal.modal('hide');
@@ -169,12 +346,29 @@ CMenu.editIndicator = function (e) {
     }
 }
 
+CMenu.getIndicatorWH_Prop_Params = function () {
+    var prop = CMenu.attach_info.dom.find('td span.show-prop').text();
+    var params = {}
+    var trs = CMenu.attach_param.dom.find('tbody tr');
+    for (var i = 1; i <= 6; i++) {
+        var name = CMenu.attach_param.dom.find('tbody tr').find('.name_' + i).val();
+        var max = CMenu.attach_param.dom.find('tbody tr').find('.max_' + i).val();
+        var min = CMenu.attach_param.dom.find('tbody tr').find('.min_' + i).val();
+        var default_value = CMenu.attach_param.dom.find('tbody tr').find('.default_' + i).val();
+        params[i] = {name, max, min, default_value};
+    }
+    return {prop, params}
+
+}
+
 CMenu.trashIndicator = function (e) {
     CMenu.item_doms[CMenu.editing.key].remove();
     delete CMenu.item_doms[CMenu.editing.key];
     IStore.remove(CMenu.editing.key).then(function (i) {
         CMenu.update();
         CMenu.trashModal.modal('hide');
+        // 删除选中指标后，选中第一个系统指标
+        CMenu.sys_item_doms[0].find('td:first').click();
     }, function (e) {
         if (e == 'ConstraintError') {
             alert('指标名称重复')
@@ -185,29 +379,40 @@ CMenu.trashIndicator = function (e) {
 }
 
 CMenu.saveDraftIndicator = function (e) {
+    var wenhua = {prop: null, params: null};
+    if (CMenu.editing.type == 'custom_wh') {
+        wenhua = CMenu.getIndicatorWH_Prop_Params();
+    }
     IStore.saveDraft({
         key: CMenu.editing.key,
         name: CMenu.editing.name,
         memo: CMenu.editing.memo,
         draft: {
             code: CMenu.editor.getValue()
-        }
+        },
+        prop: wenhua.prop,
+        params: wenhua.params
     }).then(function (result) {
         CMenu.editing = result;
-        console.log('saved');
     }, function (e) {
         alert(e);
     });
 }
 
 CMenu.saveFinalIndicator = function (e) {
+    var wenhua = {prop: null, params: null};
+    if (CMenu.editing.type == 'custom_wh') {
+        wenhua = CMenu.getIndicatorWH_Prop_Params();
+    }
     IStore.saveFinal({
         key: CMenu.editing.key,
         name: CMenu.editing.name,
         memo: CMenu.editing.memo,
         draft: {
             code: CMenu.editor.getValue()
-        }
+        },
+        prop: wenhua.prop,
+        params: wenhua.params
     }).then(function (result) {
         CMenu.editing = result;
         // todo: generate indicator class
@@ -224,25 +429,6 @@ CMenu.resetIndicator = function (e) {
     });
 }
 
-CMenu.selectCallback = function (tr, key) {
-    $('#btn_editor_save').attr('disabled', false);
-    $('#btn_editor_run').attr('disabled', false);
-    $('#btn_editor_reset').attr('disabled', false);
-
-    for (var k in CMenu.item_doms) {
-        CMenu.item_doms[k][0].classList.remove('active');
-    }
-    for (var k in CMenu.sys_item_doms) {
-        CMenu.sys_item_doms[k][0].classList.remove('active');
-    }
-    tr.classList.add('active');
-
-    IStore.getByKey(key).then(function (result) {
-        CMenu.editing = result;
-        CMenu.editor.setValue(result.draft.code, 1);
-        CMenu.editor.setReadOnly(false);
-    });
-}
 
 CMenu.editCallback = function (tr, key) {
     CMenu.doing = 'edit';
@@ -282,95 +468,98 @@ CMenu.update = function () {
 CMenu.updateUI = function () {
     for (var i = 0; i < CMenu.datas.length; i++) {
         var indicator = CMenu.datas[i];
+        if (indicator.key == CMenu.editing.key) {
+            CMenu.editing = indicator;
+        }
         if (!CMenu.item_doms[indicator.key]) {
-            CMenu.item_doms[indicator.key] = CMenu.getOneIndicator(indicator, CMenu.selectCallback, CMenu.editCallback, CMenu.trashCallback);
+            CMenu.item_doms[indicator.key] = CMenu_Utils.getIndicatorTr(indicator, {
+                select: CMenu.selectCallback,
+                edit: CMenu.editCallback,
+                trash: CMenu.trashCallback
+            });
             CMenu.dom.append(CMenu.item_doms[indicator.key]);
         } else {
-            var type = CMenu.getTypeTag(indicator.type);
+            var type = CMenu_Utils.getBrandTag(indicator.type);
             CMenu.item_doms[indicator.key].find('td:first').empty().append(type).append(indicator.name);
         }
     }
+    CMenu.updateAttachUI();
 }
 
-CMenu.getBtn = function (type) {
-    var btn = $('<span class="glyphicon glyphicon-' + type + '"></span>')
-    return ($('<td width="10%"></td>').append(btn));
-}
 
-CMenu.getTdName = function (data) {
-    return $('<td>' + data.name + '</td>');
-}
-
-CMenu.getOneIndicator = function (data, selectCallback, editCallback, trashCallback) {
-    var tr = $('<tr></tr>');
-    tr.on('click', function (e) {
-        var tr = e.target.parentElement;
-        if (e.target.parentElement.parentElement.nodeName == 'TR') {
-            tr = e.target.parentElement.parentElement;
-        }
-        selectCallback(tr, data.key);
-    });
-    var td = $('<td  width="80%"></td>').append(CMenu.getTypeTag(data.type));
-    td.append(data.name);
-    tr.append(td);
-
-    var edit_btn = CMenu.getBtn('edit');
-    edit_btn.on('click', function (e) {
-        editCallback(tr, data.key);
-    });
-    var trash_btn = CMenu.getBtn('trash');
-    trash_btn.on('click', function (e) {
-        trashCallback(tr, data.key);
-    });
-    return tr.append(edit_btn).append(trash_btn);
-}
-
-CMenu.sysSelectCallback = function (tr, data) {
-    $('#btn_editor_save').attr('disabled', true);
-    $('#btn_editor_run').attr('disabled', true);
-    $('#btn_editor_reset').attr('disabled', true);
-
-    for (var k in CMenu.item_doms) {
-        CMenu.item_doms[k][0].classList.remove('active');
+CMenu_Utils = function () {
+    var validVariableName = function (name) {
+        // 匹配变量名的正则
+        // 长度1-20，数字、字母、_、$ 组成，数字不能开头
+        var regExp = /^[a-zA-Z\_\$][0-9a-zA-Z\_\$]{0,19}$/;
+        return regExp.test(name);
     }
-    for (var k in CMenu.sys_item_doms) {
-        CMenu.sys_item_doms[k][0].classList.remove('active');
-    }
-    tr.classList.add('active');
-    CMenu.editing = data;
-    CMenu.editor.setValue(data.draft.code, 1);
-    CMenu.editor.setReadOnly(true);
-}
-
-CMenu.getOneSysIndicator = function (data, selectCallback, copyCallback, trashCallback) {
-    var tr = $('<tr></tr>');
-    tr.on('click', function (e) {
-        var tr = e.target.parentElement;
-        if (e.target.parentElement.parentElement.nodeName == 'TR') {
-            tr = e.target.parentElement.parentElement;
+    var getBrandTag = function (type) {
+        var setting = {
+            system: {
+                label_name: 'danger',
+                label_text: '天',
+            },
+            custom: {
+                label_name: 'danger',
+                label_text: '天',
+            },
+            custom_wh: {
+                label_name: 'info',
+                label_text: '文',
+            }
         }
-        selectCallback(tr, data);
-    });
-    var td = $('<td colspan="2"></td>').append(CMenu.getTypeTag('custom'));
-    td.append(data.name);
-    tr.append(td);
-    var copy_btn = CMenu.getBtn('duplicate');
-    copy_btn.on('click', function (e) {
-        copyCallback(tr, data);
-    });
-    return tr.append(copy_btn);
-}
-
-CMenu.getTypeTag = function (type) {
-    var setting = {
-        custom: {
-            label_name: 'danger',
-            label_text: '天勤',
-        },
-        custom_wh: {
-            label_name: 'info',
-            label_text: '文华',
+        var d = $('<span></span>');
+        d.addClass('label label-brand label-' + setting[type].label_name);
+        d.append(setting[type].label_text);
+        return d;
+    }
+    var getNameTd = function (data) {
+        var td = $('<td></td>');
+        if (data.type == 'system') {
+            td.attr('colspan', 2);
+        }
+        td.append(CMenu_Utils.getBrandTag(data.type)).append(data.name);
+        return td;
+    }
+    var getIconBtn = function (type) {
+        var btn = $('<span class="glyphicon glyphicon-' + type + '"></span>')
+        return ($('<td width="10%"></td>').append(btn));
+    }
+    var getIndicatorTr = function (data, callbacks) {
+        // data.type 'system' callbacks[select edit trash]
+        // data.type 'custom-*' callbacks[select copy]
+        var tr = $('<tr></tr>');
+        tr.on('click', function (e) {
+            var tr = e.target.parentElement;
+            if (e.target.parentElement.parentElement.nodeName == 'TR') {
+                tr = e.target.parentElement.parentElement;
+            }
+            callbacks.select(tr, data);
+        });
+        tr.append(getNameTd(data));
+        if (data.type == 'system') {
+            var copy_btn = CMenu_Utils.getIconBtn('duplicate');
+            copy_btn.on('click', function (e) {
+                callbacks.copy(tr, data);
+            });
+            return tr.append(copy_btn);
+        } else {
+            var edit_btn = CMenu_Utils.getIconBtn('edit');
+            edit_btn.on('click', function (e) {
+                callbacks.edit(tr, data.key);
+            });
+            var trash_btn = CMenu_Utils.getIconBtn('trash');
+            trash_btn.on('click', function (e) {
+                callbacks.trash(tr, data.key);
+            });
+            return tr.append(edit_btn).append(trash_btn);
         }
     }
-    return $('<span class="label label-' + setting[type].label_name + '">' + setting[type].label_text + '</span>');
-}
+    return {
+        validVariableName: validVariableName,
+        getBrandTag: getBrandTag,
+        getIconBtn: getIconBtn,
+        getIndicatorTr: getIndicatorTr
+    }
+}();
