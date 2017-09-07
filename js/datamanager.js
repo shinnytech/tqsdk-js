@@ -53,10 +53,7 @@ var DM = function () {
                         var dur_id = list.pop();
                         var ins_id = list.pop();
                         for (var data_id in diff.klines[ins_id][dur_id].data) {
-                            if (data_id > instance.right_id) {
-                                instance.invalid = true;
-                                break;
-                            } else {
+                            if (data_id >= instance.view_left && data_id <= instance.view_right) {
                                 var old_d = dm_get_data(ins_id, dur_id, data_id, serial_selector);
                                 var new_d = diff.klines[ins_id][dur_id].data[data_id][serial_selector];
                                 if (old_d != new_d) {
@@ -101,15 +98,7 @@ var DM = function () {
     }
 
     function dm_get_tdata(ins_id, data_id, serial_selector, instance_id) {
-        // 记录实例依赖关系
-        if (!DM.instances_map[instance_id]) {
-            DM.instances_map[instance_id] = {
-                rel: [],
-                invalid: false,
-                left_id: undefined,
-                right_id: undefined
-            }
-        }
+        dm_init_instance(instance_id);
         var path = ins_id + '.' + 0 + '.' + serial_selector;
         if (DM.instances_map[instance_id]['rel'].indexOf(path) == -1) {
             DM.instances_map[instance_id]['rel'].push(path);
@@ -119,15 +108,7 @@ var DM = function () {
     }
 
     function dm_get_kdata(ins_id, dur_id, data_id, serial_selector, instance_id) {
-        // 记录实例依赖关系
-        if (!DM.instances_map[instance_id]) {
-            DM.instances_map[instance_id] = {
-                rel: [],
-                invalid: false,
-                left_id: undefined,
-                right_id: undefined
-            }
-        }
+        dm_init_instance(instance_id);
         var path = ins_id + '.' + dur_id + '.' + serial_selector;
         if (DM.instances_map[instance_id]['rel'].indexOf(path) == -1) {
             DM.instances_map[instance_id]['rel'].push(path);
@@ -137,56 +118,32 @@ var DM = function () {
     }
 
     function dm_get_k_range(ins_id, dur_id, instance_id) {
-        // 记录实例依赖关系
-        if (!DM.instances_map[instance_id]) {
-            DM.instances_map[instance_id] = {
-                rel: [],
-                invalid: false,
-                left_id: undefined,
-                right_id: undefined
-            }
-        }
-        // 返回数据
-        var d = DM.datas;
-        if (d && d.klines && d.klines[ins_id] && d.klines[ins_id][dur_id] && d.klines[ins_id][dur_id].data) {
-            var res = d.klines[ins_id][dur_id].data;
-            var sorted_keys = Object.keys(res).sort((a, b) => {
-                return (parseInt(a) - parseInt(b))
-            });
-            var return_left_id, return_right_id;
-            // left_id 没有变就只计算最后增加的几组数据
-            // left_id 已经改变了就整个序列重算，因为 left_id、right_id 都可能改变了
-            if (sorted_keys[0] == DM.instances_map[instance_id].left_id) {
-                return_left_id = DM.instances_map[instance_id].right_id;
-                return_right_id = sorted_keys[sorted_keys.length - 1];
-            } else {
-                return_left_id = sorted_keys[0];
-                return_right_id = sorted_keys[sorted_keys.length - 1];
-            }
-            DM.instances_map[instance_id].left_id = sorted_keys[0];
-            DM.instances_map[instance_id].right_id = sorted_keys[sorted_keys.length - 1];
-            return [return_left_id, return_right_id];
-        } else {
+        dm_init_instance(instance_id);
+        if (DM.instances_map[instance_id].view_left && DM.instances_map[instance_id].view_right) {
+            return [DM.instances_map[instance_id].view_left, DM.instances_map[instance_id].view_right]
+        }else{
             DM.instances_map[instance_id].invalid = true;
             return undefined;
         }
     }
 
-    function dm_reset_kdata_range(instance_id) {
+    function dm_init_instance(instance_id) {
         if (!DM.instances_map[instance_id]) {
             DM.instances_map[instance_id] = {
                 rel: [],
                 invalid: false,
-                left_id: undefined,
-                right_id: undefined
+                view_left: null,
+                view_right: null
             }
-        } else {
-            DM.instances_map[instance_id].rel = [];
-            DM.instances_map[instance_id].invalid = false,
-            // reset_kdata_range
-            DM.instances_map[instance_id].left_id = undefined;
-            DM.instances_map[instance_id].right_id = undefined;
         }
+    }
+
+    function dm_reset_kdata_range(instance) {
+        dm_init_instance(instance.instance_id);
+        DM.instances_map[instance.instance_id].rel = [];
+        DM.instances_map[instance.instance_id].invalid = true;
+        DM.instances_map[instance.instance_id].view_left = instance.view_left;
+        DM.instances_map[instance.instance_id].view_right = instance.view_right;
     }
 
     function dm_clear_data() {

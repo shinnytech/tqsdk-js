@@ -459,7 +459,3 @@ OPI>=REF(OPI,1);//持仓量大于前一个周期的持仓量，表示持仓量�
 例3：
 NN:=BARSLAST(DATE<>REF(DATE,1))+1;
 OPID:REF(OPI,NN);//取的昨天收盘时的持仓量
-
-
-
-

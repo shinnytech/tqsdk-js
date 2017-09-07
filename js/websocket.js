@@ -3,6 +3,7 @@
 
     var ws;
     var server_url = 'ws://127.0.0.1:7777/';
+    // var server_url = 'ws://192.168.1.71:7777/';
     var queue = [];
 
     var req_id = 0;
@@ -36,7 +37,11 @@
                 }
             } else if (decoded.aid == "set_indicator_instance") {
                 //主进程要求创建或修改指标实例
-                TM.set_indicator_instance(decoded["set_indicator_instance"]);
+                var pack = decoded["set_indicator_instance"];
+                // pack.view_left = 57589;
+                // pack.view_right = 57740;
+                DM.reset_indicator_instance(pack);
+                TM.set_indicator_instance(pack);
             }
         };
         ws.onclose = function (event) {

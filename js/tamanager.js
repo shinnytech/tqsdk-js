@@ -7,7 +7,6 @@ const RED = RGB(0xFF, 0, 0);
 const GREEN = RGB(0, 0xFF, 0);
 const BLUE = RGB(0, 0, 0xFF);
 
-
 CALC_CONTEXT = {
     CALC_LEFT: NaN,
     CALC_RIGHT: NaN,
@@ -43,7 +42,7 @@ function RecursionWrapper(first_func, next_func)
         miss_count++;
         // console.log("miss "+ miss_count +":" + p);
         if (empty){
-            console.log("cache empty");
+            // console.log("cache empty");
             empty = false;
             var v = first_func(p);
             cache[p] = v;
@@ -627,7 +626,7 @@ var TM = function () {
             }
         };
         var func = window[ta_instance.ta_class_name];
-        console.log("Calc, left=" + CALC_CONTEXT.CALC_LEFT + ", right=" + CALC_CONTEXT.CALC_RIGHT);
+        // console.log("Calc, left=" + CALC_CONTEXT.CALC_LEFT + ", right=" + CALC_CONTEXT.CALC_RIGHT);
         func(CALC_CONTEXT);
         //将计算结果发给主进程
         var pack = {
@@ -640,13 +639,12 @@ var TM = function () {
     }
 
     function tm_set_indicator_instance(instance_pack) {
+
         var instance_id = instance_pack.instance_id;
         instance_pack.func = window[instance_pack.ta_class_name];
         ta_instance_map[instance_id] = instance_pack;
 
-        DM.reset_indicator_instance(instance_id);
         recalcInstance(instance_pack);
-
 
     }
 
