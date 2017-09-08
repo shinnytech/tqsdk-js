@@ -42,12 +42,18 @@ CMenu.init = function (div_id) {
 
     // 初始化系统指标
     // 初始化时默认选中第一个系统指标
-    CMenu.initSysIndicators();
+    var promise_sys = CMenu.initSysIndicators();
 
     // 初始化用户自定义指标
     CMenu.editModal = $('#EditModal');
     CMenu.trashModal = $('#TrashModal');
-    CMenu.initCustomIndicators();
+    var promise_cus = CMenu.initCustomIndicators();
+
+    Promise.all([promise_cus, promise_sys]).then(function () {
+        //初始化指标类
+        TM.init();
+    })
+
 
     // 初始化代码编辑区域
     CMenu.editor = ace.edit('editor');
@@ -204,55 +210,61 @@ CMenu.updateAttachUI = function () {
 
 
 CMenu.initSysIndicators = function () {
-    $.get('/defaults/defaults.json').then(function (response) {
-        var all_promises = [];
-        for (var i = 0; i < response.length; i++) {
-            all_promises.push(function (name) {
-                return $.ajax({
-                    url: '/defaults/' + name + '.js',
-                    dataType: "text"
-                }).then(function (response) {
-                    var item = {
-                        // key: name,
-                        name: name,
-                        type: 'system',
-                        draft: {
-                            code: response
-                        }
-                    };
-                    CMenu.sys_datas.push(item);
-                });
-            }(response[i]));
-        }
-        Promise.all(all_promises).then(function () {
-            CMenu.sys_dom.empty();
-            for (var i = 0; i < CMenu.sys_datas.length; i++) {
-                var tr = CMenu_Utils.getIndicatorTr(CMenu.sys_datas[i], {
-                    select: CMenu.selectCallback,
-                    copy: CMenu.copyCallback
-                });
-                CMenu.sys_item_doms.push(tr);
-                CMenu.sys_dom.append(tr);
+    return new Promise((resolve, reject) => {
+        $.get('/defaults/defaults.json').then(function (response) {
+            var all_promises = [];
+            for (var i = 0; i < response.length; i++) {
+                all_promises.push(function (name) {
+                    return $.ajax({
+                        url: '/defaults/' + name + '.js',
+                        dataType: "text"
+                    }).then(function (response) {
+                        var item = {
+                            // key: name,
+                            name: name,
+                            type: 'system',
+                            draft: {
+                                code: response
+                            }
+                        };
+                        CMenu.sys_datas.push(item);
+                    });
+                }(response[i]));
             }
-            // 初始化时默认选中第一个系统指标
-            CMenu.sys_item_doms[0].find('td:first').click();
+            Promise.all(all_promises).then(function () {
+                CMenu.sys_dom.empty();
+                for (var i = 0; i < CMenu.sys_datas.length; i++) {
+                    var tr = CMenu_Utils.getIndicatorTr(CMenu.sys_datas[i], {
+                        select: CMenu.selectCallback,
+                        copy: CMenu.copyCallback
+                    });
+                    CMenu.sys_item_doms.push(tr);
+                    CMenu.sys_dom.append(tr);
+                }
+                // 初始化时默认选中第一个系统指标
+                CMenu.sys_item_doms[0].find('td:first').click();
+                resolve();
+            });
         });
     });
+
 }
 
 CMenu.initCustomIndicators = function () {
-    IStore.init().then(function (s) {
-        IStore.getAll().then(function (list) {
-            // 显示UI
-            CMenu.datas = list;
-            //初始化指标类
-            TM.init();
-            CMenu.dom.empty();
-            CMenu.updateUI();
-        }, function (e) {
-            console.log(e);
+    return new Promise((resolve, reject) => {
+        IStore.init().then(function (s) {
+            IStore.getAll().then(function (list) {
+                // 显示UI
+                CMenu.datas = list;
+                CMenu.dom.empty();
+                CMenu.updateUI();
+                resolve();
+            }, function (e) {
+                console.log(e);
+            });
         });
     });
+
 }
 
 
