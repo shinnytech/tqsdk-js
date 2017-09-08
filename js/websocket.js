@@ -40,6 +40,7 @@
                 var pack = decoded["set_indicator_instance"];
                 // pack.view_left = 57589;
                 // pack.view_right = 57740;
+                console.log("tm_set_indicator_instance:" + message.data);
                 DM.reset_indicator_instance(pack);
                 TM.set_indicator_instance(pack);
             }
