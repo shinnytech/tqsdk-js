@@ -1,17 +1,26 @@
 // DIFF : EMA(CLOSE,SHORT) - EMA(CLOSE,LONG);//短周期与长周期的收盘价的指数平滑移动平均值做差。
 // DEA  : EMA(DIFF,M);//DIFF的M个周期指数平滑移动平均
 // 2*(DIFF-DEA),COLORSTICK;//DIFF减DEA的2倍画柱状线
-DEFINE({TYPE: IKLINE, YAXIS: YAXIS_DEFAULT});
+C.DEFINE({
+    type: "SUB",
+    cname: "MACD",
+    state: "KLINE",
+    yaxis: [
+        {id: 0, mid: 0}
+    ]
+});
 //输入
-var vshort = PARAM(20, "SHORT", {MIN: 5, STEP: 5});
-var vlong = PARAM(35, "LONG", {MIN: 5, STEP: 5});
-var vm = PARAM(10, "M", {MIN: 5, STEP: 5});
+var vshort = C.PARAM(20, "SHORT", {MIN: 5, STEP: 5});
+var vlong = C.PARAM(35, "LONG", {MIN: 5, STEP: 5});
+var vm = C.PARAM(10, "M", {MIN: 5, STEP: 5});
 //计算
-var sclose = SERIAL("CLOSE");
-var diff = SUB(EMA(sclose, vshort), EMA(sclose, vlong));
+var sclose = C.SERIAL("CLOSE");
+var eshort = EMA(sclose, vshort);
+var elong = EMA(sclose, vlong)
+var diff = (p) => eshort(p) - elong(p);
 var dea = EMA(diff, vm);
-var bar = 2 * (diff - dea);
+var bar = (p) => 2 * (diff(p) - dea(p));
 //输出
-OUT_LINE(diff, "diff", {COLOR: RED});
-OUT_LINE(dea, "dea", {COLOR: BLUE, WIDTH: 2});
-OUT_BAR(bar, "bar", {COLOR: RED});
+C.OUTS(diff, "diff", {color: RED});
+C.OUTS(dea, "dea", {color: BLUE, width: 2});
+C.OUTS(bar, "bar", {style: "BAR", color: RED});

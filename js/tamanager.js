@@ -267,140 +267,6 @@ function single_demo(C) {
     }
 };
 
-function ma6(C) {
-    C.DEFINE({
-        type: "MAIN",
-        cname: "6个均线",
-        memo: "一次性加入6根均线",
-        state: "KLINE",
-    });
-    var n1 = C.PARAM(3, "N1");
-    var n2 = C.PARAM(5, "N2");
-    var n3 = C.PARAM(10, "N3");
-    var n4 = C.PARAM(20, "N4");
-    var n5 = C.PARAM(50, "N5");
-    var n6 = C.PARAM(100, "N6");
-    var s = C.SERIAL("CLOSE");
-    C.OUTS(MA(s, n1), "ma" + n1, {color: RED});
-    C.OUTS(MA(s, n2), "ma" + n2, {color: GREEN});
-    C.OUTS(MA(s, n3), "ma" + n3, {color: BLUE});
-    C.OUTS(MA(s, n4), "ma" + n4, {color: RED});
-    C.OUTS(MA(s, n5), "ma" + n5, {color: GREEN});
-    C.OUTS(MA(s, n6), "ma" + n6, {color: BLUE});
-};
-
-function voi(C) {
-    C.DEFINE({
-        type: "SUB",
-        cname: "成交量持仓量",
-        memo: "成交量持仓量",
-        state: "KLINE",
-        yaxis: [
-            {id: 0, format: "HUGE"},
-            {id: 1, format: "HUGE"},
-        ]
-    });
-    var vol = C.SERIAL("VOLUME");
-    var oi = C.SERIAL("close_oi");
-    C.OUTS(vol, "vol", {color: RED, yaxis: 0});
-    C.OUTS(oi, "oi", {color: GREEN, yaxis: 1});
-};
-
-function macd(C) {
-    // DIFF : EMA(CLOSE,SHORT) - EMA(CLOSE,LONG);//短周期与长周期的收盘价的指数平滑移动平均值做差。
-    // DEA  : EMA(DIFF,M);//DIFF的M个周期指数平滑移动平均
-    // 2*(DIFF-DEA),COLORSTICK;//DIFF减DEA的2倍画柱状线
-    C.DEFINE({
-        type: "SUB",
-        cname: "MACD",
-        state: "KLINE",
-        yaxis: [
-            {id: 0, mid: 0}
-        ]
-    });
-    //输入
-    var vshort = C.PARAM(20, "SHORT", {MIN: 5, STEP: 5});
-    var vlong = C.PARAM(35, "LONG", {MIN: 5, STEP: 5});
-    var vm = C.PARAM(10, "M", {MIN: 5, STEP: 5});
-    //计算
-    var sclose = C.SERIAL("CLOSE");
-    var eshort = EMA(sclose, vshort);
-    var elong = EMA(sclose, vlong)
-    var diff = (p) => eshort(p) - elong(p);
-    var dea = EMA(diff, vm);
-    var bar = (p) => 2 * (diff(p) - dea(p));
-    //输出
-    C.OUTS(diff, "diff", {color: RED});
-    C.OUTS(dea, "dea", {color: BLUE, width: 2});
-    C.OUTS(bar, "bar", {style: "BAR", color: RED});
-}
-
-function rkline(C) {
-    C.DEFINE({
-        type: "SUB",
-        state: "KLINE",
-    });
-    var open = C.SERIAL("OPEN");
-    var high = C.SERIAL("HIGH");
-    var low = C.SERIAL("LOW");
-    var close = C.SERIAL("CLOSE");
-    C.OUTS([open, high, low, close], "diff", {style: "KLINE"});
-};
-
-function boll(C) {
-    C.DEFINE({
-        type: "MAIN",
-        cname: "布林带",
-        memo: "",
-        state: "KLINE",
-    });
-    var n = C.PARAM(3, "N");
-    var m = C.PARAM(5, "M");
-    var p = C.PARAM(5, "P");
-    var close = C.SERIAL("CLOSE");
-
-    var mid = MA(close, n);
-    var tmp = STD(close, m);
-    var top = (i) => mid(i) + p * tmp(i);
-    var bottom = (i) => mid(i) - p * tmp(i);
-
-    C.OUTS(top, "top", {color: RED});
-    C.OUTS(bottom, "bottom", {color: GREEN});
-};
-
-function kdj(C) {
-    // RSV:=(CLOSE-LLV(LOW,N))/(HHV(HIGH,N)-LLV(LOW,N))*100;//收盘价与N周期最低值做差，N周期最高值与N周期最低值做差，两差之间做比值。
-    // K:SMA(RSV,M1,1);//RSV的移动平均值
-    // D:SMA(K,M2,1);//K的移动平均值
-    // J:3*K-2*D;
-    // BACKGROUNDSTYLE(1);
-    C.DEFINE({
-        type: "SUB",
-        cname: "KDJ",
-        memo: "",
-        state: "KLINE",
-    });
-    var n = C.PARAM(3, "N");
-    var m1 = C.PARAM(5, "M1");
-    var m2 = C.PARAM(5, "M2");
-    var close = C.SERIAL("CLOSE");
-    var high = C.SERIAL("HIGH");
-    var low = C.SERIAL("LOW");
-
-    var lv = LLV(low, n);
-    var hv = HHV(high, n);
-    var rsv = (i) => (hv(i) == lv(i)) ? 0 : (close(i) - lv(i)) / (hv(i) - lv(i)) * 100;
-    var k = SMA(rsv, m1, 1);
-    var d = SMA(k, m2, 1);
-
-    function j(i) {
-        return 3 * k(i) - 2 * d(i);
-    };
-    C.OUTS(k, "k", {color: RED});
-    C.OUTS(d, "d", {color: GREEN});
-    C.OUTS(j, "j", {color: GREEN});
-};
-
 function sar(C) {
     // C.DEFINE({
     //     type: "MAIN",
@@ -476,7 +342,6 @@ function sar(C) {
 // EP：一个涨跌内的极值，在上涨行情中为前N根K线的最高价；下跌行情中为前N根K线的最低价
 
 
-var ta_funcs = [ma6, voi, macd, boll, kdj, sar, rkline];
 
 
 // ---------------------------------------------------------------------------
@@ -488,23 +353,20 @@ var TM = function () {
     function tm_init() {
         //更新所有指标类定义, 并发送到主进程
         // 系统指标
-        // for (var i = 0; i < CMenu.sys_datas.length; i++) {
-        //     var func_name = CMenu.sys_datas[i].name;
-        //     var code = CMenu.sys_datas[i].draft.code;
-        //     eval(func_name + ' = function(){' + code + '}');
-        //     var f = window[func_name];
-        //     tm_update_class_define(f);
-        // }
-        // // 用户自定义指标
-        // for (var i = 0; i < CMenu.datas.length; i++) {
-        //     var func_name = CMenu.datas[i].name;
-        //     var code = CMenu.datas[i].draft.code;
-        //     eval(func_name + ' = function(){' + code + '}');
-        //     var f = window[func_name];
-        //     tm_update_class_define(f);
-        // }
-        for (var i in ta_funcs) {
-            tm_update_class_define(ta_funcs[i]);
+        for (var i = 0; i < CMenu.sys_datas.length; i++) {
+            var func_name = CMenu.sys_datas[i].name;
+            var code = CMenu.sys_datas[i].draft.code;
+            eval(func_name + ' = function(C){' + code + '}');
+            var f = window[func_name];
+            tm_update_class_define(f);
+        }
+        // 用户自定义指标
+        for (var i = 0; i < CMenu.datas.length; i++) {
+            var func_name = CMenu.datas[i].name;
+            var code = CMenu.datas[i].draft.code;
+            eval(func_name + ' = function(C){' + code + '}');
+            var f = window[func_name];
+            tm_update_class_define(f);
         }
     }
 
