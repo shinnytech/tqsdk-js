@@ -1,6 +1,7 @@
 $(function () {
-    // init 指标类
-    CMenu.init('list_menu');
+
+    //连接到主进程
+    WS.init();
 
     $('#btn_new_indicator').on('click', CMenu.addAction);
     $('#btn_editor_save').on('click', CMenu.saveDraftIndicator);
@@ -20,6 +21,6 @@ $(function () {
     $('#edit-btn').on('click', CMenu.editIndicator);
     $('#trash-btn').on('click', CMenu.trashIndicator);
 
-    //连接到主进程
-    WS.init();
 });
+
+
