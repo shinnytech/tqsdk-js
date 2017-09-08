@@ -580,9 +580,9 @@ var TM = function () {
         if (xrange === undefined)
             return;
         var [data_left, data_right] = xrange;
-        // //准备计算环境
+        //准备计算环境
         out_values = {};
-        // //@todo: 这里目前是对整个序列全部重算，后续需要优化(已经计算过，且原始数据未改变的不用重算；只计算可见窗口附近的数据)
+        //@todo: 这里目前是对整个序列全部重算，后续需要优化(已经计算过，且原始数据未改变的不用重算；只计算可见窗口附近的数据)
         CALC_CONTEXT.DATA_LEFT = parseInt(data_left);
         CALC_CONTEXT.DATA_RIGHT = parseInt(data_right);
         CALC_CONTEXT.CALC_LEFT = parseInt(data_left);

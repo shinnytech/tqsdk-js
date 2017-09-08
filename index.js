@@ -23,9 +23,3 @@ $(function () {
     //连接到主进程
     WS.init();
 });
-
-
-//重计算相关的指标值
-// TM.recalc_indicators();
-
-

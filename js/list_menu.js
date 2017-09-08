@@ -267,7 +267,7 @@ CMenu.addAction = function () {
 
 CMenu.copyCallback = function (tr, data) {
     CMenu.doing = 'copy';
-    CMenu.editModal.find('#indicator-name').val(data.name + '(copy)');
+    CMenu.editModal.find('#indicator-name').val(data.name + '_copy');
     CMenu.editModal.find("#indicator-type-tq").show();
     CMenu.editModal.find("#indicator-type-wh").hide();
     CMenu.editModal.find("input[name='indicator-type']").eq('0').click();
