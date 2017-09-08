@@ -1,6 +1,12 @@
+function COLOR(r, g, b){
+    this.color = r | (g << 8) | (b << 16);
+}
+COLOR.prototype.toJSON = function() {
+    return this.color;
+};
+
 function RGB(r, g, b) {
-    //颜色定义
-    return r | (g << 8) | (b << 16);
+    return new COLOR(r, g, b);
 }
 
 const RED = RGB(0xFF, 0, 0);
@@ -16,6 +22,7 @@ const LIGHTGRAY = RGB(0xD3, 0xD3, 0xD3);
 const LIGHTRED = RGB(0xF0, 0x80, 0x80);
 const LIGHTGREEN = RGB(0x90, 0xEE, 0x90);
 const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
+
 
 CALC_CONTEXT = {
     CALC_LEFT: NaN,
@@ -526,9 +533,16 @@ var TM = function () {
             var param_define = params.get(param_name);
             if (param_define === undefined) {
                 param_define = {
-                    "name": param_name,
-                    "default": param_default_value,
+                    name: param_name,
+                    default: param_default_value,
                 };
+                if (typeof param_default_value == "string"){
+                    param_define.type = "STRING";
+                }else if (typeof param_default_value == "number"){
+                    param_define.type = "NUMBER";
+                }else if (param_default_value instanceof COLOR){
+                    param_define.type = "COLOR";
+                }
                 if (!(options === undefined)) {
                     param_define.memo = options.MEMO;
                     param_define.min = options.MIN;
@@ -537,7 +551,7 @@ var TM = function () {
                 }
                 params.set(param_name, param_define);
             }
-            return param_define;
+            return param_default_value;
         };
         C.SERIAL = function () {
         };
@@ -555,11 +569,12 @@ var TM = function () {
         ta_class_map[indicator_name] = ta_class_define;
         ta_class_define.aid = "register_indicator_class";
         //发送指标类信息到主进程
+        console.log("ta_class_define" + JSON.stringify(ta_class_define));
         WS.sendJson(ta_class_define);
     }
 
     function get_instance_param_value(instance, param_name) {
-        return instance.params[param_name];
+        return instance.params[param_name].value;
     }
 
     function get_input_serial_func(instance, serial_selector) {
@@ -576,7 +591,7 @@ var TM = function () {
     function recalcInstance(ta_instance) {
         // try {
         var xrange = DM.get_kdata_range(ta_instance.ins_id, ta_instance.dur_nano, ta_instance.instance_id);
-        // console.log('recalcInstance', xrange);
+        console.log("recalcInstance" + xrange);
         if (xrange === undefined)
             return;
         var [data_left, data_right] = xrange;
