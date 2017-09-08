@@ -52,8 +52,7 @@ CMenu.init = function (div_id) {
     Promise.all([promise_cus, promise_sys]).then(function () {
         //初始化指标类
         TM.init();
-    })
-
+    });
 
     // 初始化代码编辑区域
     CMenu.editor = ace.edit('editor');

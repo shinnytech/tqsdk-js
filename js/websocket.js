@@ -93,6 +93,10 @@ var WS = new TqWebSocket('ws://127.0.0.1:7777/',{
             sync_datas: {},
         };
         WS.sendJson(JSON.stringify(demo_d));
+        // init 指标类
+        if(!CMenu.container){
+            CMenu.init('list_menu');
+        }
     },
     onclose: function () {
         DM.clear_data();
