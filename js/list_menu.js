@@ -82,13 +82,21 @@ CMenu.selectCallback = function (tr, data) {
             CMenu.editing = result;
             CMenu.editor.setValue(result.draft.code, 1);
             CMenu.editor.setReadOnly(false);
+            console.log(CMenu.editing)
             CMenu.updateAttachUI();
         });
-        if (data.type == 'custom') {
+    }
 
-        } else if (data.type == 'custom_wh') {
-
-        }
+    if (data.type == 'system' || data.type == 'custom') {
+        var center = $('div.main-container div.content-container')[0];
+        center.classList.remove('col-xs-6');
+        center.classList.add('col-xs-9');
+        $('div.main-container div.right-menu')[0].classList.add('hide');
+    } else if (data.type == 'custom_wh') {
+        var center = $('div.main-container div.content-container')[0];
+        center.classList.remove('col-xs-9');
+        center.classList.add('col-xs-6');
+        $('div.main-container div.right-menu')[0].classList.remove('hide');
     }
 }
 
@@ -138,8 +146,8 @@ CMenu.initAttachUI = function () {
         info_table.find('button>span.show-prop').text(this.innerText);
     });
     CMenu.attach_info.dom.append(info_table);
-    // param_dom start
 
+    // param_dom start
     CMenu.attach_param = {
         dom: $('<div class="panel panel-default"></div>').append($('<div class="panel-heading">参数列表</div>')),
     };
@@ -169,29 +177,20 @@ CMenu.initAttachUI = function () {
     })
     param_table.append(param_thead).append(param_tbody);
     CMenu.attach_param.dom.append(param_table);
-    // attach_btns start
-    CMenu.attach_btns = {
-        dom: $('<div class="btn-toolbar" role="toolbar"></div>'),
-    }
-    CMenu.attach_info.dom.find('tr.prop').hide();
-    CMenu.attach_param.dom.hide();
+
     CMenu.attach_container.append(CMenu.attach_info.dom).append(CMenu.attach_param.dom);
 }
 
 CMenu.updateAttachUI = function () {
     var indicator = CMenu.editing;
-    CMenu.attach_info.dom.find('.name').text(indicator.name);
-    CMenu.attach_info.dom.find('.memo').text(indicator.memo);
     var type_str = {
         system: '天勤脚本语言',
         custom: '天勤脚本语言',
         custom_wh: '文华脚本语言',
     }
-    CMenu.attach_info.dom.find('.type').text(type_str[indicator.type]);
-    if (indicator.type == "system" || indicator.type == "custom") {
-        CMenu.attach_info.dom.find('tr.prop').hide();
-        CMenu.attach_param.dom.hide();
-    } else if (indicator.type == "custom_wh") {
+    if (indicator.type == "custom_wh") {
+        CMenu.attach_info.dom.find('.name').text(indicator.name);
+        CMenu.attach_info.dom.find('.type').text(type_str[indicator.type]);
         CMenu.attach_info.dom.find('td span.show-prop').text(indicator.prop);
         var trs = CMenu.attach_param.dom.find('tbody tr');
         for (var i = 1; i <= 6; i++) {
@@ -200,8 +199,6 @@ CMenu.updateAttachUI = function () {
             trs.find('.min_' + i).val(indicator.params[i].min);
             trs.find('.default_' + i).val(indicator.params[i].default_value);
         }
-        CMenu.attach_info.dom.find('tr.prop').show();
-        CMenu.attach_param.dom.show();
     }
 }
 
@@ -209,13 +206,15 @@ CMenu.updateAttachUI = function () {
 CMenu.initSysIndicators = function () {
     $.get('/defaults/defaults.json').then(function (response) {
         var all_promises = [];
-        for (var name in response) {
-            all_promises.push(function (name, memo) {
-                return $.get('/defaults/' + response[name].file_name).then(function (response) {
+        for (var i = 0; i < response.length; i++) {
+            all_promises.push(function (name) {
+                return $.ajax({
+                    url: '/defaults/' + name + '.js',
+                    dataType: "text"
+                }).then(function (response) {
                     var item = {
                         // key: name,
                         name: name,
-                        memo: memo,
                         type: 'system',
                         draft: {
                             code: response
@@ -223,7 +222,7 @@ CMenu.initSysIndicators = function () {
                     };
                     CMenu.sys_datas.push(item);
                 });
-            }(response[name].name, response[name].memo));
+            }(response[i]));
         }
         Promise.all(all_promises).then(function () {
             CMenu.sys_dom.empty();
@@ -263,7 +262,6 @@ CMenu.addAction = function () {
     CMenu.editModal.find("#indicator-type-tq").show();
     CMenu.editModal.find("#indicator-type-wh").show();
     CMenu.editModal.find("input[name='indicator-type']").eq('0').click();
-    CMenu.editModal.find('#indicator-memo').val('');
     CMenu.editModal.modal('show');
 }
 
@@ -273,7 +271,6 @@ CMenu.copyCallback = function (tr, data) {
     CMenu.editModal.find("#indicator-type-tq").show();
     CMenu.editModal.find("#indicator-type-wh").hide();
     CMenu.editModal.find("input[name='indicator-type']").eq('0').click();
-    CMenu.editModal.find('#indicator-memo').val(data.memo);
     CMenu.editModal.attr('data_code', data.draft.code);
     CMenu.editModal.modal('show');
 }
@@ -282,17 +279,21 @@ CMenu.editIndicator = function (e) {
     var name = $('#indicator-name').val();
     var type = CMenu.editModal.find("input[name='indicator-type']:checked").val();
     type = type == '0' ? 'custom' : 'custom_wh';
-    var memo = $('#indicator-memo').val();
     if (!CMenu_Utils.validVariableName(name)) {
         alert('指标名称应符合 JavaScript 变量名命名规则。\n 第一个字符必须是字母、下划线（_）或美元符号（$）\n' +
             '余下的字符可以是下划线（_）、美元符号（$）或任何字母或数字字符。 \n 长度限制为20。');
         return;
     }
     if (CMenu.doing == 'new') {
+        var wenhua = {prop: null, params: null};
+        if (type == 'custom_wh') {
+            wenhua = CMenu.getIndicatorWH_Prop_Params();
+        }
         IStore.add({
             name: name,
             type: type,
-            memo: memo,
+            prop: wenhua.prop,
+            params: wenhua.params
         }).then(function (i) {
             CMenu.update();
             CMenu.editModal.modal('hide');
@@ -307,7 +308,6 @@ CMenu.editIndicator = function (e) {
         IStore.add({
             name: name,
             type: type,
-            memo: memo,
             draft: {
                 code: CMenu.editModal.attr('data_code')
             }
@@ -330,7 +330,6 @@ CMenu.editIndicator = function (e) {
             key: CMenu.editing.key,
             name: name,
             type: type,
-            memo: memo,
             prop: wenhua.prop,
             params: wenhua.params
         }).then(function (i) {
@@ -386,7 +385,6 @@ CMenu.saveDraftIndicator = function (e) {
     IStore.saveDraft({
         key: CMenu.editing.key,
         name: CMenu.editing.name,
-        memo: CMenu.editing.memo,
         draft: {
             code: CMenu.editor.getValue()
         },
@@ -407,7 +405,6 @@ CMenu.saveFinalIndicator = function (e) {
     IStore.saveFinal({
         key: CMenu.editing.key,
         name: CMenu.editing.name,
-        memo: CMenu.editing.memo,
         draft: {
             code: CMenu.editor.getValue()
         },
@@ -443,7 +440,6 @@ CMenu.editCallback = function (tr, key) {
             CMenu.editModal.find("#indicator-type-wh").show();
             CMenu.editModal.find("input[name='indicator-type']").eq('1').click();
         }
-        CMenu.editModal.find('#indicator-memo').val(result.memo);
         CMenu.editModal.modal('show');
     });
 }
