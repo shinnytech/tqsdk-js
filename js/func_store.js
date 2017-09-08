@@ -89,7 +89,6 @@ var IStore = function () {
         var indicator_obj = {
             name: indicator.name,
             type: indicator.type,
-            memo: indicator.memo,
             draft: {
                 dt: dt,
                 code: ""
@@ -157,7 +156,6 @@ var IStore = function () {
                     var indicator_obj = {
                         name: indicator_custom.name,
                         type: indicator.type,
-                        memo: indicator_custom.memo,
                         draft: {
                             dt: getNow(),
                             code: (indicator_custom.draft && indicator_custom.draft.code) ? indicator_custom.draft.code : indicator.draft.code
@@ -182,7 +180,6 @@ var IStore = function () {
                     var indicator_obj = {
                         name: indicator_custom.name,
                         type: indicator.type,
-                        memo: indicator_custom.memo,
                         draft: {
                             dt: dt,
                             code: indicator_custom.draft.code
@@ -207,7 +204,6 @@ var IStore = function () {
                     var indicator_obj = {
                         name: indicator.name,
                         type: indicator.type,
-                        memo: indicator.memo,
                         draft: {
                             dt: indicator.final.dt,
                             code: indicator.final.code

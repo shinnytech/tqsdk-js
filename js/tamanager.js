@@ -12,6 +12,16 @@ function RGB(r, g, b) {
 const RED = RGB(0xFF, 0, 0);
 const GREEN = RGB(0, 0xFF, 0);
 const BLUE = RGB(0, 0, 0xFF);
+const CYAN = RGB(0, 0xFF, 0xFF);
+const BLACK = RGB(0, 0, 0);
+const WHITE = RGB(0xFF, 0xFF, 0xFF);
+const GRAY = RGB(0x80, 0x80, 0x80);
+const MAGENTA = RGB(0xFF, 0, 0xFF);
+const YELLOW = RGB(0xFF, 0xFF, 0);
+const LIGHTGRAY = RGB(0xD3, 0xD3, 0xD3);
+const LIGHTRED = RGB(0xF0, 0x80, 0x80);
+const LIGHTGREEN = RGB(0x90, 0xEE, 0x90);
+const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
 
 
 CALC_CONTEXT = {
@@ -21,10 +31,9 @@ CALC_CONTEXT = {
     DATA_RIGHT: NaN,
 };
 
-function CacheWrapper(orign_func)
-{
+function CacheWrapper(orign_func) {
     var cache = {};
-    var f = function(p){
+    var f = function (p) {
         if (p in cache)
             return cache[p];
         var v = orign_func(p);
@@ -36,25 +45,24 @@ function CacheWrapper(orign_func)
 
 miss_count = 0;
 
-function RecursionWrapper(first_func, next_func)
-{
+function RecursionWrapper(first_func, next_func) {
     var cache = {};
     var empty = true;
-    var f = function(p){
+    var f = function (p) {
         if (p in cache)
             return cache[p];
-        if (p < CALC_CONTEXT.DATA_LEFT){
+        if (p < CALC_CONTEXT.DATA_LEFT) {
             return NaN;
         }
         miss_count++;
         // console.log("miss "+ miss_count +":" + p);
-        if (empty){
+        if (empty) {
             // console.log("cache empty");
             empty = false;
             var v = first_func(p);
             cache[p] = v;
             return v;
-        }else{
+        } else {
             var v = next_func(p);
             cache[p] = v;
             return v;
@@ -63,10 +71,10 @@ function RecursionWrapper(first_func, next_func)
     return f;
 }
 
-function SUM(serial, n){
+function SUM(serial, n) {
     var f = CacheWrapper(function (p) {
         var s = 0;
-        for(var i= p - n + 1; i <= p; i++){
+        for (var i = p - n + 1; i <= p; i++) {
             s += serial(i);
         }
         return s;
@@ -123,7 +131,7 @@ function EMA(serial, n) {
      */
     var f = RecursionWrapper(
         (i) => serial(i),
-        (i) => isNaN(f(i-1)) ? serial(i) : (2*serial(i) / (n+1) + (n-1) * f(i-1) / (n+1)),
+        (i) => isNaN(f(i - 1)) ? serial(i) : (2 * serial(i) / (n + 1) + (n - 1) * f(i - 1) / (n + 1)),
     );
     return f;
 }
@@ -143,7 +151,7 @@ function SMA(serial, n, m) {
      */
     var f = RecursionWrapper(
         (i) => serial(i),
-        (i) => isNaN(f(i-1)) ? serial(i) : (f(i-1) *(n-m) / n + serial(i) * m /n),
+        (i) => isNaN(f(i - 1)) ? serial(i) : (f(i - 1) * (n - m) / n + serial(i) * m / n),
     );
     return f;
 }
@@ -196,7 +204,7 @@ function HHV(serial, n) {
      */
     var f = CacheWrapper(function (p) {
         var s;
-        for(var i= p - n + 1; i <= p; i++){
+        for (var i = p - n + 1; i <= p; i++) {
             var v = serial(i);
             if (s === undefined || v > s)
                 s = v;
@@ -226,7 +234,7 @@ function LLV(serial, n) {
      */
     var f = CacheWrapper(function (p) {
         var s;
-        for(var i= p - n + 1; i <= p; i++){
+        for (var i = p - n + 1; i <= p; i++) {
             var v = serial(i);
             if (s === undefined || v < s)
                 s = v;
@@ -237,8 +245,6 @@ function LLV(serial, n) {
 }
 
 
-
-
 // ---------------------------------------------------------------------------
 function single_demo(C) {
     C.DEFINE({
@@ -247,13 +253,13 @@ function single_demo(C) {
         cname: "均线 Tick ma",
         state: "TICK",
         yaxis: [
-            {id:0, mid: NaN, format: "AUTO"}
+            {id: 0, mid: NaN, format: "AUTO"}
         ]
     });
     var n = C.PARAM(10, "N");
-    for(var i=C.CALC_LEFT; i<=C.CALC_RIGHT; i++){
+    for (var i = C.CALC_LEFT; i <= C.CALC_RIGHT; i++) {
         var s = 0;
-        for(var j=i-n+1; j<=i; j++){
+        for (var j = i - n + 1; j <= i; j++) {
             s += C.SERIAL("TLAST")(j);
         }
         s /= n;
@@ -290,8 +296,8 @@ function voi(C) {
         memo: "成交量持仓量",
         state: "KLINE",
         yaxis: [
-            {id:0, format: "HUGE"},
-            {id:1, format: "HUGE"},
+            {id: 0, format: "HUGE"},
+            {id: 1, format: "HUGE"},
         ]
     });
     var vol = C.SERIAL("VOLUME");
@@ -309,7 +315,7 @@ function macd(C) {
         cname: "MACD",
         state: "KLINE",
         yaxis: [
-            {id:0, mid:0}
+            {id: 0, mid: 0}
         ]
     });
     //输入
@@ -386,7 +392,8 @@ function kdj(C) {
     var rsv = (i) => (hv(i) == lv(i)) ? 0 : (close(i) - lv(i)) / (hv(i) - lv(i)) * 100;
     var k = SMA(rsv, m1, 1);
     var d = SMA(k, m2, 1);
-    function j(i){
+
+    function j(i) {
         return 3 * k(i) - 2 * d(i);
     };
     C.OUTS(k, "k", {color: RED});
@@ -496,7 +503,7 @@ var TM = function () {
         //     var f = window[func_name];
         //     tm_update_class_define(f);
         // }
-        for (var i in ta_funcs){
+        for (var i in ta_funcs) {
             tm_update_class_define(ta_funcs[i]);
         }
     }
@@ -513,7 +520,7 @@ var TM = function () {
             "cname": indicator_name,
             "type": "SUB",
             "state": "KLINE",
-            "yaxis": [{id:0}],
+            "yaxis": [{id: 0}],
             "params": [],
         };
         C = {};
@@ -546,9 +553,12 @@ var TM = function () {
             }
             return param_default_value;
         };
-        C.SERIAL = function() {};
-        C.OUT = function() {};
-        C.OUTS = function() {};
+        C.SERIAL = function () {
+        };
+        C.OUT = function () {
+        };
+        C.OUTS = function () {
+        };
         C.CALC_LEFT = 0;
         C.CALC_RIGHT = 0;
         ta_func(C);
@@ -570,9 +580,9 @@ var TM = function () {
     function get_input_serial_func(instance, serial_selector) {
         return function (P) {
             //@todo: 现在serial_selector只支持简单格式
-            if(serial_selector == "TLAST"){
+            if (serial_selector == "TLAST") {
                 return DM.get_tdata(instance.ins_id, P, serial_selector, instance.instance_id);
-            }else{
+            } else {
                 return DM.get_kdata(instance.ins_id, instance.dur_nano, P, serial_selector, instance.instance_id);
             }
         }
@@ -585,14 +595,15 @@ var TM = function () {
         if (xrange === undefined)
             return;
         var [data_left, data_right] = xrange;
-        //准备计算环境
+        // //准备计算环境
         out_values = {};
-        //@todo: 这里目前是对整个序列全部重算，后续需要优化(已经计算过，且原始数据未改变的不用重算；只计算可见窗口附近的数据)
+        // //@todo: 这里目前是对整个序列全部重算，后续需要优化(已经计算过，且原始数据未改变的不用重算；只计算可见窗口附近的数据)
         CALC_CONTEXT.DATA_LEFT = parseInt(data_left);
         CALC_CONTEXT.DATA_RIGHT = parseInt(data_right);
         CALC_CONTEXT.CALC_LEFT = parseInt(data_left);
         CALC_CONTEXT.CALC_RIGHT = parseInt(data_right);
-        CALC_CONTEXT.DEFINE = function(){};
+        CALC_CONTEXT.DEFINE = function () {
+        };
         CALC_CONTEXT.PARAM = function (param_default_value, param_name) {
             return get_instance_param_value(ta_instance, param_name);
         };
@@ -629,20 +640,19 @@ var TM = function () {
         };
         CALC_CONTEXT.OUTS = function (values, serial_name, options) {
             var serial = outSerial(serial_name, options);
-            for(var i=CALC_CONTEXT.CALC_LEFT; i<=CALC_CONTEXT.CALC_RIGHT; i++){
-                if(values.constructor === Array){
+            for (var i = CALC_CONTEXT.CALC_LEFT; i <= CALC_CONTEXT.CALC_RIGHT; i++) {
+                if (values.constructor === Array) {
                     serial.values[i] = [];
-                    for(var j in values){
+                    for (var j in values) {
                         value_func = values[j];
                         serial.values[i][j] = value_func(i);
                     }
-                }else{
+                } else {
                     serial.values[i] = [values(i)];
                 }
             }
         };
         var func = window[ta_instance.ta_class_name];
-        // console.log("Calc, left=" + CALC_CONTEXT.CALC_LEFT + ", right=" + CALC_CONTEXT.CALC_RIGHT);
         func(CALC_CONTEXT);
         //将计算结果发给主进程
         var pack = {
