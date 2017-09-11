@@ -517,25 +517,13 @@ var TM = function () {
             var dur_id = ta_instance.dur_nano;
             var instance_id = ta_instance.instance_id;
             var selector = serial_selector.toLowerCase();
-            var ds;
-            if (DM.datas
-                && DM.datas.klines
-                && DM.datas.klines[ins_id]
-                && DM.datas.klines[ins_id][dur_id]
-                && DM.datas.klines[ins_id][dur_id].data
-            ) {
-                ds = DM.datas.klines[ins_id][dur_id].data;
-            }
-            var path = ins_id + '.' + dur_id;
-            if (DM.instances[instance_id]) {
-                if (!DM.instances[instance_id].rels.includes(path)) {
-                    DM.instances[instance_id].rels.push(path);
-                }
-            } else {
-                DM.instances[instance_id].rels = [path];
-            }
+            var ds = DM.get_kdata_obj(ins_id, dur_id, instance_id);
             return function (p) {
-                return ds[p][selector];
+                if(ds && ds[p]){
+                    return ds[p][selector];
+                }else{
+                    return NaN;
+                }
             }
         };
         var outSerial = function (serial_name, options) {
