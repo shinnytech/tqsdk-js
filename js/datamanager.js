@@ -124,6 +124,22 @@ var DM = function () {
         return dm_get_data_from_ticks(ins_id, data_id, serial_selector);
     }
 
+    function dm_get_kdata_obj(ins_id, dur_id, instance_id){
+        var path = ins_id + '.' + dur_id;
+        if (DM.instances[instance_id]) {
+            if (!DM.instances[instance_id].rels.includes(path)) {
+                DM.instances[instance_id].rels.push(path);
+            }
+        } else {
+            DM.instances[instance_id].rels = [path];
+        }
+        try {
+            return DM.datas.klines[ins_id][dur_id].data;
+        } catch (e) {
+            return undefined;
+        }
+    }
+
     function dm_get_kdata(ins_id, dur_id, data_id, serial_selector, instance_id) {
         var path = ins_id + '.' + dur_id;
         if (DM.instances[instance_id]) {
@@ -205,6 +221,7 @@ var DM = function () {
         paths: new Map(),
         get_tdata: dm_get_tdata,
         get_kdata: dm_get_kdata,
+        get_kdata_obj: dm_get_kdata_obj,
         get_kdata_range: dm_get_k_range,
         reset_indicator_instance: dm_reset_kdata_range,
         update_data: dm_update_data,
