@@ -129,12 +129,14 @@ var DM = function () {
         if (view_left > -1 && view_right > -1) {
             if (d && d.klines && d.klines[ins_id] && d.klines[ins_id][dur_id] && d.klines[ins_id][dur_id].data) {
                 var res = d.klines[ins_id][dur_id].data;
-                var sorted_keys = Object.keys(res).sort((a, b) => {
-                    return (parseInt(a) - parseInt(b))
-                });
-                var [first_id, last_id] = [sorted_keys[0], sorted_keys[sorted_keys.length - 1]];
-                first_id = parseInt(first_id);
-                last_id = parseInt(last_id);
+                var keys = Object.keys(res);
+
+                var first_id = parseInt(keys[0]), last_id = parseInt(keys[0]);
+                for (var i in keys) {
+                    first_id = first_id < parseInt(keys[i]) ? first_id : parseInt(keys[i]);
+                    last_id = last_id > parseInt(keys[i]) ? last_id : parseInt(keys[i]);
+                }
+
                 var result_left_id = first_id > view_left ? first_id : view_left;
                 var result_right_id = last_id < view_right ? last_id : view_right;
                 return [result_left_id, result_right_id];
