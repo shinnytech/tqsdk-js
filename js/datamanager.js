@@ -29,7 +29,7 @@ var DM = function () {
 
     function dm_get_data_from_klines(ins_id, dur_id, data_id, serial_selector) {
         var klines = DM.datas.klines;
-        if( klines
+        if (klines
             && klines[ins_id]
             && klines[ins_id][dur_id]
             && klines[ins_id][dur_id].data[data_id]
@@ -64,18 +64,39 @@ var DM = function () {
         }
     }
 
+    function set_invalid(diff) {
+        if (diff.klines) {
+            for (var key in diff.klines) {
+                for (var dur in diff.klines[key]) {
+                    var perfix = key + '.' + dur;
+                    for (var instance_id in DM.instances) {
+                        if (!DM.instances[instance_id].invalid && DM.instances[instance_id].rels.includes(perfix)) {
+                            DM.instances[instance_id].invalid = true;
+                            continue;
+                        }
+                    }
+                    if (!DM.paths.has(perfix)) {
+                        DM.paths.set(perfix, [Infinity, -Infinity]);
+                    }
+                    var [first_id, last_id] = DM.paths.get(perfix);
+                    for (var k in diff.klines[key][dur]['data']) {
+                        first_id = first_id < parseInt(k) ? first_id : parseInt(k);
+                        last_id = last_id > parseInt(k) ? last_id : parseInt(k);
+                    }
+                    DM.paths.get(perfix)[0] = first_id;
+                    DM.paths.get(perfix)[1] = last_id;
+                }
+            }
+        }
+    }
+
     function dm_update_data(diff) {
         // 将 diff 中所有数据更新到 datas 中
         merge_object(DM.datas, diff);
         // 将 diff 中所有数据涉及的 instance 设置 invalid 标志
         // 只检查了 klines ins_id dur_id 里的数据
+        set_invalid(diff);
         if (diff.klines) {
-            for (var key in diff.klines) {
-                for (var dur in diff.klines[key]) {
-                    var perfix = key + '.' + dur;
-                    set_invalid_by_prefix(perfix);
-                }
-            }
             // 重新计算 instance
             dm_recalculate();
         }
@@ -113,33 +134,26 @@ var DM = function () {
             DM.instances[instance_id].rels = [path];
         }
         // 返回数据
-        try{
+        try {
             return DM.datas.klines[ins_id][dur_id].data[data_id][serial_selector];
-        }catch (e){
+        } catch (e) {
             return NaN;
         }
         // return dm_get_data_from_klines(ins_id, dur_id, data_id, serial_selector);
     }
 
     function dm_get_k_range(ins_id, dur_id, instance_id) {
-        var d = DM.datas;
+        var k = DM.datas.klines;
         var [view_left, view_right] = [DM.instances[instance_id].view_left, DM.instances[instance_id].view_right];
-        view_left = parseInt(view_left);
-        view_right = parseInt(view_right);
         if (view_left > -1 && view_right > -1) {
-            if (d && d.klines && d.klines[ins_id] && d.klines[ins_id][dur_id] && d.klines[ins_id][dur_id].data) {
-                var res = d.klines[ins_id][dur_id].data;
-                var keys = Object.keys(res);
-
-                var first_id = parseInt(keys[0]), last_id = parseInt(keys[0]);
-                for (var i in keys) {
-                    first_id = first_id < parseInt(keys[i]) ? first_id : parseInt(keys[i]);
-                    last_id = last_id > parseInt(keys[i]) ? last_id : parseInt(keys[i]);
+            var path = ins_id + '.' + dur_id;
+            if (DM.paths.has(path)) {
+                var [first_id, last_id] = DM.paths.get(path);
+                if(first_id < last_id){
+                    var result_left_id = first_id > view_left ? first_id : view_left;
+                    var result_right_id = last_id < view_right ? last_id : view_right;
+                    return [result_left_id, result_right_id];
                 }
-
-                var result_left_id = first_id > view_left ? first_id : view_left;
-                var result_right_id = last_id < view_right ? last_id : view_right;
-                return [result_left_id, result_right_id];
             }
         }
         return undefined;
@@ -182,11 +196,13 @@ var DM = function () {
         // 清空数据
         DM.instances = {};
         DM.datas = {};
+        DM.paths = {};
     }
 
     return {
         instances: {},
         datas: {},
+        paths: new Map(),
         get_tdata: dm_get_tdata,
         get_kdata: dm_get_kdata,
         get_kdata_range: dm_get_k_range,
