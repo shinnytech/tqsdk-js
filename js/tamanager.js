@@ -68,11 +68,11 @@ function CacheWrapper(orign_func) {
 miss_count = 0;
 
 function RecursionWrapper(first_func, next_func) {
-    var cache = {};
+    var cache = cachePool.allocate();
     var empty = true;
     var f = function (p) {
-        if (p in cache)
-            return cache[p];
+        if (cache.has(p))
+            return cache.get(p);
         if (p < CALC_CONTEXT.DATA_LEFT) {
             return NaN;
         }
@@ -82,11 +82,11 @@ function RecursionWrapper(first_func, next_func) {
             // console.log("cache empty");
             empty = false;
             var v = first_func(p);
-            cache[p] = v;
+            cache.set(p, v);
             return v;
         } else {
             var v = next_func(p);
-            cache[p] = v;
+            cache.set(p, v);
             return v;
         }
     }
@@ -518,13 +518,14 @@ var TM = function () {
             var instance_id = ta_instance.instance_id;
             var selector = serial_selector.toLowerCase();
             var ds = DM.get_kdata_obj(ins_id, dur_id, instance_id);
-            return function (p) {
+            var f_serial = function (p) {
                 if(ds && ds[p]){
                     return ds[p][selector];
                 }else{
                     return NaN;
                 }
-            }
+            };
+            return f_serial;
         };
         var outSerial = function (serial_name, options) {
             out_values[serial_name] = out_values[serial_name] || {};
@@ -558,14 +559,16 @@ var TM = function () {
             var serial = outSerial(serial_name, options);
             var calc_left = parseInt(CALC_CONTEXT.CALC_LEFT);
             var calc_right = parseInt(CALC_CONTEXT.CALC_RIGHT);
-            for (var i = calc_left; i <= calc_right; i++) {
-                if (values.constructor === Array) {
+            if (values.constructor === Array) {
+                for (var i = calc_left; i <= calc_right; i++) {
                     serial.values[i] = [];
                     for (var j in values) {
                         value_func = values[j];
                         serial.values[i][j] = value_func(i);
                     }
-                } else {
+                }
+            } else {
+                for (var i = calc_left; i <= calc_right; i++) {
                     serial.values[i] = [values(i)];
                 }
             }
