@@ -82,34 +82,55 @@ function SUM(serial, n) {
     return f;
 }
 
-function MA(serial, n) {
-    /*
-    MA
-    MA(X,N) 求X在N个周期内的简单移动平均
+function _sum(serial, n, p){
+    var s = 0;
+    for (var i = p - n + 1; i <= p; i++) {
+        s += serial(i);
+    }
+    return s;
+}
 
-    算法：MA(X,5)=(X1+X2+X3+X4+X5)/5
-    注：
-    1、N包含当前k线。
-    2、简单移动平均线沿用最简单的统计学方式，将过去某特定时间内的价格取其平均值。
-    3、当N为有效值，但当前的k线数不足N根，函数返回空值。
-    4、N为0或空值的情况下，函数返回空值。
-    5、N可以为变量
-
-    例1：
-    MA5:=MA(C,5);//求5周期收盘价的简单移动平均。
-    例2：
-    N:=BARSLAST(DATE<>REF(DATE,1))+1;//分钟周期，日内k线根数
-    M:=IFELSE(N>10,10,N);//k线超过10根，M取10，否则M取实际根数
-    MA10:MA(C,M);//在分钟周期上，当天k线不足10根，按照实际根数计算MA10，超过10根按照10周期计算MA10。
-    */
-    var f = CacheWrapper(function (p) {
-        var s = 0;
-        for (var i = p - n + 1; i <= p; i++) {
-            s += serial(i);
-        }
-        return s / n;
-    });
+function SUM(serial, n) {
+    var f = RecursionWrapper(
+        (p) => _sum(serial, n, p),
+        (p) => isNaN(f(p - 1)) ? _sum(serial, n, p) : f(p-1) - serial(p-n) + serial(p),
+    );
     return f;
+}
+
+// function MA(serial, n) {
+//     /*
+//     MA
+//     MA(X,N) 求X在N个周期内的简单移动平均
+//
+//     算法：MA(X,5)=(X1+X2+X3+X4+X5)/5
+//     注：
+//     1、N包含当前k线。
+//     2、简单移动平均线沿用最简单的统计学方式，将过去某特定时间内的价格取其平均值。
+//     3、当N为有效值，但当前的k线数不足N根，函数返回空值。
+//     4、N为0或空值的情况下，函数返回空值。
+//     5、N可以为变量
+//
+//     例1：
+//     MA5:=MA(C,5);//求5周期收盘价的简单移动平均。
+//     例2：
+//     N:=BARSLAST(DATE<>REF(DATE,1))+1;//分钟周期，日内k线根数
+//     M:=IFELSE(N>10,10,N);//k线超过10根，M取10，否则M取实际根数
+//     MA10:MA(C,M);//在分钟周期上，当天k线不足10根，按照实际根数计算MA10，超过10根按照10周期计算MA10。
+//     */
+//     var f = CacheWrapper(function (p) {
+//         var s = 0;
+//         for (var i = p - n + 1; i <= p; i++) {
+//             s += serial(i);
+//         }
+//         return s / n;
+//     });
+//     return f;
+// }
+
+function MA(serial, n) {
+    var s = SUM(serial, n)
+    return (p) => (s(p) / n);
 }
 
 function EMA(serial, n) {
@@ -470,7 +491,30 @@ var TM = function () {
             return get_instance_param_value(ta_instance, param_name);
         };
         CALC_CONTEXT.SERIAL = function (serial_selector) {
-            return get_input_serial_func(ta_instance, serial_selector.toLowerCase());
+            var ins_id = ta_instance.ins_id;
+            var dur_id = ta_instance.dur_nano;
+            var instance_id = ta_instance.instance_id;
+            var selector = serial_selector.toLowerCase();
+            var ds;
+            if (DM.datas
+                && DM.datas.klines
+                && DM.datas.klines[ins_id]
+                && DM.datas.klines[ins_id][dur_id]
+                && DM.datas.klines[ins_id][dur_id].data
+            ) {
+                ds = DM.datas.klines[ins_id][dur_id].data;
+            }
+            var path = ins_id + '.' + dur_id;
+            if (DM.instances[instance_id]) {
+                if (!DM.instances[instance_id].rels.includes(path)) {
+                    DM.instances[instance_id].rels.push(path);
+                }
+            } else {
+                DM.instances[instance_id].rels = [path];
+            }
+            return function (p) {
+                return ds[p][selector];
+            }
         };
         var outSerial = function (serial_name, options) {
             out_values[serial_name] = out_values[serial_name] || {};
@@ -502,7 +546,9 @@ var TM = function () {
         };
         CALC_CONTEXT.OUTS = function (values, serial_name, options) {
             var serial = outSerial(serial_name, options);
-            for (var i = CALC_CONTEXT.CALC_LEFT; i <= CALC_CONTEXT.CALC_RIGHT; i++) {
+            var calc_left = parseInt(CALC_CONTEXT.CALC_LEFT);
+            var calc_right = parseInt(CALC_CONTEXT.CALC_RIGHT);
+            for (var i = calc_left; i <= calc_right; i++) {
                 if (values.constructor === Array) {
                     serial.values[i] = [];
                     for (var j in values) {
