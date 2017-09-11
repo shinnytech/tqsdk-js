@@ -31,13 +31,35 @@ CALC_CONTEXT = {
     DATA_RIGHT: NaN,
 };
 
+class MapPool {
+    constructor() {
+        this.using_pool = [];
+        this.free_pool = [];
+    }
+
+    allocate() {
+        var x = (this.free_pool.length === 0) ? (new Map()) : (this.free_pool.pop());
+        x.clear();
+        this.using_pool.push(x);
+        return x;
+    }
+
+    collect() {
+        // release pooled objects
+        this.free_pool = this.using_pool.slice();
+        this.using_pool = [];
+    }
+}
+
+const cachePool = new MapPool(Map);
+
 function CacheWrapper(orign_func) {
-    var cache = {};
+    var cache = cachePool.allocate();
     var f = function (p) {
-        if (p in cache)
-            return cache[p];
+        if (cache.has(p))
+            return cache.get(p);
         var v = orign_func(p);
-        cache[p] = v;
+        cache.set(p, v);
         return v;
     }
     return f;
@@ -199,7 +221,7 @@ function STD(serial, n) {
     //标准差表示总体各单位标准值与其平均数离差平方的算术平均数的平方根，它反映一个数据集的离散程度。STD(C,10)表示收盘价与收盘价的10周期均线之差的平方和的平均数的算术平方根。样本标准差是样本方差的平方根。
      */
     var avg = MA(serial, n);
-    var v = (i) => Math.pow(serial(i) - avg(i), 2);
+    var v = (i) => {var d = serial(i) - avg(i); return d*d;};
     var sv = SUM(v, n);
     var std = (i) => Math.sqrt(sv(i) / n);
     return std;
@@ -474,7 +496,7 @@ var TM = function () {
     function recalcInstance(ta_instance) {
         // try {
         var xrange = DM.get_kdata_range(ta_instance.ins_id, ta_instance.dur_nano, ta_instance.instance_id);
-        console.log("recalcInstance" + xrange);
+        // console.log("recalcInstance" + xrange);
         if (xrange === undefined)
             return;
         var [data_left, data_right] = xrange;
@@ -570,6 +592,7 @@ var TM = function () {
             serials: out_values,
         }
         WS.sendJson(pack);
+        cachePool.collect();
     }
 
     function tm_set_indicator_instance(instance_pack) {

@@ -65,7 +65,7 @@ TqWebSocket.prototype.init = function () {
     };
 }
 
-var WS = new TqWebSocket('ws://192.168.1.71:7777/',{
+var WS = new TqWebSocket('ws://127.0.0.1:7777/',{
     onmessage: function (message) {
         var decoded = JSON.parse(message.data, function (key, value) {
             return value === "NaN" ? NaN : value;
