@@ -20,7 +20,6 @@ $(function () {
 
     $('#edit-btn').on('click', CMenu.editIndicator);
     $('#trash-btn').on('click', CMenu.trashIndicator);
-
 });
 
 

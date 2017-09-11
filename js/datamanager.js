@@ -28,15 +28,14 @@ var DM = function () {
     }
 
     function dm_get_data_from_klines(ins_id, dur_id, data_id, serial_selector) {
-        if (DM.datas
-            && DM.datas.klines
-            && DM.datas.klines[ins_id]
-            && DM.datas.klines[ins_id][dur_id]
-            && DM.datas.klines[ins_id][dur_id].data
-            && DM.datas.klines[ins_id][dur_id].data[data_id]
-            && DM.datas.klines[ins_id][dur_id].data[data_id][serial_selector]
+        var klines = DM.datas.klines;
+        if( klines
+            && klines[ins_id]
+            && klines[ins_id][dur_id]
+            && klines[ins_id][dur_id].data[data_id]
+            && klines[ins_id][dur_id].data[data_id][serial_selector]
         ) {
-            return DM.datas.klines[ins_id][dur_id].data[data_id][serial_selector];
+            return klines[ins_id][dur_id].data[data_id][serial_selector];
         } else {
             return NaN;
         }
@@ -56,7 +55,7 @@ var DM = function () {
         }
     }
 
-    function set_invalid_by_prefix(perfix, diff) {
+    function set_invalid_by_prefix(perfix) {
         for (var instance_id in DM.instances) {
             if (!DM.instances[instance_id].invalid && DM.instances[instance_id].rels.includes(perfix)) {
                 DM.instances[instance_id].invalid = true;
@@ -66,20 +65,20 @@ var DM = function () {
     }
 
     function dm_update_data(diff) {
+        // 将 diff 中所有数据更新到 datas 中
+        merge_object(DM.datas, diff);
         // 将 diff 中所有数据涉及的 instance 设置 invalid 标志
         // 只检查了 klines ins_id dur_id 里的数据
         if (diff.klines) {
             for (var key in diff.klines) {
                 for (var dur in diff.klines[key]) {
                     var perfix = key + '.' + dur;
-                    set_invalid_by_prefix(perfix, diff);
+                    set_invalid_by_prefix(perfix);
                 }
             }
             // 重新计算 instance
             dm_recalculate();
         }
-        // 将 diff 中所有数据更新到 datas 中
-        merge_object(DM.datas, diff);
     }
 
     function dm_recalculate() {
@@ -114,7 +113,12 @@ var DM = function () {
             DM.instances[instance_id].rels = [path];
         }
         // 返回数据
-        return dm_get_data_from_klines(ins_id, dur_id, data_id, serial_selector);
+        try{
+            return DM.datas.klines[ins_id][dur_id].data[data_id][serial_selector];
+        }catch (e){
+            return NaN;
+        }
+        // return dm_get_data_from_klines(ins_id, dur_id, data_id, serial_selector);
     }
 
     function dm_get_k_range(ins_id, dur_id, instance_id) {
