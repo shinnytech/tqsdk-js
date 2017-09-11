@@ -1,7 +1,8 @@
-function COLOR(r, g, b){
+function COLOR(r, g, b) {
     this.color = r | (g << 8) | (b << 16);
 }
-COLOR.prototype.toJSON = function() {
+
+COLOR.prototype.toJSON = function () {
     return this.color;
 };
 
@@ -82,7 +83,7 @@ function SUM(serial, n) {
     return f;
 }
 
-function _sum(serial, n, p){
+function _sum(serial, n, p) {
     var s = 0;
     for (var i = p - n + 1; i <= p; i++) {
         s += serial(i);
@@ -93,7 +94,7 @@ function _sum(serial, n, p){
 function SUM(serial, n) {
     var f = RecursionWrapper(
         (p) => _sum(serial, n, p),
-        (p) => isNaN(f(p - 1)) ? _sum(serial, n, p) : f(p-1) - serial(p-n) + serial(p),
+        (p) => isNaN(f(p - 1)) ? _sum(serial, n, p) : f(p - 1) - serial(p - n) + serial(p),
     );
     return f;
 }
@@ -363,8 +364,6 @@ function sar(C) {
 // EP：一个涨跌内的极值，在上涨行情中为前N根K线的最高价；下跌行情中为前N根K线的最低价
 
 
-
-
 // ---------------------------------------------------------------------------
 
 var ta_instance_map = {};
@@ -419,11 +418,11 @@ var TM = function () {
                     name: param_name,
                     default: param_default_value,
                 };
-                if (typeof param_default_value == "string"){
+                if (typeof param_default_value == "string") {
                     param_define.type = "STRING";
-                }else if (typeof param_default_value == "number"){
+                } else if (typeof param_default_value == "number") {
                     param_define.type = "NUMBER";
-                }else if (param_default_value instanceof COLOR){
+                } else if (param_default_value instanceof COLOR) {
                     param_define.type = "COLOR";
                 }
                 if (!(options === undefined)) {
@@ -497,9 +496,9 @@ var TM = function () {
             var selector = serial_selector.toLowerCase();
             var ds = DM.get_kdata_obj(ins_id, dur_id, instance_id);
             return function (p) {
-                if(ds && ds[p]){
+                if (ds && ds[p]) {
                     return ds[p][selector];
-                }else{
+                } else {
                     return NaN;
                 }
             }
@@ -513,17 +512,12 @@ var TM = function () {
                 serial.width = 1;
                 serial.color = RGB(0xFF, 0x00, 0x00);
                 serial.yaxis = 0;
-                if (options != undefined) {
-                    if ('style' in options)
-                        serial.style = options["style"];
-                    if ('width' in options)
-                        serial.width = options["width"];
-                    if ('color' in options)
-                        serial.color = options["color"];
-                    if ('yaxis' in options)
-                        serial.yaxis = options["yaxis"];
-                    if ('memo' in options)
-                        serial.memo = options["memo"];
+                if (options) {
+                    serial.style = options["style"] ? options["style"] : serial.style;
+                    serial.width = options["width"] ? options["width"] : serial.width;
+                    serial.color = options["color"] ? options["color"] : serial.color;
+                    serial.yaxis = options["yaxis"] ? options["yaxis"] : serial.yaxis;
+                    serial.memo = options["memo"] ? options["memo"] : serial.memo;
                 }
             }
             return serial;
