@@ -1,7 +1,8 @@
-function COLOR(r, g, b){
+function COLOR(r, g, b) {
     this.color = r | (g << 8) | (b << 16);
 }
-COLOR.prototype.toJSON = function() {
+
+COLOR.prototype.toJSON = function () {
     return this.color;
 };
 
@@ -104,7 +105,7 @@ function SUM(serial, n) {
     return f;
 }
 
-function _sum(serial, n, p){
+function _sum(serial, n, p) {
     var s = 0;
     for (var i = p - n + 1; i <= p; i++) {
         s += serial(i);
@@ -115,7 +116,7 @@ function _sum(serial, n, p){
 function SUM(serial, n) {
     var f = RecursionWrapper(
         (p) => _sum(serial, n, p),
-        (p) => isNaN(f(p - 1)) ? _sum(serial, n, p) : f(p-1) - serial(p-n) + serial(p),
+        (p) => isNaN(f(p - 1)) ? _sum(serial, n, p) : f(p - 1) - serial(p - n) + serial(p),
     );
     return f;
 }
@@ -155,28 +156,10 @@ function MA(serial, n) {
     return (p) => (s(p) / n);
 }
 
-function EMA(serial, n) {
-    /*
-    EMA
-    EMA(X,N)：求N周期X值的指数加权移动平均（平滑移动平均）。
-
-    注：
-    1、N包含当前k线。
-    2、对距离当前较近的k线赋予了较大的权重。
-    3、当N为有效值，但当前的k线数不足N根，按实际根数计算。
-    4、N为0或空值时返回值为空值。
-    5、N可以为变量
-
-    EMA(X,N)=2*X/(N+1)+(N-1)*REF(EMA(X,N),1)/(N+1)
-
-    例1：
-    EMA10:=EMA(C,10);//求收盘价10周期指数加权移动平均值
-     */
-    var f = RecursionWrapper(
-        (i) => serial(i),
-        (i) => isNaN(f(i - 1)) ? serial(i) : (2 * serial(i) / (n + 1) + (n - 1) * f(i - 1) / (n + 1)),
-    );
-    return f;
+function EMA(i, serial, n, cache) {
+    if (cache.length == 0)
+        return serial[i];
+    return isNaN(cache[i - 1]) ? serial[i] : (2 * serial[i] / (n + 1) + (n - 1) * cache[i - 1] / (n + 1));
 }
 
 function SMA(serial, n, m) {
@@ -300,6 +283,7 @@ function single_demo(C) {
         ]
     });
     var n = C.PARAM(10, "N");
+    var c = C.CACHE("sum");
     for (var i = C.CALC_LEFT; i <= C.CALC_RIGHT; i++) {
         var s = 0;
         for (var j = i - n + 1; j <= i; j++) {
@@ -310,82 +294,42 @@ function single_demo(C) {
     }
 };
 
-function sar(C) {
-    // C.DEFINE({
-    //     type: "MAIN",
-    //     cname: "SAR",
-    //     memo: "",
-    //     state: "KLINE",
-    // });
-    // var afStep = C.PARAM(0.02, "afStep", {memo: "加速因子"});
-    // var afMin = C.PARAM(0.04, "afMin", {memo: "加速因子最小值"});
-    // var afMax = C.PARAM(0.2, "afMax", {memo: "加速因子最大值"});
-    // var open = C.SERIAL("OPEN");
-    // var close = C.SERIAL("CLOSE");
-    // var high = C.SERIAL("HIGH");
-    // var low = C.SERIAL("LOW");
-    //
-    //
-    // var sar_func = RecursionWrapper(
-    //     /*
-    //     计算Tn周期的SAR值为例，计算公式如下：
-    //     SAR(Tn)=SAR(Tn-1)+AF(Tn)*[EP(Tn-1)-SAR(Tn-1)]
-    //     其中，SAR(Tn)为第Tn周期的SAR值，SAR(Tn-1)为第(Tn-1)周期的值
-    //     AF为加速因子(或叫加速系数)，EP为极点价(最高价或最低价)
-    //     //1、初始值SAR(T0)的确定
-    //     //若T1周期中SAR(T1)上涨趋势，则SAR(T0)为T0周期的最低价，若T1周期下跌趋势，则SAR(T0)为T0周期 的最高价；
-    //     4、SAR值的确定
-    //     (a)通过公式SAR(Tn)=SAR(Tn-1)+AF(Tn)*[EP(Tn-1)-SAR(Tn-1)]，计算出Tn周期的值；
-    //     (b)若Tn周期为上涨趋势，当SAR(Tn)>Tn周期的最低价(或SAR(Tn)>Tn-1周期的最低价)，则Tn周期最终 SAR值应为Tn-1、Tn周期的最低价中的最小值，
-    //     当SAR(Tn)<=Tn周期的最低价且SAR(Tn)<=Tn-1周期的最低价，则Tn周期最终SAR值为SAR(Tn)，即 SAR=SAR(Tn)；
-    //     (c)若Tn周期为下跌趋势，当SAR(Tn)<Tn周期的最高价(或SAR(Tn)<Tn-1周期的最高价)，则Tn周期最终 SAR值应为Tn-1、Tn周期的最高价中的最大值，
-    //     当SAR(Tn)>=Tn周期的最高价且SAR(Tn)>=Tn-1周期的最高价，则Tn周期最终SAR值为SAR(Tn)，即 SAR=SAR(Tn)；
-    //     */
-    //     (i) => close(i) >= open(i) ? low(i):high(i),
-    //     (i) => sar_func(i-1) + af(i) * (ep(i) - sar_func(i-1)),
-    // );
-    //
-    // var af = RecursionWrapper(
-    //     /*
-    //     (a)加速因子初始值为0.02，即AF(T0)=0.02；
-    //     (b)若Tn-1，Tn周期都为上涨趋势时，当Tn周期的最高价>Tn-1周期的最高价,则AF(Tn)=AF(Tn-1)+0.02， 当Tn周期的最高价<=Tn-1周期的最高价,则AF(Tn)=AF(Tn-1)，但加速因子AF最高不超过0.2；
-    //     (c)若Tn-1，Tn周期都为下跌趋势时，当Tn周期的最低价<Tn-1周期的最低价,则AF(Tn)=AF(Tn-1)+0.02， 当Tn周期的最低价>=Tn-1周期的最低价,则AF(Tn)=AF(Tn-1)；
-    //     (d)任何一次行情的转变，加速因子AF都必须重新由0.02起算；
-    //     */
-    //     if(i == C.CALC_LEFT)
-    //         return 0.02;
-    //     if(newHigh > ep){
-    //         var v = af(i-1) + acceleration;
-    //         if(v > accelerationMax)
-    //             v = accelerationMax;
-    //         return v;
-    //     }
-    // }
-    // function ep(i){
-    //     // 2、极点价EP的确定
-    //     // 若Tn周期为上涨趋势，EP(Tn-1)为Tn-1周期的最高价，若Tn周期为下跌趋势，EP(Tn-1)为Tn-1周期的最 低价；
-    //     if(i == C.CALC_LEFT){
-    //     }
-    // }
-    // C.OUTS(sar, "sar", {style:"DOT", color: RED});
-};
+function* macd(C) {
+    // DIFF : EMA(CLOSE,SHORT) - EMA(CLOSE,LONG);//短周期与长周期的收盘价的指数平滑移动平均值做差。
+    // DEA  : EMA(DIFF,M);//DIFF的M个周期指数平滑移动平均
+    // 2*(DIFF-DEA),COLORSTICK;//DIFF减DEA的2倍画柱状线
+    C.DEFINE({
+        type: "SUB",
+        cname: "MACD",
+        state: "KLINE",
+        yaxis: [
+            {id: 0, mid: 0}
+        ]
+    });
+    //参数
+    var vshort = C.PARAM(20, "SHORT", {MIN: 5, STEP: 5});
+    var vlong = C.PARAM(35, "LONG", {MIN: 5, STEP: 5});
+    var vm = C.PARAM(10, "M", {MIN: 5, STEP: 5});
+    //输入
+    var sclose = C.SERIAL("CLOSE");
+    //输出
+    var diff = C.OUTS("diff", {color: RED});
+    var dea = C.OUTS("dea", {color: BLUE, width: 2});
+    var bar = C.OUTS("bar", {style: "BAR", color: RED});
+    //临时序列
+    var eshort = new Array();
+    var elong = new Array();
 
-// SAR1
-// SAR1(N,STEP,MAX) 返回抛物转向值。
-//
-// 根据公式SAR1(n)=SAR1(n-1)+AF*(EP(n-1)-SAR1(n-1))计算
-//
-// 其中：
-// SAR1(n-1)：上根K线SAR1的绝对值
-//
-// AF：加速因子，当AF小于MAX时，
-// 上涨行情，H>HV(H,N)   AF = AF+STEP; H<=HV(H,N) AF = AF;
-// 下跌行情，L<lV(L,N)   AF = AF+STEP; L>=LV(L,N) AF = AF;
-// 涨跌发生转换时，AF重新计算
-// EP：一个涨跌内的极值，在上涨行情中为前N根K线的最高价；下跌行情中为前N根K线的最低价
-
-
-
+    //计算
+    while(true) {
+        var i = yield;
+        eshort[i] = EMA(i, sclose, vshort, eshort);
+        elong[i] = EMA(i, sclose, vlong, eshort);
+        diff[i] = eshort[i] - elong[i];
+        dea[i] = EMA(i, diff, vm, dea);
+        bar[i] = 2 * (diff[i] - dea[i]);
+    }
+}
 
 // ---------------------------------------------------------------------------
 
@@ -394,23 +338,24 @@ var ta_class_map = {};
 
 var TM = function () {
     function tm_init() {
-        //更新所有指标类定义, 并发送到主进程
-        // 系统指标
-        for (var i = 0; i < CMenu.sys_datas.length; i++) {
-            var func_name = CMenu.sys_datas[i].name;
-            var code = CMenu.sys_datas[i].draft.code;
-            eval(func_name + ' = function(C){' + code + '}');
-            var f = window[func_name];
-            tm_update_class_define(f);
-        }
-        // 用户自定义指标
-        for (var i = 0; i < CMenu.datas.length; i++) {
-            var func_name = CMenu.datas[i].name;
-            var code = CMenu.datas[i].draft.code;
-            eval(func_name + ' = function(C){' + code + '}');
-            var f = window[func_name];
-            tm_update_class_define(f);
-        }
+        // //更新所有指标类定义, 并发送到主进程
+        // // 系统指标
+        // for (var i = 0; i < CMenu.sys_datas.length; i++) {
+        //     var func_name = CMenu.sys_datas[i].name;
+        //     var code = CMenu.sys_datas[i].draft.code;
+        //     eval(func_name + ' = function(C){' + code + '}');
+        //     var f = window[func_name];
+        //     tm_update_class_define(f);
+        // }
+        // // 用户自定义指标
+        // for (var i = 0; i < CMenu.datas.length; i++) {
+        //     var func_name = CMenu.datas[i].name;
+        //     var code = CMenu.datas[i].draft.code;
+        //     eval(func_name + ' = function(C){' + code + '}');
+        //     var f = window[func_name];
+        //     tm_update_class_define(f);
+        // }
+        tm_update_class_define(macd);
     }
 
     function tm_update_class_define(ta_func) {
@@ -441,11 +386,11 @@ var TM = function () {
                     name: param_name,
                     default: param_default_value,
                 };
-                if (typeof param_default_value == "string"){
+                if (typeof param_default_value == "string") {
                     param_define.type = "STRING";
-                }else if (typeof param_default_value == "number"){
+                } else if (typeof param_default_value == "number") {
                     param_define.type = "NUMBER";
-                }else if (param_default_value instanceof COLOR){
+                } else if (param_default_value instanceof COLOR) {
                     param_define.type = "COLOR";
                 }
                 if (!(options === undefined)) {
@@ -466,7 +411,8 @@ var TM = function () {
         };
         C.CALC_LEFT = 0;
         C.CALC_RIGHT = 0;
-        ta_func(C);
+        f = ta_func(C);
+        f.next();
         //指标信息格式整理
         params.forEach(function (value, key) {
             ta_class_define["params"].push(value)
@@ -476,10 +422,6 @@ var TM = function () {
         //发送指标类信息到主进程
         console.log("ta_class_define" + JSON.stringify(ta_class_define));
         WS.sendJson(ta_class_define);
-    }
-
-    function get_instance_param_value(instance, param_name) {
-        return instance.params[param_name].value;
     }
 
     function get_input_serial_func(instance, serial_selector) {
@@ -492,111 +434,101 @@ var TM = function () {
             }
         }
     }
+    function jsonStringify(obj){
+        return JSON.stringify(obj);
+    }
+    function recalcInstance(ta_instance, calc_left, calc_right) {
+        console.log("recalcInstance:" + ta_instance.ins_id + "," + calc_left + "," + calc_right);
+        //执行计算
+        var func = ta_instance.func;
+        for (var i = calc_left; i <= calc_right; i++) {
+            func.next(i);
+        }
+        //整理计算结果
+        for (var serial_name in ta_instance.out_values) {
+            var serial = ta_instance.out_values[serial_name].values;
+            for (var i = calc_left; i <= calc_right; i++) {
+                serial[i] = [serial[i]];
+            }
+        }
+        //将计算结果发给主进程
+        var pack = {
+            aid: "set_indicator_data",
+            instance_id: ta_instance.instance_id,
+            epoch: ta_instance.epoch,
+            serials: ta_instance.out_values,
+        };
+        var pack_str = jsonStringify(pack);
+        WS.sendString(pack_str);
+    }
 
-    function recalcInstance(ta_instance) {
-        // try {
-        var xrange = DM.get_kdata_range(ta_instance.ins_id, ta_instance.dur_nano, ta_instance.instance_id);
-        // console.log("recalcInstance" + xrange);
-        if (xrange === undefined)
-            return;
-        var [data_left, data_right] = xrange;
+    function tm_set_indicator_instance(instance_pack) {
+        var instance_id = instance_pack.instance_id;
+        instance_pack.BEGIN = undefined;
+        ta_instance_map[instance_id] = instance_pack;
+        tm_recalc_indicator_by_id(instance_id);
+    }
+
+    function tm_update_instance(instance, begin){
         //准备计算环境
-        out_values = {};
-        //@todo: 这里目前是对整个序列全部重算，后续需要优化(已经计算过，且原始数据未改变的不用重算；只计算可见窗口附近的数据)
-        CALC_CONTEXT.DATA_LEFT = parseInt(data_left);
-        CALC_CONTEXT.DATA_RIGHT = parseInt(data_right);
-        CALC_CONTEXT.CALC_LEFT = parseInt(data_left);
-        CALC_CONTEXT.CALC_RIGHT = parseInt(data_right);
-        CALC_CONTEXT.DEFINE = function () {
+        instance.BEGIN = begin;
+        instance.DEFINE = function () {
         };
-        CALC_CONTEXT.PARAM = function (param_default_value, param_name) {
-            return get_instance_param_value(ta_instance, param_name);
+        instance.PARAM = function (param_default_value, param_name) {
+            return instance.params[param_name].value;
         };
-        CALC_CONTEXT.SERIAL = function (serial_selector) {
-            var ins_id = ta_instance.ins_id;
-            var dur_id = ta_instance.dur_nano;
-            var instance_id = ta_instance.instance_id;
+        instance.SERIAL = function (serial_selector) {
+            var ins_id = instance.ins_id;
+            var dur_id = instance.dur_nano;
+            var instance_id = instance.instance_id;
             var selector = serial_selector.toLowerCase();
             var ds = DM.get_kdata_obj(ins_id, dur_id, instance_id);
-            var f_serial = function (p) {
-                if(ds && ds[p]){
-                    return ds[p][selector];
-                }else{
-                    return NaN;
+            var f_serial = new Proxy({}, {
+                get: function (target, key, receiver) {
+                    if (ds && ds[key]) {
+                        return ds[key][selector];
+                    } else {
+                        return NaN;
+                    }
                 }
-            };
+            });
             return f_serial;
         };
-        var outSerial = function (serial_name, options) {
-            out_values[serial_name] = out_values[serial_name] || {};
-            var serial = out_values[serial_name];
+        instance.out_values = {};
+        instance.OUTS = function (serial_name, options) {
+            instance.out_values[serial_name] = instance.out_values[serial_name] || {};
+            var serial = instance.out_values[serial_name];
             if (serial.style === undefined) {
                 serial.values = {};
                 serial.style = "LINE";
                 serial.width = 1;
                 serial.color = RGB(0xFF, 0x00, 0x00);
                 serial.yaxis = 0;
-                if (options != undefined) {
-                    if ('style' in options)
-                        serial.style = options["style"];
-                    if ('width' in options)
-                        serial.width = options["width"];
-                    if ('color' in options)
-                        serial.color = options["color"];
-                    if ('yaxis' in options)
-                        serial.yaxis = options["yaxis"];
-                    if ('memo' in options)
-                        serial.memo = options["memo"];
+                if (options) {
+                    serial.style = options["style"] ? options["style"] : serial.style;
+                    serial.width = options["width"] ? options["width"] : serial.width;
+                    serial.color = options["color"] ? options["color"] : serial.color;
+                    serial.yaxis = options["yaxis"] ? options["yaxis"] : serial.yaxis;
+                    serial.memo = options["memo"] ? options["memo"] : serial.memo;
                 }
             }
-            return serial;
+            return serial.values;
         };
-        CALC_CONTEXT.OUT = function (x, value, serial_name, options) {
-            var serial = outSerial(serial_name, options);
-            serial.values[x] = [value];
-        };
-        CALC_CONTEXT.OUTS = function (values, serial_name, options) {
-            var serial = outSerial(serial_name, options);
-            var calc_left = parseInt(CALC_CONTEXT.CALC_LEFT);
-            var calc_right = parseInt(CALC_CONTEXT.CALC_RIGHT);
-            if (values.constructor === Array) {
-                for (var i = calc_left; i <= calc_right; i++) {
-                    serial.values[i] = [];
-                    for (var j in values) {
-                        value_func = values[j];
-                        serial.values[i][j] = value_func(i);
-                    }
-                }
-            } else {
-                for (var i = calc_left; i <= calc_right; i++) {
-                    serial.values[i] = [values(i)];
-                }
-            }
-        };
-        var func = window[ta_instance.ta_class_name];
-        func(CALC_CONTEXT);
-        //将计算结果发给主进程
-        var pack = {
-            aid: "set_indicator_data",
-            instance_id: ta_instance.instance_id,
-            epoch: ta_instance.epoch,
-            serials: out_values,
-        }
-        WS.sendJson(pack);
-        cachePool.collect();
-    }
-
-    function tm_set_indicator_instance(instance_pack) {
-        var instance_id = instance_pack.instance_id;
-        instance_pack.func = window[instance_pack.ta_class_name];
-        ta_instance_map[instance_id] = instance_pack;
-
-        recalcInstance(instance_pack);
-
+        //重生成函数
+        var f = window[instance.ta_class_name];
+        instance.func = f(instance);
     }
 
     function tm_recalc_indicator_by_id(instance_id) {
-        recalcInstance(ta_instance_map[instance_id]);
+        var instance = ta_instance_map[instance_id];
+        var xrange = DM.get_kdata_range(instance.ins_id, instance.dur_nano, instance.instance_id);
+        if (xrange === undefined)
+            return;
+        var [calc_left, calc_right] = xrange;
+        if (instance.BEGIN === undefined || instance.BEGIN > calc_left){
+            tm_update_instance(instance, calc_left);
+        }
+        recalcInstance(instance, calc_left, calc_right);
     }
 
     return {

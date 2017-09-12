@@ -124,7 +124,7 @@ var DM = function () {
         return dm_get_data_from_ticks(ins_id, data_id, serial_selector);
     }
 
-    function dm_get_kdata_obj(ins_id, dur_id, instance_id){
+    function dm_get_kdata_obj(ins_id, dur_id, instance_id) {
         var path = ins_id + '.' + dur_id;
         if (DM.instances[instance_id]) {
             if (!DM.instances[instance_id].rels.includes(path)) {
@@ -165,9 +165,45 @@ var DM = function () {
             var path = ins_id + '.' + dur_id;
             if (DM.paths.has(path)) {
                 var [first_id, last_id] = DM.paths.get(path);
-                if(first_id < last_id){
+                if (first_id < last_id) {
                     var result_left_id = first_id > view_left ? first_id : view_left;
                     var result_right_id = last_id < view_right ? last_id : view_right;
+                    var [calc_left, calc_right] = [DM.instances[instance_id].calc_left, DM.instances[instance_id].calc_right]
+                    if (calc_left == -1 || calc_right == -1) {
+                        DM.instances[instance_id].calc_left = result_left_id;
+                        DM.instances[instance_id].calc_right = result_right_id;
+                    } else {
+                        // 一共六种情况
+                        if (calc_right <= result_left_id) {
+                            // 1种
+                            DM.instances[instance_id].calc_left = result_left_id;
+                            DM.instances[instance_id].calc_right = result_right_id;
+                        } else if (calc_right > result_left_id) {
+                            if (calc_left <= result_left_id) {
+                                // 2种
+                                if (calc_right <= result_right_id) {
+                                    result_left_id = calc_right;
+                                    DM.instances[instance_id].calc_right = result_right_id;
+                                } else {
+                                    return undefined;
+                                }
+                            } else if (calc_left > result_left_id ) {
+                                // 3种
+                                if (calc_left <= result_right_id ) {
+                                    if(calc_right < result_right_id){
+                                        DM.instances[instance_id].calc_left = result_left_id;
+                                        DM.instances[instance_id].calc_right = result_right_id;
+                                    }else if(calc_right >= result_right_id){
+                                        result_right_id = calc_left;
+                                        DM.instances[instance_id].calc_left = result_left_id;
+                                    }
+                                } else {
+                                    DM.instances[instance_id].calc_left = result_left_id;
+                                    DM.instances[instance_id].calc_right = result_right_id;
+                                }
+                            }
+                        }
+                    }
                     return [result_left_id, result_right_id];
                 }
             }
@@ -183,6 +219,8 @@ var DM = function () {
         this.invalid = false;
         this.view_left = -1;
         this.view_right = -1;
+        this.calc_left = -1;
+        this.calc_right = -1;
     }
 
     Instance.prototype.setByIndicatorInstance = function (obj) {

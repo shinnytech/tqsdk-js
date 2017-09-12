@@ -15,13 +15,16 @@ TqWebSocket.prototype.STATUS = {
     CLOSING: 2,
     CLOSED: 3
 }
-TqWebSocket.prototype.isReady = function () {
-    if (typeof this.ws === 'undefined') return false;
-    else return this.ws.readyState === this.STATUS.OPEN;
-}
 TqWebSocket.prototype.sendJson = function (obj) {
-    if (this.isReady()) {
+    if (this.ws.readyState === 1) {
         this.ws.send(JSON.stringify(obj));
+    } else {
+        this.queue.push(obj);
+    }
+}
+TqWebSocket.prototype.sendString = function (str) {
+    if (this.ws.readyState === 1) {
+        this.ws.send(str);
     } else {
         this.queue.push(obj);
     }
