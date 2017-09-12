@@ -175,33 +175,26 @@ var DM = function () {
                     } else {
                         // 一共六种情况
                         if (calc_right <= result_left_id) {
-                            // 1种
                             DM.instances[instance_id].calc_left = result_left_id;
                             DM.instances[instance_id].calc_right = result_right_id;
-                        } else if (calc_right > result_left_id) {
-                            if (calc_left <= result_left_id) {
-                                // 2种
-                                if (calc_right <= result_right_id) {
-                                    result_left_id = calc_right;
-                                    DM.instances[instance_id].calc_right = result_right_id;
-                                } else {
-                                    return undefined;
-                                }
-                            } else if (calc_left > result_left_id ) {
-                                // 3种
-                                if (calc_left <= result_right_id ) {
-                                    if(calc_right < result_right_id){
-                                        DM.instances[instance_id].calc_left = result_left_id;
-                                        DM.instances[instance_id].calc_right = result_right_id;
-                                    }else if(calc_right >= result_right_id){
-                                        result_right_id = calc_left;
-                                        DM.instances[instance_id].calc_left = result_left_id;
-                                    }
-                                } else {
-                                    DM.instances[instance_id].calc_left = result_left_id;
-                                    DM.instances[instance_id].calc_right = result_right_id;
-                                }
+                        } else if(calc_left <= result_left_id){
+                            if (calc_right <= result_right_id) {
+                                result_left_id = calc_right;
+                                DM.instances[instance_id].calc_right = result_right_id;
+                            } else {
+                                return undefined;
                             }
+                        } else if (calc_left <= result_right_id) {
+                            if(calc_right <= result_right_id){
+                                DM.instances[instance_id].calc_left = result_left_id;
+                                DM.instances[instance_id].calc_right = result_right_id;
+                            }else {
+                                result_right_id = calc_left;
+                                DM.instances[instance_id].calc_left = result_left_id;
+                            }
+                        }else{
+                            DM.instances[instance_id].calc_left = result_left_id;
+                            DM.instances[instance_id].calc_right = result_right_id;
                         }
                     }
                     return [result_left_id, result_right_id];
@@ -226,16 +219,15 @@ var DM = function () {
     Instance.prototype.setByIndicatorInstance = function (obj) {
         if (obj.ins_id == '' || obj.dur_nano == -1 || obj.view_left == -1 || obj.view_right == -1) {
             this.invalid = false;
-        } else if (this.ins_id != obj.ins_id
-            || this.dur_nano != obj.dur_nano
-            || this.view_left != obj.view_left
-            || this.view_right != obj.view_right) {
+        } else  {
             this.invalid = true;
             this.rels = [];
             this.ins_id = obj.ins_id;
             this.dur_nano = obj.dur_nano;
             this.view_left = obj.view_left;
             this.view_right = obj.view_right;
+            this.calc_left = -1;
+            this.calc_right = -1;
         }
     }
 
