@@ -219,16 +219,15 @@ var DM = function () {
     Instance.prototype.setByIndicatorInstance = function (obj) {
         if (obj.ins_id == '' || obj.dur_nano == -1 || obj.view_left == -1 || obj.view_right == -1) {
             this.invalid = false;
-        } else if (this.ins_id != obj.ins_id
-            || this.dur_nano != obj.dur_nano
-            || this.view_left != obj.view_left
-            || this.view_right != obj.view_right) {
+        } else  {
             this.invalid = true;
             this.rels = [];
             this.ins_id = obj.ins_id;
             this.dur_nano = obj.dur_nano;
             this.view_left = obj.view_left;
             this.view_right = obj.view_right;
+            this.calc_left = -1;
+            this.calc_right = -1;
         }
     }
 
