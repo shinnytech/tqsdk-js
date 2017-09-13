@@ -10,6 +10,22 @@ function RGB(r, g, b) {
     return new COLOR(r, g, b);
 }
 
+function VALUESERIAL(){
+    this.LEFT = 0;
+    this.RIGHT = 0;
+}
+VALUESERIAL.prototype.toJSON = function () {
+    var n = new Array();
+    for(var i=this.LEFT; i<=this.RIGHT; i++){
+        n[i-this.LEFT] = this[i];
+    }
+    return n;
+};
+VALUESERIAL.prototype.setRange = function (left, right) {
+    this.LEFT = left;
+    this.RIGHT = right;
+};
+
 const RED = RGB(0xFF, 0, 0);
 const GREEN = RGB(0, 0xFF, 0);
 const BLUE = RGB(0, 0, 0xFF);
@@ -197,9 +213,9 @@ function* macd(C) {
     //输入
     var sclose = C.SERIAL("CLOSE");
     //输出
-    var diff = C.OUTS("diff", {color: RED});
-    var dea = C.OUTS("dea", {color: BLUE, width: 2});
-    var bar = C.OUTS("bar", {style: "BAR", color: RED});
+    var diff = C.OUTS("LINE", "diff", {color: RED});
+    var dea = C.OUTS("LINE", "dea", {color: BLUE, width: 2});
+    var bar = C.OUTS("BAR", "bar", {color: RED});
     //临时序列
     var eshort = new Array();
     var elong = new Array();
@@ -328,20 +344,10 @@ var TM = function () {
             func.next(i);
         }
         //整理计算结果
-        result = {}
-        for (var serial_name in instance.out_values) {
-            var serial_to = {};
-            result[serial_name] = serial_to;
-            var serial_from = instance.out_values[serial_name];
-            serial_to.style = serial_from.style;
-            serial_to.width = serial_from.width;
-            serial_to.color = serial_from.color;
-            serial_to.yaxis = serial_from.yaxis;
-            var values_to = {};
-            serial_to.values = values_to;
-            var values_from = serial_from.values;
-            for (var i = calc_left; i <= calc_right; i++) {
-                values_to[i] = [values_from[i]];
+        for (var serial_name in instance.out_datas) {
+            var serial_from = instance.out_datas[serial_name];
+            for(var j in serial_from){
+                serial_from[j].setRange(calc_left, calc_right);
             }
         }
         //将计算结果发给主进程
@@ -349,7 +355,10 @@ var TM = function () {
             aid: "set_indicator_data",
             instance_id: instance.instance_id,
             epoch: instance.epoch,
-            serials: result,
+            range_left: calc_left,
+            range_right: calc_right,
+            serials: instance.out_series,
+            datas: instance.out_datas,
         };
         var pack_str = jsonStringify(pack);
         WS.sendString(pack_str);
@@ -387,25 +396,30 @@ var TM = function () {
             });
             return f_serial;
         };
-        instance.out_values = {};
-        instance.OUTS = function (serial_name, options) {
-            instance.out_values[serial_name] = instance.out_values[serial_name] || {};
-            var serial = instance.out_values[serial_name];
-            if (serial.style === undefined) {
-                serial.values = {};
-                serial.style = "LINE";
-                serial.width = 1;
-                serial.color = RGB(0xFF, 0x00, 0x00);
-                serial.yaxis = 0;
-                if (options) {
-                    serial.style = options["style"] ? options["style"] : serial.style;
-                    serial.width = options["width"] ? options["width"] : serial.width;
-                    serial.color = options["color"] ? options["color"] : serial.color;
-                    serial.yaxis = options["yaxis"] ? options["yaxis"] : serial.yaxis;
-                    serial.memo = options["memo"] ? options["memo"] : serial.memo;
-                }
+        instance.out_series = {};
+        instance.out_datas = {};
+        instance.OUTS = function (style, serial_name, options) {
+            instance.out_series[serial_name] = {};
+            var serial = instance.out_series[serial_name];
+            serial.style = style;
+            serial.width = 1;
+            serial.color = RGB(0xFF, 0x00, 0x00);
+            serial.yaxis = 0;
+            if (options) {
+                serial.width = options["width"] ? options["width"] : serial.width;
+                serial.color = options["color"] ? options["color"] : serial.color;
+                serial.yaxis = options["yaxis"] ? options["yaxis"] : serial.yaxis;
+                serial.memo = options["memo"] ? options["memo"] : serial.memo;
             }
-            return serial.values;
+            if(style == "KLINE"){
+                var s = [new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL()];
+                instance.out_datas[serial_name] = s;
+                return s;
+            }else{
+                var s = new VALUESERIAL();
+                instance.out_datas[serial_name] = [s];
+                return s;
+            }
         };
         //重生成函数
         var f = window[instance.ta_class_name];

@@ -70,9 +70,10 @@ TqWebSocket.prototype.init = function () {
 
 var WS = new TqWebSocket('ws://127.0.0.1:7777/',{
     onmessage: function (message) {
-        var decoded = JSON.parse(message.data, function (key, value) {
-            return value === "NaN" ? NaN : value;
-        });
+        // var decoded = JSON.parse(message.data, function (key, value) {
+        //     return value === "NaN" ? NaN : value;
+        // });
+        var decoded = eval("(" + message.data + ")");
         if (decoded.aid == "rtn_data") {
             //收到行情数据包，更新到数据存储区
             for (var i = 0; i < decoded.data.length; i++) {
