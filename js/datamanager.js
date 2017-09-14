@@ -1,43 +1,33 @@
 var DM = function () {
     function merge_object(target, source) {
-        for (var property in source) {
-            if (source.hasOwnProperty(property)) {
-                var sourceProperty = source[property];
-                if (typeof sourceProperty === 'object' && target.hasOwnProperty(property)) {
-                    if (sourceProperty === null) {
-                        // typeof null === 'object' 表示不存在
-                        target[property] = sourceProperty;
+        for (var key in source) {
+            var value = source[key];
+            switch (typeof value) {
+                case 'object':
+                    if (value == null) {
+                        target[key] = value;
+                    } else if (Array.isArray(value)) {
+                        target[key] = target[key] ? target[key] : [];
+                        merge_object(target[key], value);
+                    } else {
+                        target[key] = target[key] ? target[key] : {};
+                        merge_object(target[key], value);
                     }
-                    target[property] = merge_object(target[property], sourceProperty);
-                } else {
-                    target[property] = sourceProperty;
-                }
+                    break;
+                case 'string':
+                    if (value == 'NaN') {
+                        target[key] = NaN;
+                    } else {
+                        target[key] = value;
+                    }
+                    break;
+                case 'boolean':
+                case 'number':
+                    target[key] = value;
+                    break;
+                case 'undefined':
+                    break;
             }
-        }
-        return target;
-    }
-
-    function set_invalid(p) {
-        for (var instance_id in DM.instances_map) {
-            var instance = DM.instances_map[instance_id];
-            if (!instance.invalid && instance.rel.indexOf(p) > -1) {
-                instance.invalid = true;
-                continue;
-            }
-        }
-    }
-
-    function dm_get_data_from_klines(ins_id, dur_id, data_id, serial_selector) {
-        var klines = DM.datas.klines;
-        if (klines
-            && klines[ins_id]
-            && klines[ins_id][dur_id]
-            && klines[ins_id][dur_id].data[data_id]
-            && klines[ins_id][dur_id].data[data_id][serial_selector]
-        ) {
-            return klines[ins_id][dur_id].data[data_id][serial_selector];
-        } else {
-            return NaN;
         }
     }
 
@@ -52,15 +42,6 @@ var DM = function () {
             return DM.datas.klines[ins_id].data[data_id][serial_selector];
         } else {
             return NaN;
-        }
-    }
-
-    function set_invalid_by_prefix(perfix) {
-        for (var instance_id in DM.instances) {
-            if (!DM.instances[instance_id].invalid && DM.instances[instance_id].rels.includes(perfix)) {
-                DM.instances[instance_id].invalid = true;
-                continue;
-            }
         }
     }
 
