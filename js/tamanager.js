@@ -62,8 +62,8 @@ function SUM(i, serial, n, cache) {
     return cache[i - 1] - serial[i-n] + serial[i];
 }
 
-function MA(serial, n) {
-    /*
+function MA(i, serial, n, cache){
+/*
     MA
     MA(X,N) 求X在N个周期内的简单移动平均
 
@@ -82,8 +82,9 @@ function MA(serial, n) {
     M:=IFELSE(N>10,10,N);//k线超过10根，M取10，否则M取实际根数
     MA10:MA(C,M);//在分钟周期上，当天k线不足10根，按照实际根数计算MA10，超过10根按照10周期计算MA10。
     */
-    var s = SUM(serial, n)
-    return (p) => (s(p) / n);
+    if (cache.length == 0 || isNaN(cache[i-1]))
+        return _sum(serial, n, i) / n;
+    return cache[i - 1] - serial[i-n] / n + serial[i] / n;
 }
 
 function EMA(i, serial, n, cache) {
@@ -185,50 +186,60 @@ function STD(i, serial, n, cache) {
     STD(C,10)求收盘价在10个周期内的样本标准差。
     //标准差表示总体各单位标准值与其平均数离差平方的算术平均数的平方根，它反映一个数据集的离散程度。STD(C,10)表示收盘价与收盘价的10周期均线之差的平方和的平均数的算术平方根。样本标准差是样本方差的平方根。
      */
-    var avg = MA(serial, n);
-    var v = (i) => {var d = serial(i) - avg(i); return d*d;};
-    var sv = SUM(v, n);
-    var std = (i) => Math.sqrt(sv(i) / n);
+    let s = cache.s ? cache.s : [];
+    let x2 = 0;
+    let x = 0;
+    if (s.length == 0 || !(i-1 in s)){
+        for (var k = i - n + 1; k <= i; k++) {
+            let d = serial[k];
+            x2 += d * d;
+            x += d;
+        }
+    }else{
+        x = s[i-1] - serial[i-n] + serial[i];
+        x2 = s[i-1] - serial[i-n] * serial[i-n] + serial[i] * serial[i];
+    }
+    let std = Math.sqrt((x2 - x*x / n) / n);
+    if(!isNaN(std)){
+        s[i] = [x, x2];
+    }
     return std;
 }
 
 
 // ---------------------------------------------------------------------------
-function* macd(C) {
-    // DIFF : EMA(CLOSE,SHORT) - EMA(CLOSE,LONG);//短周期与长周期的收盘价的指数平滑移动平均值做差。
-    // DEA  : EMA(DIFF,M);//DIFF的M个周期指数平滑移动平均
-    // 2*(DIFF-DEA),COLORSTICK;//DIFF减DEA的2倍画柱状线
-    C.DEFINE({
-        type: "SUB",
-        cname: "MACD",
-        state: "KLINE",
-        yaxis: [
-            {id: 0, mid: 0}
-        ]
-    });
-    //参数
-    var vshort = C.PARAM(20, "SHORT", {MIN: 5, STEP: 5});
-    var vlong = C.PARAM(35, "LONG", {MIN: 5, STEP: 5});
-    var vm = C.PARAM(10, "M", {MIN: 5, STEP: 5});
-    //输入
-    var sclose = C.SERIAL("CLOSE");
-    //输出
-    var diff = C.OUTS("LINE", "diff", {color: RED});
-    var dea = C.OUTS("LINE", "dea", {color: BLUE, width: 2});
-    var bar = C.OUTS("BAR", "bar", {color: RED});
-    //临时序列
-    var eshort = new Array();
-    var elong = new Array();
-    //计算
-    while(true) {
-        var i = yield;
-        eshort[i] = EMA(i, sclose, vshort, eshort);
-        elong[i] = EMA(i, sclose, vlong, eshort);
-        diff[i] = eshort[i] - elong[i];
-        dea[i] = EMA(i, diff, vm, dea);
-        bar[i] = 2 * (diff[i] - dea[i]);
-    }
-}
+//
+// function* ma(C){
+//     C.DEFINE({
+//         type: "MAIN",
+//         cname: "6个均线",
+//         memo: "一次性加入6根均线",
+//         state: "KLINE",
+//     });
+//     let n1 = C.PARAM(3, "N1");
+//     let n2 = C.PARAM(5, "N2");
+//     let n3 = C.PARAM(10, "N3");
+//     let n4 = C.PARAM(20, "N4");
+//     let n5 = C.PARAM(50, "N5");
+//     let n6 = C.PARAM(100, "N6");
+//     let s = C.SERIAL("CLOSE");
+//
+//     let s1 = C.OUTS("LINE", "ma" + n1, {color: RED});
+//     let s2 = C.OUTS("LINE", "ma" + n2, {color: GREEN});
+//     let s3 = C.OUTS("LINE", "ma" + n3, {color: BLUE});
+//     let s4 = C.OUTS("LINE", "ma" + n4, {color: RED});
+//     let s5 = C.OUTS("LINE", "ma" + n5, {color: GREEN});
+//     let s6 = C.OUTS("LINE", "ma" + n6, {color: BLUE});
+//     while(true) {
+//         let i = yield;
+//         s1[i] = MA(i, s, n1, s1);
+//         s2[i] = MA(i, s, n2, s2);
+//         s3[i] = MA(i, s, n3, s3);
+//         s4[i] = MA(i, s, n4, s4);
+//         s5[i] = MA(i, s, n5, s5);
+//         s6[i] = MA(i, s, n6, s6);
+//     }
+// }
 
 // ---------------------------------------------------------------------------
 
@@ -237,24 +248,23 @@ var ta_class_map = {};
 
 var TM = function () {
     function tm_init() {
-        // //更新所有指标类定义, 并发送到主进程
-        // // 系统指标
-        // for (var i = 0; i < CMenu.sys_datas.length; i++) {
-        //     var func_name = CMenu.sys_datas[i].name;
-        //     var code = CMenu.sys_datas[i].draft.code;
-        //     eval(func_name + ' = function(C){' + code + '}');
-        //     var f = window[func_name];
-        //     tm_update_class_define(f);
-        // }
-        // // 用户自定义指标
-        // for (var i = 0; i < CMenu.datas.length; i++) {
-        //     var func_name = CMenu.datas[i].name;
-        //     var code = CMenu.datas[i].draft.code;
-        //     eval(func_name + ' = function(C){' + code + '}');
-        //     var f = window[func_name];
-        //     tm_update_class_define(f);
-        // }
-        tm_update_class_define(macd);
+        //更新所有指标类定义, 并发送到主进程
+        // 系统指标
+        for (var i = 0; i < CMenu.sys_datas.length; i++) {
+            var func_name = CMenu.sys_datas[i].name;
+            var code = CMenu.sys_datas[i].draft.code;
+            eval(func_name + ' = ' + code);
+            var f = window[func_name];
+            tm_update_class_define(f);
+        }
+        // 用户自定义指标
+        for (var i = 0; i < CMenu.datas.length; i++) {
+            var func_name = CMenu.datas[i].name;
+            var code = CMenu.datas[i].draft.code;
+            eval(func_name + ' = ' + code);
+            var f = window[func_name];
+            tm_update_class_define(f);
+        }
     }
 
     function tm_update_class_define(ta_func) {
@@ -306,7 +316,11 @@ var TM = function () {
         };
         C.OUT = function () {
         };
-        C.OUTS = function () {
+        C.OUTS = function (style, serial_name, options) {
+            if(style=="KLINE")
+                return [null, null, null, null];
+            else
+                return null;
         };
         C.CALC_LEFT = 0;
         C.CALC_RIGHT = 0;

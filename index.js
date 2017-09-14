@@ -12,8 +12,8 @@ $(function () {
         var code = CMenu.editor.getSession().getValue();
         CMenu.saveFinalIndicator();
         var func_name = CMenu.editing.name;
-        func_code = func_name + "= function(C){" + code + "};";
-        eval(func_code);
+        func_code = code;
+        eval(func_name + ' = ' + code);
         var func = window[func_name];
         TM.update_class_define(func);
     });
