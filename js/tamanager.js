@@ -165,30 +165,23 @@ function STD(i, serial, n, cache) {
 }
 
 var TM = function () {
-    function tm_init() {
+    function tm_init(content) {
         //更新所有指标类定义, 并发送到主进程
         // todo: 要保证所有的函数不重名
         // 系统指标
-        for (var i = 0; i < CMenu.sys_datas.length; i++) {
-            var func_name = CMenu.sys_datas[i].name;
-            var code = CMenu.sys_datas[i].draft.code;
+        for (var func_name in content) {
+            var code = content[func_name].draft.code;
+            tm_init_one(func_name, code)
+        }
+    }
+
+    function tm_init_one(func_name, code){
+        try {
             eval(func_name + ' = ' + code);
-            var f = window[func_name];
-            tm_update_class_define(f);
+        } catch (e) {
+            // alert('error: ' + e.message);
         }
-        // 用户自定义指标
-        for (var i = 0; i < CMenu.datas.length; i++) {
-            var func_name = CMenu.datas[i].name;
-            var code = CMenu.datas[i].draft.code;
-            try{
-                eval(func_name + ' = ' + code);
-            }catch(e){
-                alert('error: ' + e.message);
-                continue;
-            }
-            var f = window[func_name];
-            tm_update_class_define(f);
-        }
+        tm_update_class_define(self[func_name]);
     }
 
     function tm_update_class_define(ta_func) {
@@ -261,7 +254,8 @@ var TM = function () {
     }
 
     return {
-        init: tm_init,
         update_class_define: tm_update_class_define,
-    }
+        sendIndicatorClassList: tm_init,
+        sendIndicatorClass: tm_init_one,
+    };
 }();

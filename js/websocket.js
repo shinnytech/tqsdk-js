@@ -15,44 +15,47 @@ TqWebSocket.prototype.STATUS = {
     CLOSING: 2,
     CLOSED: 3
 }
+
 TqWebSocket.prototype.sendJson = function (obj) {
+    function jsonToStr(obj){
+        return JSON.stringify(obj)
+    }
     if (this.ws.readyState === 1) {
-        this.ws.send(JSON.stringify(obj));
+        this.ws.send(jsonToStr(obj));
     } else {
-        this.queue.push(obj);
+        this.queue.push(jsonToStr(obj));
     }
 }
-TqWebSocket.prototype.sendString = function (str) {
-    if (this.ws.readyState === 1) {
-        this.ws.send(str);
-    } else {
-        this.queue.push(obj);
-    }
+
+TqWebSocket.prototype.isReady = function () {
+    return this.ws.readyState === 1;
 }
+
 TqWebSocket.prototype.init = function () {
+    function strToJson(message){
+        return eval("(" + message + ")")
+    }
     this.ws = new WebSocket(this.url);
     var this_ws = this;
     this.ws.onmessage = function (message) {
-        this_ws.callbacks.onmessage(message);
+        this_ws.callbacks.onmessage(strToJson(message.data));
     };
     this.ws.onclose = function (event) {
         // 清空 datamanager
-        this_ws.callbacks.onmessage();
+        this_ws.callbacks.onclose();
         // 清空 queue
         this_ws.queue = [];
         // 自动重连
         if (this_ws.reconnect) {
             this_ws.reconnectTask = setInterval(function () {
-                if (this_ws.ws.readyState === this_ws.STATUS.CLOSED) this_ws.init();
+                if (this_ws.ws.readyState === 3) this_ws.init();
             }, this_ws.reconnectInterval);
         }
     };
     this.ws.onerror = function (error) {
-        console.error('error', JSON.stringify(error));
         this_ws.ws.close();
     };
     this.ws.onopen = function () {
-        console.info('websocket open');
         // 请求全部数据同步
         this_ws.callbacks.onopen();
         if (this.reconnectTask) {
@@ -61,33 +64,28 @@ TqWebSocket.prototype.init = function () {
         }
         if (this_ws.queue.length > 0) {
             while (this_ws.queue.length > 0) {
-                if (this_ws.isReady()) this_ws.ws.send(this_ws.queue.shift());
+                if (this_ws.ws.readyState === 1) this_ws.ws.send(this_ws.queue.shift());
                 else break;
             }
         }
     };
 }
 
-var WS = new TqWebSocket('ws://192.168.1.71:7777/', {
+const WS = new TqWebSocket('ws://192.168.1.71:7777/', {
     onmessage: function (message) {
-        // var decoded = JSON.parse(message.data, function (key, value) {
-        //     return value === "NaN" ? NaN : value;
-        // });
-        var decoded = eval("(" + message.data + ")");
-        if (decoded.aid == "rtn_data") {
+        if (message.aid == "rtn_data") {
             //收到行情数据包，更新到数据存储区
-            for (var i = 0; i < decoded.data.length; i++) {
-                var temp = decoded.data[i];
+            for (var i = 0; i < message.data.length; i++) {
+                var temp = message.data[i];
                 DM.update_data(temp);
             }
             // 重新计算 instance
             for (var instance_id in G_Instances) {
                 G_Instances[instance_id].calculate();
             }
-        } else if (decoded.aid == "set_indicator_instance") {
+        } else if (message.aid == "set_indicator_instance") {
             //主进程要求创建或修改指标实例
-            var pack = decoded["set_indicator_instance"];
-
+            var pack = message["set_indicator_instance"];
             if (!G_Instances[pack.instance_id]) {
                 G_Instances[pack.instance_id] = new IndicatorInstance(pack);
             }
@@ -99,16 +97,14 @@ var WS = new TqWebSocket('ws://192.168.1.71:7777/', {
             aid: "sync_datas",
             sync_datas: {},
         };
-        WS.sendJson(JSON.stringify(demo_d));
-        // init 指标类
-        if (!CMenu.container) {
-            CMenu.init('list_menu');
-        }
+        WS.sendJson(demo_d);
     },
     onclose: function () {
         DM.clear_data();
     },
     onreconnect: function () {
-        TM.init();
+        postMessage({cmd:'websocket_reconnect'});
     }
 });
+
+WS.init();

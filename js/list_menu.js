@@ -1,5 +1,4 @@
-var CMenu;
-CMenu = function () {
+const CMenu = function () {
     return {
         container: null,
         sys_dom: null,
@@ -33,9 +32,9 @@ CMenu.init = function (div_id) {
     // 初始化对象
     CMenu.container = $('table#' + div_id);
     CMenu.sys_dom = CMenu.container.find('#system-indicators');
-    CMenu.sys_dom.append($('<div><img width="40" height="40" src="/img/loading.svg"></img></div>'));
+    CMenu.sys_dom.append($('<div><div class="loader">Loading...</div></div>'));
     CMenu.dom = CMenu.container.find('#custom-indicators');
-    CMenu.dom.append($('<div><img width="40" height="40" src="/img/loading.svg"></img></div>'));
+    CMenu.dom.append($('<div><div class="loader">Loading...</div></div>'));
 
     // 附加信息区域
     CMenu.initAttachUI();
@@ -51,7 +50,7 @@ CMenu.init = function (div_id) {
 
     Promise.all([promise_cus, promise_sys]).then(function () {
         //初始化指标类
-        TM.init();
+        sendIndicatorList();
     });
 
     // 初始化代码编辑区域
@@ -79,16 +78,6 @@ CMenu.init = function (div_id) {
     });
 }
 
-
-// editor.commands.addCommand({
-//     name: 'myCommand',
-//     bindKey: {win: 'Ctrl-M',  mac: 'Command-M'},
-//     exec: function(editor) {
-//         //...
-//     },
-//     readOnly: true // false if this command should not apply in readOnly mode
-// });
-
 CMenu.selectCallback = function (tr, data) {
     for (var k in CMenu.sys_item_doms) {
         CMenu.sys_item_doms[k][0].classList.remove('active');
@@ -113,7 +102,6 @@ CMenu.selectCallback = function (tr, data) {
             CMenu.editing = result;
             CMenu.editor.setValue(result.draft.code, 1);
             CMenu.editor.setReadOnly(false);
-            console.log(CMenu.editing)
             CMenu.updateAttachUI();
         });
     }
@@ -322,15 +310,20 @@ CMenu.editIndicator = function (e) {
         return;
     }
     if (CMenu.doing == 'new') {
+        var code_default = 'function* ' + name + '(C) {\n\t\n}';
         var wenhua = {prop: null, params: null};
         if (type == 'custom_wh') {
             wenhua = CMenu.getIndicatorWH_Prop_Params();
+            code_default = '';
         }
         IStore.add({
             name: name,
             type: type,
             prop: wenhua.prop,
-            params: wenhua.params
+            params: wenhua.params,
+            draft: {
+                code: code_default
+            }
         }).then(function (i) {
             CMenu.update();
             CMenu.editModal.modal('hide');

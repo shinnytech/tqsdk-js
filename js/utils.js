@@ -126,14 +126,19 @@ IndicatorInstance.prototype.update = function () {
         }
     };
     //重生成函数
-    var f = window[this.ta_class_name];
-    this.func = f(this);
+    this.func = self[this.ta_class_name](this);
 }
 IndicatorInstance.prototype.exec = function () {
     //执行计算
-    for (var i = this.calculating_left; i <= this.calculating_right; i++) {
-        this.func.next(i);
+    try{
+        for (var i = this.calculating_left; i <= this.calculating_right; i++) {
+            this.func.next(i);
+        }
+    }catch(e){
+        alert(this.instance_id + e);
+        return
     }
+
     //整理计算结果
     for (var serial_name in this.out_datas) {
         var serial_from = this.out_datas[serial_name];
