@@ -1,6 +1,6 @@
 var TqWebSocket = function (url, callbacks) {
     this.url = url;
-    this.ws ;
+    this.ws;
     this.queue = [];
     // 自动重连开关
     this.reconnect = true;
@@ -68,7 +68,7 @@ TqWebSocket.prototype.init = function () {
     };
 }
 
-var WS = new TqWebSocket('ws://127.0.0.1:7777/',{
+var WS = new TqWebSocket('ws://192.168.1.71:7777/', {
     onmessage: function (message) {
         // var decoded = JSON.parse(message.data, function (key, value) {
         //     return value === "NaN" ? NaN : value;
@@ -78,17 +78,20 @@ var WS = new TqWebSocket('ws://127.0.0.1:7777/',{
             //收到行情数据包，更新到数据存储区
             for (var i = 0; i < decoded.data.length; i++) {
                 var temp = decoded.data[i];
-                if (i == decoded.data.length - 1) {
-                    DM.update_data(temp);
-                } else {
-                    DM.update_data(temp);
-                }
+                DM.update_data(temp);
+            }
+            // 重新计算 instance
+            for (var instance_id in G_Instances) {
+                G_Instances[instance_id].calculate();
             }
         } else if (decoded.aid == "set_indicator_instance") {
             //主进程要求创建或修改指标实例
             var pack = decoded["set_indicator_instance"];
-            DM.reset_indicator_instance(pack);
-            TM.set_indicator_instance(pack);
+
+            if (!G_Instances[pack.instance_id]) {
+                G_Instances[pack.instance_id] = new IndicatorInstance(pack);
+            }
+            G_Instances[pack.instance_id].resetByInstance(pack);
         }
     },
     onopen: function () {
@@ -98,7 +101,7 @@ var WS = new TqWebSocket('ws://127.0.0.1:7777/',{
         };
         WS.sendJson(JSON.stringify(demo_d));
         // init 指标类
-        if(!CMenu.container){
+        if (!CMenu.container) {
             CMenu.init('list_menu');
         }
     },

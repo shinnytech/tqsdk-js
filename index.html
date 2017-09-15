@@ -124,14 +124,17 @@
             <div>
                 <div class="btn-toolbar" role="toolbar">
                     <div class="btn-group btn-group-xs" role="group">
-                        <button type="button" class="btn btn-default" id="btn_editor_save">保存代码</button>
+                        <button type="button" class="btn btn-default" id="btn_editor_save">保存代码(Ctrl+S)</button>
                     </div>
                     <div class="btn-group btn-group-xs" role="group">
-                        <button type="button" class="btn btn-default" id="btn_editor_run">保存代码并更新指标</button>
+                        <button type="button" class="btn btn-default" id="btn_editor_run">保存代码并更新指标(Ctrl+Shift+S)</button>
                     </div>
                     <div class="btn-group btn-group-xs" role="group">
                         <button type="button" class="btn btn-default" id="btn_editor_reset">回到上一版本</button>
                     </div>
+                    <!--<div class="btn-group btn-group-xs" role="group">-->
+                        <!--<input type="color" onclick="alert(e)"  onchange="alert(e)"/>-->
+                    <!--</div>-->
                 </div>
 
                 <div class="editor-container">
@@ -150,6 +153,7 @@
 <!--<script type="text/javascript" src="assets/lodash.fp.min.js"></script>-->
 
 <script type="text/javascript" src="js/func_store.js"></script>
+<script type="text/javascript" src="js/utils.js"></script>
 <script type="text/javascript" src="js/datamanager.js"></script>
 <script type="text/javascript" src="js/tamanager.js"></script>
 <script type="text/javascript" src="js/websocket.js"></script>

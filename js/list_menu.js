@@ -61,7 +61,33 @@ CMenu.init = function (div_id) {
         CMenu.editor.getSession().$worker.send("changeOptions", [{loopfunc: true}]);
     });
     CMenu.editor.getSession().setMode("ace/mode/javascript");
+    CMenu.editor.commands.addCommand({
+        name: 'save',
+        bindKey: {win: 'Ctrl-S', mac: 'Command-S', sender: 'editor|cli'},
+        exec: function (editor) {
+            $('#btn_editor_save').click();
+        },
+        readOnly: false
+    });
+    CMenu.editor.commands.addCommand({
+        name: 'saveandrun',
+        bindKey: {win: 'Ctrl-Shift-S', mac: 'Command-Shift-S', sender: 'editor|cli'},
+        exec: function (editor) {
+            $('#btn_editor_run').click();
+        },
+        readOnly: false
+    });
 }
+
+
+// editor.commands.addCommand({
+//     name: 'myCommand',
+//     bindKey: {win: 'Ctrl-M',  mac: 'Command-M'},
+//     exec: function(editor) {
+//         //...
+//     },
+//     readOnly: true // false if this command should not apply in readOnly mode
+// });
 
 CMenu.selectCallback = function (tr, data) {
     for (var k in CMenu.sys_item_doms) {
