@@ -335,11 +335,14 @@ CMenu.editIndicator = function (e) {
             }
         });
     } else if (CMenu.doing == 'copy') {
+        var code = CMenu.editModal.attr('data_code');
+        var re = /^(function\s*\*\s*).*(\s*\(\s*C\s*\)\s*\{[\s\S]*\})$/g;
+        var res_code = code.trim().replace(re, '$1' + name + '$2');
         IStore.add({
             name: name,
             type: type,
             draft: {
-                code: CMenu.editModal.attr('data_code')
+                code: res_code
             }
         }).then(function (i) {
             CMenu.update();
