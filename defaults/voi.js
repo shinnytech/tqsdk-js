@@ -7,11 +7,11 @@ function* voi(C){
         yaxis: [
             {id: 0, format: "HUGE"},
             {id: 1, format: "HUGE"},
-        ]
+        ],
     });
     let s_vol = C.SERIAL("VOLUME");
     let s_oi = C.SERIAL("CLOSE_OI");
-    let vol = C.OUTS("LINE", "vol", {color: RED, yaxis: 0});
+    let vol = C.OUTS("BAR", "vol", {color: RED, yaxis: 0});
     let oi = C.OUTS("LINE", "oi", {color: GREEN, yaxis: 1});
     while(true) {
         let i = yield;

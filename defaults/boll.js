@@ -13,8 +13,8 @@ function* boll(C){
     let top = C.OUTS("LINE", "top", {color: RED});
     let bottom = C.OUTS("LINE", "bottom", {color: GREEN});
 
-    let mid = new Array();
-    let std = new Array();
+    let mid = [];
+    let std = [];
 
     while(true) {
         let i = yield;

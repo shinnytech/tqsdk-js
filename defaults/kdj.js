@@ -16,7 +16,7 @@ function* kdj(C){
     let d = C.OUTS("LINE", "d", {color: GREEN});
     let j = C.OUTS("LINE", "j", {color: YELLOW});
 
-    let rsv = new Array();
+    let rsv = [];
 
     while(true) {
         let i = yield;
