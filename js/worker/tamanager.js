@@ -170,9 +170,11 @@ var TM = function () {
         for (var func_name in content) {
             if (content[func_name].type !== 'custom_wh') {
                 var code = content[func_name].draft.code;
+                if (G_Error_Class_Name.indexOf(func_name) > -1) {
+                    continue;
+                }
                 tm_init_one(func_name, code)
             }
-
         }
     }
 
@@ -180,6 +182,7 @@ var TM = function () {
         try {
             eval(func_name + ' = ' + code);
         } catch (e) {
+            console.error(e.message)
             // alert('error: ' + e.message);
         }
         tm_update_class_define(self[func_name]);
@@ -242,13 +245,23 @@ var TM = function () {
         };
         C.CALC_LEFT = 0;
         C.CALC_RIGHT = 0;
-        var f = ta_func(C);
-        f.next();
+        try{
+            var f = ta_func(C);
+            f.next();
+        }catch (e){
+            postMessage({
+                cmd: 'error_class', content: {
+                    type: e.type,
+                    message: e.message,
+                    className: indicator_name
+                }
+            });
+        }
+
         //指标信息格式整理
         params.forEach(function (value, key) {
             ta_class_define["params"].push(value)
         });
-        // G_Classes[indicator_name] = ta_class_define;
         ta_class_define.aid = "register_indicator_class";
         //发送指标类信息到主进程
         WS.sendJson(ta_class_define);

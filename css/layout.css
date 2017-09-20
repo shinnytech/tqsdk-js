@@ -38,6 +38,7 @@ div.left-menu,
 div.right-menu,
 div.content-container {
     height: 100%;
+    padding-bottom: 38px;
 }
 
 div.col.left-menu span.label.label-brand {
@@ -72,6 +73,7 @@ div.right-menu #attachment-container {
 #editor {
     width: 100%;
     height: 100%;
+    padding-top: 38px;
 }
 
 table.table.wh-param-list td {

@@ -1,5 +1,5 @@
 
-const CODE_RUN_TIMEOUT = 50;
+const CODE_RUN_TIMEOUT = 500;
 
 
 
@@ -30,7 +30,7 @@ var initWorker = function(){
                 ErrorsFunction[id] = setTimeout(()=>{
                     console.log(id, className, '执行时间超过 ' + CODE_RUN_TIMEOUT + ' ms');
                     var list = [];
-                    if(localStorage.key('error_class_name')){
+                    if(localStorage.key('error_class_name') !== null){
                         list = localStorage.getItem('error_class_name').split(',');
                     }
                     if(list.indexOf(className) == -1){
@@ -42,11 +42,24 @@ var initWorker = function(){
                     initWorker();
                 }, CODE_RUN_TIMEOUT);
                 break;
-
             case 'calc_end':
                 var {id, className} = e.data.content;
                 clearTimeout(ErrorsFunction[id]);
                 break;
+            case 'error_class':
+                $.notify(e.data.content.message, 'error');
+                var className = e.data.content.className;
+                var list = [];
+                if(localStorage.key('error_class_name') !== null){
+                    list = localStorage.getItem('error_class_name').split(',');
+                }
+                if(list.indexOf(className) == -1){
+                    list.push(className);
+                }
+                localStorage.setItem('error_class_name', list.join(','));
+                worker.terminate();
+                initWorker();
+
         }
     }, false);
 }
@@ -78,7 +91,10 @@ $(function () {
             }else{
                 CMenu.saveFinalIndicator();
                 worker.postMessage({cmd: 'indicator', content: {name: func_name, code: code}});
-                var list = localStorage.getItem('error_class_name').split(',');
+                var list = [];
+                if(localStorage.key('error_class_name') !== null){
+                    list = localStorage.getItem('error_class_name').split(',');
+                }
                 if(list.indexOf(func_name) > -1){
                     list.splice(list.indexOf(func_name), 1);
                     localStorage.setItem('error_class_name', list);

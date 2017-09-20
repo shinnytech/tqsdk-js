@@ -11,11 +11,17 @@ const log = (m) => console.log('%c%s',  "background: #ffffb0", m);
 
 self.addEventListener('error', function(event) {
     event.preventDefault();
-    console.log('%c%s',  "background: #ffffb0; color: red;", event.error.stack)
+    console.log('%c%s',  "background: #ffffb0; color: red;", event.error.stack);
+    postMessage({
+        cmd: 'error_all', content: {
+            type: event.type
+        }
+    });
 });
 
 self.addEventListener('message', function(event) {
     var content = event.data.content;
+    // console.log(event.data)
     switch (event.data.cmd) {
         case 'indicatorList':
             TM.sendIndicatorClassList(content);
@@ -24,8 +30,10 @@ self.addEventListener('message', function(event) {
             TM.sendIndicatorClass(content.name, content.code);
             break;
         case 'error_class_name':
-            if(content){
-                G_Error_Class_Name = content.slice(',');
+            if(content == null || content == ''){
+                G_Error_Class_Name = [];
+            }else{
+                G_Error_Class_Name = content.split(',');
             }
             break;
         default:
