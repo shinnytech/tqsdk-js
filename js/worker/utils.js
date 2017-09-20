@@ -135,8 +135,15 @@ IndicatorInstance.prototype.exec = function () {
             this.func.next(i);
         }
     } catch (e) {
+        postMessage({
+            cmd: 'error_class', content: {
+                type: e.type,
+                message: e.message,
+                className: this.ta_class_name
+            }
+        });
         log(this.instance_id + e);
-        return
+        return;
     }
     //整理计算结果
     for (var serial_name in this.out_datas) {
@@ -160,7 +167,6 @@ IndicatorInstance.prototype.exec = function () {
 
 IndicatorInstance.prototype.calculate = function () {
     if (this.invalid) {
-        this.invalid = false;
         if (G_Error_Class_Name.indexOf(this.ta_class_name) > -1) {
             return;
         }
@@ -177,6 +183,7 @@ IndicatorInstance.prototype.calculate = function () {
         }
         this.update();
         this.exec();
+        this.invalid = false;
         postMessage({
             cmd: 'calc_end', content: {
                 id: id,
