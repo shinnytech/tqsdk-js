@@ -6,18 +6,18 @@ const CODE_RUN_TIMEOUT = 50;
 var worker = null;
 var sendIndicatorList = function () {
     var content = {};
-    CMenu.sys_datas.forEach((value) => {
-        content[value.name] = value;
-    });
-    CMenu.datas.forEach((value) => {
-        content[value.name] = value;
-    });
+    var lists = ['sys_datas', 'datas'];
+    for (var i = 0; i < lists.length; i++) {
+        for (var j = 0; j < CMenu[lists[i]].length; j++) {
+            content[CMenu[lists[i]][j].name] = CMenu[lists[i]][j];
+        }
+    }
     worker.postMessage({cmd: 'indicatorList', content: content});
 }
 
 var ErrorsFunction = {};
 var initWorker = function(){
-    worker = new Worker('js/worker.js');
+    worker = new Worker('js/worker/worker.js');
     worker.postMessage({cmd: 'error_class_name', content: localStorage.getItem('error_class_name')});
     sendIndicatorList();
     worker.addEventListener('message', function (e) {
@@ -54,6 +54,9 @@ var initWorker = function(){
 initWorker();
 
 $(function () {
+    // 初始化 tooltip
+    $('[data-toggle="tooltip"]').tooltip();
+
     CMenu.init('list_menu');
 
     $('#btn_new_indicator').on('click', CMenu.addAction);
@@ -68,7 +71,11 @@ $(function () {
         var reg = /^function\s*\*\s*(.*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}$/g;
         var result = reg.exec(code);
         if (result && result[0] == result.input) {
-            if (result[1] === func_name && result[2].includes('yield')) {
+            if(result[1] !== func_name){
+                $.notify('函数名称必须和自定义指标名称相同!', "error");
+            }else if(!result[2].includes('yield')){
+                $.notify('函数中返回使用 yield 关键字!', "error");
+            }else{
                 CMenu.saveFinalIndicator();
                 worker.postMessage({cmd: 'indicator', content: {name: func_name, code: code}});
                 var list = localStorage.getItem('error_class_name').split(',');
@@ -77,12 +84,9 @@ $(function () {
                     localStorage.setItem('error_class_name', list);
                     worker.postMessage({cmd: 'error_class_name', content: localStorage.getItem('error_class_name')});
                 }
-
-            } else {
-                alert('代码不符合规范！')
             }
         } else {
-            alert('代码不符合规范！')
+            $.notify('代码不符合规范!', "error");
         }
     });
 

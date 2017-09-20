@@ -167,7 +167,6 @@ var TM = function () {
     function tm_init(content) {
         //更新所有指标类定义, 并发送到主进程
         // todo: 要保证所有的函数不重名
-
         for (var func_name in content) {
             if (content[func_name].type !== 'custom_wh') {
                 var code = content[func_name].draft.code;

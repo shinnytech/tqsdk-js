@@ -221,7 +221,6 @@ CMenu.updateAttachUI = function () {
     }
 }
 
-
 CMenu.initSysIndicators = function () {
     return new Promise((resolve, reject) => {
         $.get('/defaults/defaults.json').then(function (response) {
@@ -280,7 +279,6 @@ CMenu.initCustomIndicators = function () {
 
 }
 
-
 CMenu.addAction = function () {
     CMenu.doing = 'new';
     CMenu.editModal.find('#indicator-name').val('');
@@ -300,13 +298,28 @@ CMenu.copyCallback = function (tr, data) {
     CMenu.editModal.modal('show');
 }
 
+CMenu.hasClassName = function (name) {
+    var lists = ['sys_datas', 'datas'];
+    for (var i = 0; i < lists.length; i++) {
+        for (var j = 0; j < CMenu[lists[i]].length; j++) {
+            if (name === CMenu[lists[i]][j].name) return true;
+        }
+    }
+    return false;
+}
+
 CMenu.editIndicator = function (e) {
     var name = $('#indicator-name').val();
     var type = CMenu.editModal.find("input[name='indicator-type']:checked").val();
     type = type == '0' ? 'custom' : 'custom_wh';
     if (!CMenu_Utils.validVariableName(name)) {
-        alert('指标名称应符合 JavaScript 变量名命名规则。\n 第一个字符必须是字母、下划线（_）或美元符号（$）\n' +
+        $.notify('指标名称应符合 JavaScript 变量名命名规则。\n 第一个字符必须是字母、下划线（_）或美元符号（$）\n' +
             '余下的字符可以是下划线（_）、美元符号（$）或任何字母或数字字符。 \n 长度限制为20。');
+        return;
+    }
+    console.log(CMenu.hasClassName(name));
+    if (CMenu.hasClassName(name)) {
+        $.notify('指标名称重复');
         return;
     }
     if (CMenu.doing == 'new') {
@@ -329,9 +342,9 @@ CMenu.editIndicator = function (e) {
             CMenu.editModal.modal('hide');
         }, function (e) {
             if (e == 'ConstraintError') {
-                alert('指标名称重复')
+                $.notify('指标名称重复')
             } else {
-                alert(e);
+                $.notify(e);
             }
         });
     } else if (CMenu.doing == 'copy') {
@@ -349,9 +362,9 @@ CMenu.editIndicator = function (e) {
             CMenu.editModal.modal('hide');
         }, function (e) {
             if (e == 'ConstraintError') {
-                alert('指标名称重复')
+                $.notify('指标名称重复');
             } else {
-                alert(e);
+                $.notify(e);
             }
         });
     } else {
@@ -370,9 +383,9 @@ CMenu.editIndicator = function (e) {
             CMenu.editModal.modal('hide');
         }, function (e) {
             if (e == 'ConstraintError') {
-                alert('指标名称重复')
+                $.notify('指标名称重复')
             } else {
-                alert(e);
+                $.notify(e);
             }
         });
     }
@@ -403,9 +416,9 @@ CMenu.trashIndicator = function (e) {
         CMenu.sys_item_doms[0].find('td:first').click();
     }, function (e) {
         if (e == 'ConstraintError') {
-            alert('指标名称重复')
+            $.notify('指标名称重复')
         } else {
-            alert(e);
+            $.notify(e);
         }
     });
 }
@@ -426,7 +439,7 @@ CMenu.saveDraftIndicator = function (e) {
     }).then(function (result) {
         CMenu.editing = result;
     }, function (e) {
-        alert(e);
+        $.notify(e);
     });
 }
 
@@ -447,7 +460,7 @@ CMenu.saveFinalIndicator = function (e) {
         CMenu.editing = result;
         CMenu.updateUI();
     }, function (e) {
-        alert(e);
+        $.notify(e);
     });
 }
 
@@ -457,7 +470,6 @@ CMenu.resetIndicator = function (e) {
         CMenu.editor.setValue(result.draft.code, 1);
     });
 }
-
 
 CMenu.editCallback = function (tr, key) {
     CMenu.doing = 'edit';
@@ -510,14 +522,13 @@ CMenu.updateUI = function () {
             var type = CMenu_Utils.getBrandTag(indicator.type);
             CMenu.item_doms[indicator.key].find('td:first').empty().append(type).append(indicator.name);
         }
-        if(localStorage.getItem('error_class_name') && localStorage.getItem('error_class_name').split(',').includes(indicator.name)){
+        if (localStorage.getItem('error_class_name') && localStorage.getItem('error_class_name').split(',').includes(indicator.name)) {
             var timeout = CMenu_Utils.getBrandTag('timeout');
             CMenu.item_doms[indicator.key].find('td:first').append(timeout);
         }
     }
     CMenu.updateAttachUI();
 }
-
 
 CMenu_Utils = function () {
     var validVariableName = function (name) {
@@ -552,16 +563,15 @@ CMenu_Utils = function () {
     }
     var getNameTd = function (data) {
         var td = $('<td></td>');
-        if (data.type == 'system') {
-            td.attr('colspan', 2);
-        }
         td.append(CMenu_Utils.getBrandTag(data.type)).append(data.name);
         return td;
     }
     var getIconBtn = function (type) {
-        var btn = $('<span class="glyphicon glyphicon-' + type + '"></span>')
+        var btn = $('<span data-toggle="tooltip" data-container="body" data-placement="left" title data-original-title="Tooltip on left" class="glyphicon glyphicon-' + type + '"></span>')
         return ($('<td width="10%"></td>').append(btn));
     }
+
+
     var getIndicatorTr = function (data, callbacks) {
         // data.type 'system' callbacks[select edit trash]
         // data.type 'custom-*' callbacks[select copy]
@@ -581,15 +591,11 @@ CMenu_Utils = function () {
             });
             return tr.append(copy_btn);
         } else {
-            var edit_btn = CMenu_Utils.getIconBtn('edit');
-            edit_btn.on('click', function (e) {
-                callbacks.edit(tr, data.key);
-            });
             var trash_btn = CMenu_Utils.getIconBtn('trash');
             trash_btn.on('click', function (e) {
                 callbacks.trash(tr, data.key);
             });
-            return tr.append(edit_btn).append(trash_btn);
+            return tr.append(trash_btn);
         }
     }
     return {
