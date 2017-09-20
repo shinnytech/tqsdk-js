@@ -182,8 +182,14 @@ var TM = function () {
         try {
             eval(func_name + ' = ' + code);
         } catch (e) {
-            console.error(e.message)
-            // alert('error: ' + e.message);
+            postMessage({
+                cmd: 'error_class', content: {
+                    type: e.type,
+                    message: e.message,
+                    className: func_name
+                }
+            });
+            return;
         }
         tm_update_class_define(self[func_name]);
     }
