@@ -1,5 +1,10 @@
-body {
-    padding-top: 70px;
+body, html {
+    height: 100%;
+    width: 100%;
+}
+
+.no-padding {
+    padding: 0px;
 }
 
 table.table {
@@ -7,18 +12,32 @@ table.table {
     word-wrap: break-word;
 }
 
+/* ============================= */
+
 .main-container {
     min-width: 800px;
-    margin: 0px 15px;
+    height: 100%;
+    padding: 0px;
+}
+
+.main-container .row {
+    margin: 0px;
+}
+
+.main-container .row:first-child {
+    height: 38px;
+    border-bottom: #c0c0c0 1px solid;
 }
 
 .btn-toolbar {
-    padding-bottom: 10px;
+    background-color: #d4d4d4;
+    padding: 2px 2px;
 }
 
-div.col.left-menu {
-    padding-left: 0px;
-    padding-right: 0px;
+div.left-menu,
+div.right-menu,
+div.content-container {
+    height: 100%;
 }
 
 div.col.left-menu span.label.label-brand {
@@ -27,16 +46,27 @@ div.col.left-menu span.label.label-brand {
     padding: 2px 3px;
 }
 
-div.col.right-menu {
-    padding-left: 0px;
-    padding-right: 0px;
+div.left-menu  {
+    height: 100%;
+    overflow-y: scroll;
+    border-radius: 0px;
+}
+
+div.left-menu .panel,
+div.right-menu .panel{
+    border-radius: 0px;
+}
+
+
+div.right-menu #attachment-container {
+    height: 100%;
+    border-left: 1px solid #c0c0c0;
 }
 
 .editor-container {
-    height: 560px;
+    height: 100%;
     width: 100%;
-    border: 1px solid #eee;
-    border-radius: 3px;
+    border-left: 1px solid #c0c0c0;
 }
 
 #editor {
@@ -67,63 +97,4 @@ table.table.wh-param-list td input.form-control {
 
 table.table.wh-param-list td input.form-control[readonly] {
     background-color: #fff;
-}
- /* loader */
-.loader,
-.loader:before,
-.loader:after {
-    border-radius: 50%;
-    width: 1.5em;
-    height: 1.5em;
-    -webkit-animation-fill-mode: both;
-    animation-fill-mode: both;
-    -webkit-animation: load 1.8s infinite ease-in-out;
-    animation: load 1.8s infinite ease-in-out;
-}
-.loader {
-    color: #ff9280;
-    font-size: 10px;
-    margin: 8px auto;
-    position: relative;
-    top: -15px;
-    text-indent: -9999em;
-    -webkit-transform: translateZ(0);
-    -ms-transform: translateZ(0);
-    transform: translateZ(0);
-    -webkit-animation-delay: -0.16s;
-    animation-delay: -0.16s;
-}
-.loader:before,
-.loader:after {
-    content: '';
-    position: absolute;
-    top: 0;
-}
-.loader:before {
-    left: -2.5em;
-    -webkit-animation-delay: -0.32s;
-    animation-delay: -0.32s;
-}
-.loader:after {
-    left: 2.5em;
-}
-@-webkit-keyframes load {
-    0%,
-    80%,
-    100% {
-        box-shadow: 0 1.5em 0 -1.3em;
-    }
-    40% {
-        box-shadow: 0 1.5em 0 0;
-    }
-}
-@keyframes load {
-    0%,
-    80%,
-    100% {
-        box-shadow: 0 1.5em 0 -1.3em;
-    }
-    40% {
-        box-shadow: 0 1.5em 0 0;
-    }
 }

@@ -445,8 +445,7 @@ CMenu.saveFinalIndicator = function (e) {
         params: wenhua.params
     }).then(function (result) {
         CMenu.editing = result;
-        // todo: generate indicator class
-        console.log('saved && generate indicator class');
+        CMenu.updateUI();
     }, function (e) {
         alert(e);
     });
@@ -511,6 +510,10 @@ CMenu.updateUI = function () {
             var type = CMenu_Utils.getBrandTag(indicator.type);
             CMenu.item_doms[indicator.key].find('td:first').empty().append(type).append(indicator.name);
         }
+        if(localStorage.getItem('error_class_name') && localStorage.getItem('error_class_name').split(',').includes(indicator.name)){
+            var timeout = CMenu_Utils.getBrandTag('timeout');
+            CMenu.item_doms[indicator.key].find('td:first').append(timeout);
+        }
     }
     CMenu.updateAttachUI();
 }
@@ -536,6 +539,10 @@ CMenu_Utils = function () {
             custom_wh: {
                 label_name: 'info',
                 label_text: '文',
+            },
+            timeout: {
+                label_name: 'danger',
+                label_text: '运行超时',
             }
         }
         var d = $('<span></span>');

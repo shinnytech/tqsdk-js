@@ -2,6 +2,9 @@ importScripts('websocket.js', 'utils.js', 'datamanager.js', 'tamanager.js');
 
 // 全局对象,存储全部 Instance
 const G_Instances = {};
+const Keys = GenerateKey();
+let G_Error_Class_Name = [];
+
 
 // -------------- worker listener start --------------
 const log = (m) => console.log('%c%s',  "background: #ffffb0", m);
@@ -20,9 +23,16 @@ self.addEventListener('message', function(event) {
         case 'indicator':
             TM.sendIndicatorClass(content.name, content.code);
             break;
+        case 'error_class_name':
+            if(content){
+                G_Error_Class_Name = content.slice(',');
+            }
+            break;
         default:
             break;
     }
 });
+
 // -------------- worker listener end --------------
+
 

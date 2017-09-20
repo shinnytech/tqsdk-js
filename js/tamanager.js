@@ -50,7 +50,6 @@ function EMA(i, serial, n, cache) {
     return isNaN(cache[i - 1]) ? serial[i] : (2 * serial[i] / (n + 1) + (n - 1) * cache[i - 1] / (n + 1));
 }
 
-
 function SMA(i, serial, n, m, cache) {
     /*
     SMA
@@ -168,14 +167,17 @@ var TM = function () {
     function tm_init(content) {
         //更新所有指标类定义, 并发送到主进程
         // todo: 要保证所有的函数不重名
-        // 系统指标
+
         for (var func_name in content) {
-            var code = content[func_name].draft.code;
-            tm_init_one(func_name, code)
+            if (content[func_name].type !== 'custom_wh') {
+                var code = content[func_name].draft.code;
+                tm_init_one(func_name, code)
+            }
+
         }
     }
 
-    function tm_init_one(func_name, code){
+    function tm_init_one(func_name, code) {
         try {
             eval(func_name + ' = ' + code);
         } catch (e) {

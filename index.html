@@ -13,7 +13,7 @@
     <script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="css/layout.css">
 </head>
-<body>
+<body style="overflow:scroll;overflow:hidden;">
 <!--Modal-->
 <div class="modal fade" id="EditModal" tabindex="-1" role="dialog" aria-labelledby="EditModalTitle">
     <div class="modal-dialog" role="document">
@@ -71,30 +71,33 @@
         </div>
     </div>
 </div>
-<!-- Fixed navbar -->
-<nav class="navbar navbar-default navbar-fixed-top">
-    <div class="container-fluid">
-        <div class="navbar-header">
-            <h4>
-                <span>
-                <img src="assets/brand/letter-t.svg" width="30" height="30" class="d-inline-block align-top" alt="logo">
-                Translator
-                </span>
-            </h4>
-        </div>
-    </div>
-</nav>
+
 <!-- 主体内容区域 -->
 <div class="container-fluid main-container">
     <div class="row">
-        <!-- 指标列表 -->
-        <div class="col col-xs-3 left-menu">
+        <div class="col-xs-12 no-padding">
             <div class="btn-toolbar" role="toolbar">
-                <div class="btn-group btn-group-xs" role="group">
-                    <button type="button" class="btn btn-default" id="btn_new_indicator">新建指标</button>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-default" id="btn_new_indicator">新建指标(Ctrl+N)</button>
+                </div>
+
+                <div class="btn-group btn-group" role="group">
+                    <button type="button" class="btn btn-default" id="btn_editor_save">保存代码(Ctrl+S)</button>
+                </div>
+                <div class="btn-group btn-group" role="group">
+                    <button type="button" class="btn btn-default" id="btn_editor_run">保存代码并更新指标(Ctrl+Shift+S)</button>
+                </div>
+                <div class="btn-group btn-group" role="group">
+                    <button type="button" class="btn btn-default" id="btn_editor_reset">回到上一版本</button>
                 </div>
             </div>
+        </div>
+    </div>
+    <div class="row" style="height: 100%;">
+        <!-- 指标列表 -->
+        <div class="col col-xs-3 left-menu no-padding">
             <div class="panel panel-default">
+
                 <table class="table" id="list_menu">
                     <thead>
                     <tr>
@@ -115,44 +118,22 @@
                 </table>
             </div>
         </div>
-        <div class="col col-xs-9 content-container">
-            <div>
-                <div class="btn-toolbar" role="toolbar">
-                    <div class="btn-group btn-group-xs" role="group">
-                        <button type="button" class="btn btn-default" id="btn_editor_save">保存代码(Ctrl+S)</button>
-                    </div>
-                    <div class="btn-group btn-group-xs" role="group">
-                        <button type="button" class="btn btn-default" id="btn_editor_run">保存代码并更新指标(Ctrl+Shift+S)</button>
-                    </div>
-                    <div class="btn-group btn-group-xs" role="group">
-                        <button type="button" class="btn btn-default" id="btn_editor_reset">回到上一版本</button>
-                    </div>
-                    <!--<div class="btn-group btn-group-xs" role="group">-->
-                        <!--<input type="color" onclick="alert(e)"  onchange="alert(e)"/>-->
-                    <!--</div>-->
-                </div>
-
-                <div class="editor-container">
-                    <div id="editor"></div>
-                </div>
+        <div class="col col-xs-9 content-container no-padding">
+            <div class="editor-container">
+                <div id="editor"></div>
             </div>
         </div>
-        <div class="col col-xs-3 right-menu hide">
+        <div class="col col-xs-3 right-menu no-padding hide">
             <div id="attachment-container">
             </div>
         </div>
     </div>
 </div>
 
-
 <script type="text/javascript" src="assets/ace-min/ace.js"></script>
-<!--<script type="text/javascript" src="assets/lodash.fp.min.js"></script>-->
+<script type="text/javascript" src="assets/notify.js"></script>
 
 <script type="text/javascript" src="js/func_store.js"></script>
-<!--<script type="text/javascript" src="js/utils.js"></script>-->
-<!--<script type="text/javascript" src="js/datamanager.js"></script>-->
-<!--<script type="text/javascript" src="js/tamanager.js"></script>-->
-<!--<script type="text/javascript" src="js/websocket.js"></script>-->
 <script type="text/javascript" src="js/list_menu.js"></script>
 
 <script type="text/javascript" src="index.js"></script>

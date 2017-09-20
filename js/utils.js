@@ -130,15 +130,14 @@ IndicatorInstance.prototype.update = function () {
 }
 IndicatorInstance.prototype.exec = function () {
     //执行计算
-    try{
+    try {
         for (var i = this.calculating_left; i <= this.calculating_right; i++) {
             this.func.next(i);
         }
-    }catch(e){
-        alert(this.instance_id + e);
+    } catch (e) {
+        log(this.instance_id + e);
         return
     }
-
     //整理计算结果
     for (var serial_name in this.out_datas) {
         var serial_from = this.out_datas[serial_name];
@@ -158,15 +157,40 @@ IndicatorInstance.prototype.exec = function () {
     };
     WS.sendJson(pack);
 }
+
 IndicatorInstance.prototype.calculate = function () {
     if (this.invalid) {
         this.invalid = false;
+        if (G_Error_Class_Name.indexOf(this.ta_class_name) > -1) {
+            return;
+        }
+        var id = Keys.next().value;
+        postMessage({
+            cmd: 'calc_start', content: {
+                id: id,
+                className: this.ta_class_name
+            }
+        });
         this.getKCalcRange();
         if (this.calculating_left === -1 || this.calculating_right === -1) {
             return;
         }
         this.update();
         this.exec();
+        postMessage({
+            cmd: 'calc_end', content: {
+                id: id,
+                className: this.ta_class_name
+            }
+        });
+    }
+}
+
+function* GenerateKey() {
+    var i = 0;
+    while (true) {
+        yield i.toString(36);
+        i++;
     }
 }
 

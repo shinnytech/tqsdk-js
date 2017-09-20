@@ -14,7 +14,7 @@ function* kdj(C){
 
     let k = C.OUTS("LINE", "k", {color: RED});
     let d = C.OUTS("LINE", "d", {color: GREEN});
-    let j = C.OUTS("LINE", "j", {color: GREEN});
+    let j = C.OUTS("LINE", "j", {color: YELLOW});
 
     let rsv = new Array();
 
