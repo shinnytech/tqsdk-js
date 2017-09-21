@@ -18,7 +18,7 @@ var sendIndicatorList = function () {
 
 var initWorker = function(){
     worker = new Worker('js/worker/worker.js');
-
+    worker.postMessage({cmd: 'error_class_name', content: ErrorHandlers.get()});
     sendIndicatorList();
     worker.addEventListener('message', function (e) {
         switch (e.data.cmd) {
@@ -81,7 +81,7 @@ $(function () {
                 CMenu.saveFinalIndicator();
                 worker.postMessage({cmd: 'indicator', content: {name: func_name, code: code}});
                 ErrorHandlers.remove(func_name);
-                worker.postMessage({cmd: 'error_class_name', content: localStorage.getItem('error_class_name')});
+                worker.postMessage({cmd: 'error_class_name', content: ErrorHandlers.get()});
             }
         } else {
             $.notify('代码不符合规范!', "error");
