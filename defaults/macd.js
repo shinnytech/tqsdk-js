@@ -7,7 +7,7 @@ function* macd(C) {
         cname: "MACD",
         state: "KLINE",
         yaxis: [
-            {id: 0, mid: 0}
+            {id: 0, mid: 0, format: "NUMBER2"},
         ]
     });
     //参数
@@ -21,13 +21,13 @@ function* macd(C) {
     let dea = C.OUTS("LINE", "dea", {color: BLUE, width: 2});
     let bar = C.OUTS("BAR", "bar", {color: RED});
     //临时序列
-    let eshort = new Array();
-    let elong = new Array();
+    let eshort = [];
+    let elong = [];
     //计算
     while(true) {
         let i = yield;
         eshort[i] = EMA(i, sclose, vshort, eshort);
-        elong[i] = EMA(i, sclose, vlong, eshort);
+        elong[i] = EMA(i, sclose, vlong, elong);
         diff[i] = eshort[i] - elong[i];
         dea[i] = EMA(i, diff, vm, dea);
         bar[i] = 2 * (diff[i] - dea[i]);
