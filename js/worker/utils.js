@@ -2,12 +2,11 @@ const IndicatorInstance = function (obj) {
     Object.assign(this, obj);
     this.rels = []; // 相关节点
     this.invalid = false; // 是否重新计算
-    this.calculated_left = -1; // 已经计算数据 左边界
-    this.calculated_right = -1; // 已经计算数据 右边界
 
-    this.BEGIN = undefined;
-    this.calculating_left = -1; // 即将计算数据 左边界
-    this.calculating_right = -1; // 即将计算数据 右边界
+    this.BEGIN = -1;
+
+    this.calculate_left = -1;
+    this.calculate_right = -1;
 }
 IndicatorInstance.prototype.resetByInstance = function (obj) {
     Object.assign(this, obj);
@@ -17,57 +16,32 @@ IndicatorInstance.prototype.resetByInstance = function (obj) {
         this.invalid = true;
     }
     this.rels = [];
-    this.calculated_left = -1;
-    this.calculated_right = -1;
-    this.BEGIN = undefined;
-    this.calculating_left = -1;
-    this.calculating_right = -1;
+
+    this.BEGIN = -1;
+
+    this.calculate_left = -1;
+    this.calculate_right = -1;
     this.calculate();
 };
-IndicatorInstance.prototype.getKCalcRange = function () {
+
+IndicatorInstance.prototype.updateRange = function () {
     let path = this.ins_id + '.' + this.dur_nano;
     let [first_id, last_id] = DM.get_data_range(path);
-    if (this.view_left > -1 && this.view_right > -1 && this.view_right >= first_id && this.view_left <= last_id && first_id < last_id ) {
-        // view_left_right 和 全部数据范围 first_id, last_id 比较计算结果
-        // 客户端想收到且能收到的数据范围
+    if (this.view_left > -1 && this.view_right > -1 && this.view_right >= first_id && this.view_left <= last_id && first_id < last_id) {
+        // view_left view_right 和 已有全部数据范围 first_id, last_id 有交集
         let left_id = first_id > this.view_left ? first_id : this.view_left;
         let right_id = last_id < this.view_right ? last_id : this.view_right;
-        // 再和 已经计算过的数据范围 比较
-        if (this.calculated_left === -1 || this.calculated_right === -1) {
-            this.calculated_left = left_id;
-            this.calculated_right = right_id;
+        if (this.BEGIN === -1 || this.BEGIN.value > this.view_left) {
+            this.BEGIN = left_id;
+            this.calculate_left = left_id;
+            this.calculate_right = right_id;
+            this.update(); // 重新定义函数
         } else {
-            // 一共六种情况
-            if (this.calculated_right <= left_id) {
-                this.calculated_left = left_id;
-                this.calculated_right = right_id;
-            } else if (this.calculated_left <= left_id) {
-                if (this.calculated_right <= right_id) {
-                    left_id = this.calculated_right;
-                    this.calculated_right = right_id;
-                } else {
-                    this.calculating_left = -1;
-                    this.calculating_right = -1;
-                }
-            } else if (this.calculated_left <= right_id) {
-                if (this.calculated_right <= right_id) {
-                    this.calculated_left = left_id;
-                    this.calculated_right = right_id;
-                } else {
-                    right_id = this.calculated_left;
-                    this.calculated_left = left_id;
-                }
-            } else {
-                this.calculated_left = left_id;
-                this.calculated_right = right_id;
-            }
+            this.calculate_right = right_id;
         }
-        this.calculating_left = left_id;
-        this.calculating_right = right_id;
-        return;
-    }else{
-        this.calculating_left = -1;
-        this.calculating_right = -1;
+    } else {
+        // view_left view_right 和 已有全部数据范围 first_id, last_id 无交集
+        this.BEGIN = -1;
     }
 };
 IndicatorInstance.prototype.addRelationship = function (path) {
@@ -80,9 +54,7 @@ IndicatorInstance.prototype.resetInvalid = function () {
     this.invalid = false;
 };
 IndicatorInstance.prototype.update = function () {
-    if (this.BEGIN < this.calculating_left) return;
     //准备计算环境
-    this.BEGIN = this.calculating_left;
     this.DEFINE = function () {
     };
     this.PARAM = function (param_default_value, param_name) {
@@ -131,10 +103,12 @@ IndicatorInstance.prototype.update = function () {
 }
 IndicatorInstance.prototype.exec = function () {
     //执行计算
+    var [left, right] = [this.calculate_left, this.calculate_right];
     try {
-        for (var i = this.calculating_left; i <= this.calculating_right; i++) {
-            this.func.next(i);
+        for (; this.calculate_left <= this.calculate_right; this.calculate_left++) {
+            this.func.next(this.calculate_left);
         }
+        this.calculate_left--;
     } catch (e) {
         postMessage({
             cmd: 'error_class', content: {
@@ -150,7 +124,7 @@ IndicatorInstance.prototype.exec = function () {
     for (var serial_name in this.out_datas) {
         var serial_from = this.out_datas[serial_name];
         for (var j in serial_from) {
-            serial_from[j].setRange(this.calculating_left, this.calculating_right);
+            serial_from[j].setRange(left, right);
         }
     }
     //将计算结果发给主进程
@@ -158,14 +132,13 @@ IndicatorInstance.prototype.exec = function () {
         aid: "set_indicator_data",
         instance_id: this.instance_id,
         epoch: this.epoch,
-        range_left: this.calculating_left,
-        range_right: this.calculating_right,
+        range_left: left,
+        range_right: right,
         serials: this.out_series,
         datas: this.out_datas,
     };
     WS.sendJson(pack);
 }
-
 IndicatorInstance.prototype.calculate = function () {
     if (this.invalid) {
         if (G_Error_Class_Name.indexOf(this.ta_class_name) > -1) {
@@ -178,11 +151,11 @@ IndicatorInstance.prototype.calculate = function () {
                 className: this.ta_class_name
             }
         });
-        this.getKCalcRange();
-        if (this.calculating_left === -1 || this.calculating_right === -1) {
+
+        this.updateRange();
+        if (this.BEGIN === -1) {
             return;
         }
-        this.update();
         this.exec();
         this.invalid = false;
         postMessage({
