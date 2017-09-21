@@ -2,9 +2,7 @@ const IndicatorInstance = function (obj) {
     Object.assign(this, obj);
     this.rels = []; // 相关节点
     this.invalid = false; // 是否重新计算
-
     this.BEGIN = -1;
-
     this.calculate_left = -1;
     this.calculate_right = -1;
 }
@@ -16,9 +14,7 @@ IndicatorInstance.prototype.resetByInstance = function (obj) {
         this.invalid = true;
     }
     this.rels = [];
-
     this.BEGIN = -1;
-
     this.calculate_left = -1;
     this.calculate_right = -1;
     this.calculate();

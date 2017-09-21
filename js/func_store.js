@@ -232,6 +232,20 @@ var IStore = function () {
         remove: removeIndicator
     }
 }();
+
+// Keys
+function* GenerateKey() {
+    var i = 0;
+    while (true) {
+        yield i.toString(36);
+        i++;
+    }
+}
+const Keys = GenerateKey();
+
+/*
+ * =========== ErrorHandlers ===================
+ */
 var ErrorHandlers = function() {
     var errorKey = 'tq_error';
     var init = function(){
@@ -261,6 +275,13 @@ var ErrorHandlers = function() {
         }
         return list;
     }
+    var has = function(name){
+        if(localStorage.getItem(errorKey) === ''){
+            return false;
+        }
+        var list = localStorage.getItem(errorKey).split(',')
+        return list.indexOf(name) === -1;
+    }
     var get = function(){
         if(localStorage.getItem(errorKey) === ''){
             return [];
@@ -274,9 +295,66 @@ var ErrorHandlers = function() {
         records: {},
         init: init,
         add: add,
+        has: has,
         remove: remove,
         get: get,
         clear: clear
     }
 }();
 ErrorHandlers.init();
+
+/*
+ * =========== Notification ===================
+ * Notify
+ *    "success",
+ *    "err", "error",
+ *    "warn", "warning",
+ *    "info", "information",
+ *    "noty", "notification"
+ */
+const Notify = function () {
+    var debug = false;
+
+    var defaults = {
+        layout: 'topRight',
+        theme: 'relax',// defaultTheme, relax, bootstrapTheme, metroui
+        type: 'information',
+        force: true,
+        timeout: 2000,
+        maxVisible: 50,
+        closeWith: ['click', 'button']
+    };
+
+    function getNotyFun(type) {
+        if(!debug){
+            return function (text) {
+                return noty(Object.assign(defaults, {text, type}));
+            }
+        }else{
+            return function(text){
+                return console.log('%c%s', 'color: #7C37D4', type + ' : ' + text);
+            }
+        }
+    }
+
+    let notys = {};
+    notys.success = getNotyFun('success');
+    notys.error = notys.err = getNotyFun('error');
+    notys.warning = notys.warn = getNotyFun('warning');
+    notys.information = notys.info = getNotyFun('information');
+    notys.notification = notys.noty = getNotyFun('notification');
+    return notys;
+}();
+
+/*
+ * webworker 返回的信息格式
+ */
+var TqFeedback = function(e){
+    this.error = e.error; // true | false
+    this.type = e.type; // define | run
+    this.message = e.message;
+    this.func_name = e.func_name;
+}
+TqFeedback.prototype.toString = function(){
+    return this.func_name + ' #' + this.type + '\n' + this.message;
+}

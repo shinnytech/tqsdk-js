@@ -1,10 +1,3 @@
-CALC_CONTEXT = {
-    CALC_LEFT: NaN,
-    CALC_RIGHT: NaN,
-    DATA_LEFT: NaN,
-    DATA_RIGHT: NaN,
-};
-
 function _sum(serial, n, p) {
     var s = 0;
     for (var i = p - n + 1; i <= p; i++) {
@@ -166,14 +159,13 @@ function STD(i, serial, n, cache) {
 var TM = function () {
     function tm_init(content) {
         //更新所有指标类定义, 并发送到主进程
-        // todo: 要保证所有的函数不重名
         for (var func_name in content) {
             if (content[func_name].type !== 'custom_wh') {
                 var code = content[func_name].draft.code;
                 if (G_Error_Class_Name.indexOf(func_name) > -1) {
                     continue;
                 }
-                tm_init_one(func_name, code)
+                tm_init_one(func_name, code);
             }
         }
     }
@@ -181,17 +173,27 @@ var TM = function () {
     function tm_init_one(func_name, code) {
         try {
             eval(func_name + ' = ' + code);
+            tm_update_class_define(self[func_name]);
         } catch (e) {
+            console.log(e)
             postMessage({
-                cmd: 'error_class', content: {
-                    type: e.type,
+                cmd: 'feedback', content: {
+                    error: true,
+                    type: 'define',
                     message: e.message,
-                    className: func_name
+                    func_name: func_name
                 }
             });
             return;
         }
-        tm_update_class_define(self[func_name]);
+        postMessage({
+            cmd: 'feedback', content: {
+                error: false,
+                type: 'define',
+                message: 'success',
+                func_name: func_name
+            }
+        });
     }
 
     function tm_update_class_define(ta_func) {
@@ -229,7 +231,7 @@ var TM = function () {
                 } else if (param_default_value instanceof COLOR) {
                     param_define.type = "COLOR";
                 }
-                if (!(options === undefined)) {
+                if (options !== undefined) {
                     param_define.memo = options.MEMO;
                     param_define.min = options.MIN;
                     param_define.max = options.MAX;
@@ -239,9 +241,9 @@ var TM = function () {
             }
             return param_default_value;
         };
-        C.SERIAL = function () {
+        C.SERIAL = () => {
         };
-        C.OUT = function () {
+        C.OUT = () => {
         };
         C.OUTS = function (style, serial_name, options) {
             if (style === "KLINE")
@@ -251,18 +253,8 @@ var TM = function () {
         };
         C.CALC_LEFT = 0;
         C.CALC_RIGHT = 0;
-        try{
-            var f = ta_func(C);
-            f.next();
-        }catch (e){
-            postMessage({
-                cmd: 'error_class', content: {
-                    type: e.type,
-                    message: e.message,
-                    className: indicator_name
-                }
-            });
-        }
+        var f = ta_func(C);
+        f.next();
 
         //指标信息格式整理
         params.forEach(function (value, key) {
@@ -274,8 +266,7 @@ var TM = function () {
     }
 
     return {
-        update_class_define: tm_update_class_define,
         sendIndicatorClassList: tm_init,
-        sendIndicatorClass: tm_init_one,
+        sendIndicatorClass: tm_init_one
     };
 }();
