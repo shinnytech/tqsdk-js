@@ -313,12 +313,12 @@ CMenu.editIndicator = function (e) {
     var type = CMenu.editModal.find("input[name='indicator-type']:checked").val();
     type = type == '0' ? 'custom' : 'custom_wh';
     if (!CMenu_Utils.validVariableName(name)) {
-        $.notify('指标名称应符合 JavaScript 变量名命名规则。\n 第一个字符必须是字母、下划线（_）或美元符号（$）\n' +
+        Notify.error('指标名称应符合 JavaScript 变量名命名规则。\n 第一个字符必须是字母、下划线（_）或美元符号（$）\n' +
             '余下的字符可以是下划线（_）、美元符号（$）或任何字母或数字字符。 \n 长度限制为20。');
         return;
     }
     if (CMenu.hasClassName(name)) {
-        $.notify('指标名称重复');
+        Notify.error('指标名称重复');
         return;
     }
     if (CMenu.doing == 'new') {
@@ -341,9 +341,9 @@ CMenu.editIndicator = function (e) {
             CMenu.editModal.modal('hide');
         }, function (e) {
             if (e == 'ConstraintError') {
-                $.notify('指标名称重复')
+                Notify.error('指标名称重复')
             } else {
-                $.notify(e);
+                Notify.error(e);
             }
         });
     } else if (CMenu.doing == 'copy') {
@@ -361,9 +361,9 @@ CMenu.editIndicator = function (e) {
             CMenu.editModal.modal('hide');
         }, function (e) {
             if (e == 'ConstraintError') {
-                $.notify('指标名称重复');
+                Notify.error('指标名称重复');
             } else {
-                $.notify(e);
+                Notify.error(e);
             }
         });
     } else {
@@ -382,9 +382,9 @@ CMenu.editIndicator = function (e) {
             CMenu.editModal.modal('hide');
         }, function (e) {
             if (e == 'ConstraintError') {
-                $.notify('指标名称重复')
+                Notify.error('指标名称重复')
             } else {
-                $.notify(e);
+                Notify.error(e);
             }
         });
     }
@@ -415,9 +415,9 @@ CMenu.trashIndicator = function (e) {
         CMenu.sys_item_doms[0].find('td:first').click();
     }, function (e) {
         if (e == 'ConstraintError') {
-            $.notify('指标名称重复')
+            Notify.error('指标名称重复')
         } else {
-            $.notify(e);
+            Notify.error(e);
         }
     });
 }
@@ -438,7 +438,7 @@ CMenu.saveDraftIndicator = function (e) {
     }).then(function (result) {
         CMenu.editing = result;
     }, function (e) {
-        $.notify(e);
+        Notify.error(e);
     });
 }
 
@@ -459,7 +459,7 @@ CMenu.saveFinalIndicator = function (e) {
         CMenu.editing = result;
         CMenu.updateUI();
     }, function (e) {
-        $.notify(e);
+        Notify.error(e);
     });
 }
 

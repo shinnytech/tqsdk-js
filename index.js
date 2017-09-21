@@ -1,4 +1,3 @@
-
 const CODE_RUN_TIMEOUT = 500;
 
 
@@ -15,8 +14,7 @@ var sendIndicatorList = function () {
 }
 
 
-
-var initWorker = function(){
+var initWorker = function () {
     worker = new Worker('js/worker/worker.js');
     worker.postMessage({cmd: 'error_class_name', content: ErrorHandlers.get()});
     sendIndicatorList();
@@ -27,7 +25,7 @@ var initWorker = function(){
                 break;
             case 'calc_start':
                 var {id, className} = e.data.content;
-                ErrorHandlers.records[id] = setTimeout(()=>{
+                ErrorHandlers.records[id] = setTimeout(() => {
                     ErrorHandlers.add(className);
                     CMenu.updateUI();
                     worker.terminate();
@@ -39,7 +37,7 @@ var initWorker = function(){
                 clearTimeout(ErrorHandlers.records[id]);
                 break;
             case 'error_class':
-                $.notify(e.data.content.message, 'error');
+                Notify.error(e.data.content.message);
                 var className = e.data.content.className;
                 ErrorHandlers.add(className);
                 worker.terminate();
@@ -52,16 +50,36 @@ var initWorker = function(){
 initWorker();
 ErrorHandlers.init();
 
-$(function () {
-    // 初始化 tooltip
-    $('[data-toggle="tooltip"]').tooltip();
+const Notify = function(){
+    var defaults = {
+        layout: 'bottomCenter',
+        theme: 'relax',
+        type: 'information',
+        force: true,
+        timeout: 2000,
+        closeWith: ['click', 'button']
+    };
+    function getNotyFun(type){
+        return function(text){
+            return noty(Object.assign(defaults, {text, type}));
+        }
+    }
+    var notys = {};
+    notys.success = getNotyFun('success');
+    notys.error = getNotyFun('error');
+    notys.warning = notys.warn = getNotyFun('warning');
+    notys.information = notys.info = getNotyFun('information');
+    notys.notification = notys.noty = getNotyFun('notification');
+    return notys;
+}();
 
+$(function () {
     CMenu.init('list_menu');
 
     $('#btn_new_indicator').on('click', CMenu.addAction);
     // $('#btn_editor_save').on('click', CMenu.saveDraftIndicator);
     $('#btn_editor_reset').on('click', CMenu.resetIndicator);
-    $('#btn_runtime_reset').on('click', function(){
+    $('#btn_runtime_reset').on('click', function () {
         ErrorHandlers.clear();
     });
 
@@ -73,18 +91,18 @@ $(function () {
         var reg = /^function\s*\*\s*(.*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}$/g;
         var result = reg.exec(code);
         if (result && result[0] == result.input) {
-            if(result[1] !== func_name){
-                $.notify('函数名称必须和自定义指标名称相同!', "error");
-            }else if(!result[2].includes('yield')){
-                $.notify('函数中返回使用 yield 关键字!', "error");
-            }else{
+            if (result[1] !== func_name) {
+                Notify.error('函数名称必须和自定义指标名称相同!');
+            } else if (!result[2].includes('yield')) {
+                Notify.error('函数中返回使用 yield 关键字!');
+            } else {
                 CMenu.saveFinalIndicator();
                 worker.postMessage({cmd: 'indicator', content: {name: func_name, code: code}});
                 ErrorHandlers.remove(func_name);
                 worker.postMessage({cmd: 'error_class_name', content: ErrorHandlers.get()});
             }
         } else {
-            $.notify('代码不符合规范!', "error");
+            Notify.error('代码不符合规范!');
         }
     });
 
