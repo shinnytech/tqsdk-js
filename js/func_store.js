@@ -235,7 +235,7 @@ var IStore = function () {
 var ErrorHandlers = function() {
     var errorKey = 'tq_error';
     var init = function(){
-        if(localStorage.key(errorKey) === null){
+        if(localStorage.getItem(errorKey) === null){
             localStorage.setItem(errorKey, '');
         }
     };
