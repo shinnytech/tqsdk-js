@@ -30,11 +30,7 @@ self.addEventListener('message', function(event) {
             TM.sendIndicatorClass(content.name, content.code);
             break;
         case 'error_class_name':
-            if(content == null || content == ''){
-                G_Error_Class_Name = [];
-            }else{
-                G_Error_Class_Name = content.split(',');
-            }
+            G_Error_Class_Name = content;
             break;
         default:
             break;
