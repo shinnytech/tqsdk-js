@@ -27,7 +27,7 @@ IndicatorInstance.prototype.resetByInstance = function (obj) {
 IndicatorInstance.prototype.getKCalcRange = function () {
     let path = this.ins_id + '.' + this.dur_nano;
     let [first_id, last_id] = DM.get_data_range(path);
-    if (this.view_left > -1 && this.view_right > -1 && first_id < last_id) {
+    if (this.view_left > -1 && this.view_right > -1 && this.view_right >= first_id && this.view_left <= last_id && first_id < last_id ) {
         // view_left_right 和 全部数据范围 first_id, last_id 比较计算结果
         // 客户端想收到且能收到的数据范围
         let left_id = first_id > this.view_left ? first_id : this.view_left;
@@ -65,9 +65,10 @@ IndicatorInstance.prototype.getKCalcRange = function () {
         this.calculating_left = left_id;
         this.calculating_right = right_id;
         return;
+    }else{
+        this.calculating_left = -1;
+        this.calculating_right = -1;
     }
-    this.calculating_left = -1;
-    this.calculating_right = -1;
 };
 IndicatorInstance.prototype.addRelationship = function (path) {
     if (!this.rels.includes(path)) this.rels.push(path);

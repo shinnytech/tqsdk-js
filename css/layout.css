@@ -47,11 +47,6 @@ div.col.left-menu span.label.label-brand {
     padding: 2px 3px;
 }
 
-div.left-menu  {
-    height: 100%;
-    overflow-y: scroll;
-    border-radius: 0px;
-}
 
 div.left-menu .panel,
 div.right-menu .panel{
@@ -64,6 +59,11 @@ div.right-menu #attachment-container {
     border-left: 1px solid #c0c0c0;
 }
 
+.menu-container {
+    height: 100%;
+    overflow-y: scroll;
+    border-radius: 0px;
+}
 .editor-container {
     height: 100%;
     width: 100%;

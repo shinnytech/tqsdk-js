@@ -317,7 +317,6 @@ CMenu.editIndicator = function (e) {
             '余下的字符可以是下划线（_）、美元符号（$）或任何字母或数字字符。 \n 长度限制为20。');
         return;
     }
-    console.log(CMenu.hasClassName(name));
     if (CMenu.hasClassName(name)) {
         $.notify('指标名称重复');
         return;
@@ -553,7 +552,7 @@ CMenu_Utils = function () {
             },
             timeout: {
                 label_name: 'danger',
-                label_text: '运行超时',
+                label_text: '错误',
             }
         }
         var d = $('<span></span>');
@@ -567,7 +566,7 @@ CMenu_Utils = function () {
         return td;
     }
     var getIconBtn = function (type) {
-        var btn = $('<span data-toggle="tooltip" data-container="body" data-placement="left" title data-original-title="Tooltip on left" class="glyphicon glyphicon-' + type + '"></span>')
+        var btn = $('<span class="glyphicon glyphicon-' + type + '"></span>')
         return ($('<td width="10%"></td>').append(btn));
     }
 

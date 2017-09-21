@@ -232,3 +232,51 @@ var IStore = function () {
         remove: removeIndicator
     }
 }();
+var ErrorHandlers = function() {
+    var errorKey = 'tq_error';
+    var init = function(){
+        if(localStorage.key(errorKey) === null){
+            localStorage.setItem(errorKey, '');
+        }
+    };
+    var add = function(name){
+        var list = [];
+        if(localStorage.getItem(errorKey) !== ''){
+            list = localStorage.getItem(errorKey).split(',');
+        }
+        if(list.indexOf(name) === -1){
+            list.push(name);
+            localStorage.setItem(errorKey, list.join(','));
+        }
+        return list;
+    }
+    var remove = function(name){
+        var list = [];
+        if(localStorage.getItem(errorKey) !== ''){
+            list = localStorage.getItem(errorKey).split(',');
+        }
+        if(list.indexOf(name) > -1){
+            list.splice(list.indexOf(name), 1);
+            localStorage.setItem(errorKey, list);
+        }
+        return list;
+    }
+    var get = function(){
+        if(localStorage.getItem(errorKey) === ''){
+            return [];
+        }
+        return localStorage.getItem(errorKey).split(',');
+    }
+    var clear = function (){
+        localStorage.setItem(errorKey, '');
+    }
+    return {
+        records: {},
+        init: init,
+        add: add,
+        remove: remove,
+        get: get,
+        clear: clear
+    }
+}();
+ErrorHandlers.init();
