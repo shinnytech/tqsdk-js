@@ -215,3 +215,5 @@ VALUESERIAL.prototype.setRange = function (left, right) {
     this.LEFT = left;
     this.RIGHT = right;
 };
+
+RED|GREEN|BLUE|CYAN|BLACK|WHITE|GRAY|MAGENTA|YELLOW|LIGHTGRAY|LIGHTRED|LIGHTGREEN|LIGHTBLUE

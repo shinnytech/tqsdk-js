@@ -1,5 +1,5 @@
 const CODE_RUN_TIMEOUT = 500;
-var waiting_result = new Set();
+const waiting_result = new Set();
 
 var worker = null;
 var sendIndicatorList = function () {
@@ -91,9 +91,14 @@ $(function () {
         code = code.trim();
         if (CMenu.editing.type === 'custom_wh') {
             CMenu.saveDraftIndicator();
+            waiting_result.add(func_name);
             covertWH(CMenu.editing, code).then(function (response) {
                 Notify.success('convert/wh  success');
                 worker.postMessage({cmd: 'indicator', content: response});
+                if (ErrorHandlers.has(response.name)) {
+                    ErrorHandlers.remove(response.name);
+                    worker.postMessage({cmd: 'error_class_name', content: ErrorHandlers.get()});
+                }
             }, function (e) {
                 if (e.errline = -1) {
                     Notify.error('convert/wh  error in the end of code \n' + e.errvalue);
@@ -169,7 +174,6 @@ function covertWH(indicator) {
             }
         }, function (e) {
             console.error(e);
-            reject(e);
         });
     });
 }

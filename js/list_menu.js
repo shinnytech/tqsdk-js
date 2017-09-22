@@ -68,6 +68,8 @@ CMenu.init = function (div_id) {
         },
         readOnly: false
     });
+
+    CMenu.initThemeContainer();
 }
 
 CMenu.selectCallback = function (tr, data) {
@@ -501,7 +503,7 @@ CMenu.update = function (fun) {
     IStore.getAll().then(function (list) {
         CMenu.datas = list;
         CMenu.updateUI();
-        if(fun){
+        if (fun) {
             fun();
         }
 
@@ -539,6 +541,39 @@ CMenu.updateUI = function (indicator) {
     }
     CMenu.updateAttachUI();
 }
+
+CMenu.initThemeContainer = function () {
+    var themes = ['ambiance', 'chaos', 'chrome', 'clouds', 'clouds_midnight', 'cobalt', 'crimson_editor', 'dawn', 'dreamweaver', 'eclipse', 'github', 'gruvbox', 'idle_fingers', 'iplastic', 'katzenmilch', 'kr_theme', 'kuroir', 'merbivore', 'merbivore_soft', 'mono_industrial', 'monokai', 'pastel_on_dark', 'solarized_dark', 'solarized_light', 'sqlserver', 'terminal', 'textmate', 'tomorrow', 'tomorrow_night', 'tomorrow_night_blue', 'tomorrow_night_bright', 'tomorrow_night_eighties', 'twilight', 'vibrant_ink', 'xcode'];
+    var the = localStorage.getItem('theme');
+    if (the === null) {
+        the = 'textmate';
+        localStorage.setItem('theme', the);
+    }
+    $('.theme-container .show-theme').text(the);
+    CMenu.editor.setTheme('ace/theme/' + the);
+    let str = '';
+    var ul = $('.theme-container .dropdown-menu');
+    for (let i = 0; i < themes.length; i++) {
+        str += ('<li><a href="#" class="' + themes[i] + '">' + themes[i] + '</a></li>');
+
+    }
+    ul.html(str);
+    ul.css({
+        height: '200px',
+        overflow: 'scroll'
+    });
+    ul.on('click', function(e){
+        CMenu.changeEditorTheme(e.target.className);
+    });
+
+}
+
+CMenu.changeEditorTheme = function (the) {
+    $('.theme-container .show-theme').text(the);
+    CMenu.editor.setTheme('ace/theme/' + the);
+    localStorage.setItem('theme', the);
+}
+
 
 CMenu_Utils = function () {
     var validVariableName = function (name) {
