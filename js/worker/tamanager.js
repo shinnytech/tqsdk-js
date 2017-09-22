@@ -174,14 +174,6 @@ var TM = function () {
             if (indicator.type !== 'custom_wh') {
                 eval(func_name + ' = ' + code);
                 tm_update_class_define(self[func_name]);
-                postMessage({
-                    cmd: 'feedback', content: {
-                        error: false,
-                        type: 'define',
-                        message: 'success',
-                        func_name: func_name
-                    }
-                });
             } else {
                 var req = covertWHRequest(indicator);
                 if (req === null) return;
@@ -198,7 +190,7 @@ var TM = function () {
                             postMessage({
                                 cmd: 'feedback', content: {
                                     error: true,
-                                    type: 'define',
+                                    type: 'eval',
                                     message: 'error in end of file',
                                     func_name: func_name
                                 }
@@ -207,28 +199,29 @@ var TM = function () {
                             postMessage({
                                 cmd: 'feedback', content: {
                                     error: true,
-                                    type: 'define',
+                                    type: 'eval',
                                     message: 'error in ' + data.errline + ':' + data.errcol + ' ' + data.errvalue,
                                     func_name: func_name
                                 }
                             });
                         }
-                    }).catch(error => {
-                    postMessage({
-                        cmd: 'feedback', content: {
-                            error: true,
-                            type: 'define wh',
-                            message: error.message,
-                            func_name: func_name
-                        }
+                    })
+                    .catch(error => {
+                        postMessage({
+                            cmd: 'feedback', content: {
+                                error: true,
+                                type: 'eval',
+                                message: 'wh' + error.message,
+                                func_name: func_name
+                            }
+                        });
                     });
-                });
             }
         } catch (e) {
             postMessage({
                 cmd: 'feedback', content: {
                     error: true,
-                    type: 'define',
+                    type: 'eval',
                     message: e.message,
                     func_name: func_name
                 }
@@ -275,6 +268,7 @@ var TM = function () {
 
     function tm_update_class_define(ta_func) {
         var indicator_name = ta_func.name;
+
         //调用指标函数，提取指标信息
         var params = new Map();
         var input_serials = new Map();
@@ -331,6 +325,13 @@ var TM = function () {
         C.CALC_LEFT = 0;
         C.CALC_RIGHT = 0;
 
+        var id = Keys.next().value;
+        postMessage({
+            cmd: 'calc_start', content: {
+                id: id,
+                className: indicator_name
+            }
+        });
         try {
             var f = ta_func(C);
             f.next();
@@ -346,7 +347,12 @@ var TM = function () {
             });
             return;
         }
-
+        postMessage({
+            cmd: 'calc_end', content: {
+                id: id,
+                className: this.ta_class_name
+            }
+        });
         postMessage({
             cmd: 'feedback', content: {
                 error: false,

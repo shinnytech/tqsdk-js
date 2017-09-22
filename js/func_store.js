@@ -262,6 +262,7 @@ var ErrorHandlers = function() {
             list.push(name);
             localStorage.setItem(errorKey, list.join(','));
         }
+        worker.postMessage({cmd: 'error_class_name', content: list});
         return list;
     }
     var remove = function(name){
@@ -273,6 +274,7 @@ var ErrorHandlers = function() {
             list.splice(list.indexOf(name), 1);
             localStorage.setItem(errorKey, list);
         }
+        worker.postMessage({cmd: 'error_class_name', content: list});
         return list;
     }
     var has = function(name){

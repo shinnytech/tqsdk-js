@@ -113,7 +113,6 @@ IndicatorInstance.prototype.exec = function () {
                 className: this.ta_class_name
             }
         });
-        log(this.instance_id + e);
         return;
     }
     //整理计算结果
@@ -215,5 +214,3 @@ VALUESERIAL.prototype.setRange = function (left, right) {
     this.LEFT = left;
     this.RIGHT = right;
 };
-
-RED|GREEN|BLUE|CYAN|BLACK|WHITE|GRAY|MAGENTA|YELLOW|LIGHTGRAY|LIGHTRED|LIGHTGREEN|LIGHTBLUE

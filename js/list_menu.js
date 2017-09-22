@@ -99,7 +99,7 @@ CMenu.selectCallback = function (tr, data) {
             CMenu.updateAttachUI();
         });
     }
-
+    CMenu.editor.focus();
     if (data.type == 'system' || data.type == 'custom') {
         var center = $('div.main-container div.content-container')[0];
         center.classList.remove('col-xs-6');
@@ -442,6 +442,7 @@ CMenu.saveDraftIndicator = function (e) {
         params: wenhua.params
     }).then(function (result) {
         CMenu.editing = result;
+        worker.postMessage({cmd: 'indicator', content: result});
     }, function (e) {
         Notify.error(e);
     });
@@ -471,6 +472,7 @@ CMenu.resetIndicator = function (e) {
     IStore.reset(CMenu.editing.key).then(function (result) {
         CMenu.editing = result;
         CMenu.editor.setValue(result.draft.code, 1);
+        CMenu.editor.focus();
     });
 }
 

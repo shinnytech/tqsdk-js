@@ -27,6 +27,7 @@ var initWorker = function () {
                 break;
             case 'calc_start':
                 ErrorHandlers.records[content.id] = setTimeout(() => {
+                    Notify.error(content.className + ' 运行超时！')
                     ErrorHandlers.add(content.className);
                     CMenu.updateUI();
                     worker.terminate();
@@ -40,6 +41,7 @@ var initWorker = function () {
                 if (content.error) {
                     Notify.error((new TqFeedback(content)).toString());
                     ErrorHandlers.add(content.func_name);
+                    CMenu.updateUI();
                     if (content.type === 'run' || content.type === 'define') {
                         worker.terminate();
                         initWorker();
@@ -71,6 +73,7 @@ $(function () {
     $('#btn_editor_reset').on('click', CMenu.resetIndicator);
     $('#btn_runtime_reset').on('click', function (e) {
         ErrorHandlers.clear();
+        CMenu.editor.focus();
     });
 
     $('#btn_editor_run').on('click', function (e) {
@@ -81,7 +84,6 @@ $(function () {
         if (CMenu.editing.type === 'custom_wh') {
             CMenu.saveDraftIndicator();
             waiting_result.add(func_name);
-            worker.postMessage({cmd: 'indicator', content: CMenu.editing});
         } else {
             var reg = /^function\s*\*\s*(.*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}$/g;
             var result = reg.exec(code);
@@ -99,17 +101,16 @@ $(function () {
                         }
                     }
                     CMenu.saveDraftIndicator();
-                    worker.postMessage({cmd: 'indicator', content: CMenu.editing});
                     waiting_result.add(func_name);
                     if (ErrorHandlers.has(func_name)) {
                         ErrorHandlers.remove(func_name);
-                        worker.postMessage({cmd: 'error_class_name', content: ErrorHandlers.get()});
                     }
                 }
             } else {
                 Notify.error('代码不符合规范!');
             }
         }
+        CMenu.editor.focus();
     });
 
     $('#edit-btn').on('click', CMenu.editIndicator);
