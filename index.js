@@ -9,18 +9,6 @@ var sendIndicatorList = function () {
         for (var j = 0; j < CMenu[lists[i]].length; j++) {
             var func_name = CMenu[lists[i]][j].name;
             content[func_name] = CMenu[lists[i]][j];
-            if (lists[i] === 'datas' && CMenu[lists[i]][j].type === 'custom_wh') {
-                covertWH(CMenu[lists[i]][j], CMenu[lists[i]][j].draft.code).then(function (response) {
-                    Notify.success('convert/wh  success');
-                    worker.postMessage({cmd: 'indicator', content: response});
-                }, function (e) {
-                    if (e.errline = -1) {
-                        Notify.error('convert/wh  error in the end of code \n' + e.errvalue);
-                    } else {
-                        Notify.error('convert/wh  line:' + e.errline + ' col:' + e.errcol + '\n' + e.errvalue);
-                    }
-                });
-            }
         }
     }
     worker.postMessage({cmd: 'indicatorList', content: content});
@@ -61,6 +49,7 @@ var initWorker = function () {
                     // 定义成功之后更新 Final
                     if (content.type === 'define' && waiting_result.has(content.func_name)) {
                         waiting_result.delete(content.func_name);
+                        ErrorHandlers.remove(content.func_name);
                         CMenu.saveFinalIndicator(content.func_name);
                     }
                 }
@@ -92,20 +81,7 @@ $(function () {
         if (CMenu.editing.type === 'custom_wh') {
             CMenu.saveDraftIndicator();
             waiting_result.add(func_name);
-            covertWH(CMenu.editing, code).then(function (response) {
-                Notify.success('convert/wh  success');
-                worker.postMessage({cmd: 'indicator', content: response});
-                if (ErrorHandlers.has(response.name)) {
-                    ErrorHandlers.remove(response.name);
-                    worker.postMessage({cmd: 'error_class_name', content: ErrorHandlers.get()});
-                }
-            }, function (e) {
-                if (e.errline = -1) {
-                    Notify.error('convert/wh  error in the end of code \n' + e.errvalue);
-                } else {
-                    Notify.error('convert/wh  line:' + e.errline + ' col:' + e.errcol + '\n' + e.errvalue);
-                }
-            });
+            worker.postMessage({cmd: 'indicator', content: CMenu.editing});
         } else {
             var reg = /^function\s*\*\s*(.*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}$/g;
             var result = reg.exec(code);
@@ -115,8 +91,15 @@ $(function () {
                 } else if (!result[2].includes('yield')) {
                     Notify.error('函数中返回使用 yield 关键字!');
                 } else {
+                    var annotations = CMenu.editor.getSession().getAnnotations();
+                    for (let i = 0; i < annotations.length; i++) {
+                        if (annotations[i].type == 'error') {
+                            Notify.error(annotations[i].row + ':' + annotations[i].colume + ' ' + annotations[i].text);
+                            return;
+                        }
+                    }
                     CMenu.saveDraftIndicator();
-                    worker.postMessage({cmd: 'indicator', content: {name: func_name, code: code}});
+                    worker.postMessage({cmd: 'indicator', content: CMenu.editing});
                     waiting_result.add(func_name);
                     if (ErrorHandlers.has(func_name)) {
                         ErrorHandlers.remove(func_name);
@@ -132,50 +115,3 @@ $(function () {
     $('#edit-btn').on('click', CMenu.editIndicator);
     $('#trash-btn').on('click', CMenu.trashIndicator);
 });
-
-function covertWH(indicator) {
-    let type = 'MAIN';
-    switch (indicator.prop) {
-        case "主图K线形态":
-            type = 'MAIN';
-            break;
-        case "副图指标":
-            type = 'SUB';
-            break;
-        case "K线附属指标":
-            type = 'MAIN';
-            Notify.error('未实现 K线附属指标');
-            return;
-            break;
-    }
-    let params = [];
-    for (let i = 1; i <= 6; i++) {
-        let p = indicator.params[i];
-        if (p && p.name)
-            params.push([p.name, Number(p.min), Number(p.max), Number(p.default_value)]);
-    }
-    var req = {
-        id: indicator.name, //指标函数名
-        cname: indicator.name, //指标中文名称
-        type: type, //指标类型, MAIN=主图指标, SUB=副图指标
-        params: params,
-        src: indicator.draft.code //文华原代码
-    }
-    return new Promise((resolve, reject) => {
-        $.ajax({
-            method: 'post',
-            url: 'http://192.168.1.80:8000/convert/wh',
-            data: JSON.stringify(req)
-        }).then(function (response) {
-            if (response.errline === 0) {
-                resolve({name: indicator.name, code: response.target});
-            } else {
-                reject(response);
-            }
-        }, function (e) {
-            console.error(e);
-        });
-    });
-}
-
-

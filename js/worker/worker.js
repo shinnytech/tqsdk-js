@@ -27,7 +27,7 @@ self.addEventListener('message', function(event) {
             TM.sendIndicatorClassList(content);
             break;
         case 'indicator':
-            TM.sendIndicatorClass(content.name, content.code);
+            TM.sendIndicatorClass(content);
             break;
         case 'error_class_name':
             G_Error_Class_Name = content;

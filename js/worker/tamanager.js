@@ -160,20 +160,33 @@ var TM = function () {
     function tm_init(content) {
         //更新所有指标类定义, 并发送到主进程
         for (var func_name in content) {
-            if (content[func_name].type !== 'custom_wh') {
-                var code = content[func_name].draft.code;
-                if (G_Error_Class_Name.indexOf(func_name) > -1) {
-                    continue;
-                }
-                tm_init_one(func_name, code);
+            if (G_Error_Class_Name.indexOf(func_name) > -1) {
+                continue;
             }
+            tm_init_one(content[func_name]);
         }
     }
 
-    function tm_init_one(func_name, code) {
+    function tm_init_one(indicator) {
+        console.log(indicator)
+        var func_name = indicator.name;
+        var code = indicator.draft.code;
         try {
-            eval(func_name + ' = ' + code);
-            tm_update_class_define(self[func_name]);
+            if (indicator.type !== 'custom_wh') {
+                eval(func_name + ' = ' + code);
+                tm_update_class_define(self[func_name]);
+            } else {
+                var req = covertWHRequest(indicator);
+                fetch('http://192.168.1.80:8000/convert/wh', {
+                    method: 'POST',
+                    body: JSON.stringify(req)
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        eval(func_name + ' = ' + data.target);
+                        tm_update_class_define(self[func_name]);
+                    });
+            }
         } catch (e) {
             console.log(e)
             postMessage({
@@ -194,6 +207,36 @@ var TM = function () {
                 func_name: func_name
             }
         });
+    }
+
+    function covertWHRequest(indicator) {
+        let type = 'MAIN';
+        switch (indicator.prop) {
+            case "主图K线形态":
+                type = 'MAIN';
+                break;
+            case "副图指标":
+                type = 'SUB';
+                break;
+            case "K线附属指标":
+                type = 'MAIN';
+                Notify.error('未实现 K线附属指标');
+                return;
+                break;
+        }
+        let params = [];
+        for (let i = 1; i <= 6; i++) {
+            let p = indicator.params[i];
+            if (p && p.name)
+                params.push([p.name, Number(p.min), Number(p.max), Number(p.default_value)]);
+        }
+        return {
+            id: indicator.name, //指标函数名
+            cname: indicator.name, //指标中文名称
+            type: type, //指标类型, MAIN=主图指标, SUB=副图指标
+            params: params,
+            src: indicator.draft.code //文华原代码
+        }
     }
 
     function tm_update_class_define(ta_func) {
