@@ -45,11 +45,11 @@ var initWorker = function () {
                         initWorker();
                     }
                 } else {
-                    Notify.success((new TqFeedback(content)).toString());
-                    // 定义成功之后更新 Final
                     if (content.type === 'define' && waiting_result.has(content.func_name)) {
+                        Notify.success((new TqFeedback(content)).toString());
                         waiting_result.delete(content.func_name);
                         ErrorHandlers.remove(content.func_name);
+                        // 定义成功之后更新 Final
                         CMenu.saveFinalIndicator(content.func_name);
                     }
                 }

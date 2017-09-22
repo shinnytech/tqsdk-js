@@ -280,7 +280,7 @@ var ErrorHandlers = function() {
             return false;
         }
         var list = localStorage.getItem(errorKey).split(',')
-        return list.indexOf(name) === -1;
+        return list.indexOf(name) > -1;
     }
     var get = function(){
         if(localStorage.getItem(errorKey) === ''){

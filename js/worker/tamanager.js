@@ -168,27 +168,63 @@ var TM = function () {
     }
 
     function tm_init_one(indicator) {
-        console.log(indicator)
         var func_name = indicator.name;
         var code = indicator.draft.code;
         try {
             if (indicator.type !== 'custom_wh') {
                 eval(func_name + ' = ' + code);
                 tm_update_class_define(self[func_name]);
+                postMessage({
+                    cmd: 'feedback', content: {
+                        error: false,
+                        type: 'define',
+                        message: 'success',
+                        func_name: func_name
+                    }
+                });
             } else {
                 var req = covertWHRequest(indicator);
+                if (req === null) return;
                 fetch('http://192.168.1.80:8000/convert/wh', {
                     method: 'POST',
                     body: JSON.stringify(req)
                 })
                     .then(response => response.json())
                     .then(data => {
-                        eval(func_name + ' = ' + data.target);
-                        tm_update_class_define(self[func_name]);
+                        if (data.errline === 0) {
+                            eval(func_name + ' = ' + data.target);
+                            tm_update_class_define(self[func_name]);
+                        } else if (data.errline === -1) {
+                            postMessage({
+                                cmd: 'feedback', content: {
+                                    error: true,
+                                    type: 'define',
+                                    message: 'error in end of file',
+                                    func_name: func_name
+                                }
+                            });
+                        } else {
+                            postMessage({
+                                cmd: 'feedback', content: {
+                                    error: true,
+                                    type: 'define',
+                                    message: 'error in ' + data.errline + ':' + data.errcol + ' ' + data.errvalue,
+                                    func_name: func_name
+                                }
+                            });
+                        }
+                    }).catch(error => {
+                    postMessage({
+                        cmd: 'feedback', content: {
+                            error: true,
+                            type: 'define wh',
+                            message: error.message,
+                            func_name: func_name
+                        }
                     });
+                });
             }
         } catch (e) {
-            console.log(e)
             postMessage({
                 cmd: 'feedback', content: {
                     error: true,
@@ -199,30 +235,28 @@ var TM = function () {
             });
             return;
         }
-        postMessage({
-            cmd: 'feedback', content: {
-                error: false,
-                type: 'define',
-                message: 'success',
-                func_name: func_name
-            }
-        });
     }
 
     function covertWHRequest(indicator) {
         let type = 'MAIN';
         switch (indicator.prop) {
-            case "主图K线形态":
+            case "K线附属指标":
                 type = 'MAIN';
                 break;
             case "副图指标":
                 type = 'SUB';
                 break;
-            case "K线附属指标":
+            case "主图K线形态":
                 type = 'MAIN';
-                Notify.error('未实现 K线附属指标');
-                return;
-                break;
+                postMessage({
+                    cmd: 'feedback', content: {
+                        error: true,
+                        type: 'define',
+                        message: '未实现 主图K线形态',
+                        func_name: indicator.name
+                    }
+                });
+                return null;
         }
         let params = [];
         for (let i = 1; i <= 6; i++) {
@@ -296,8 +330,31 @@ var TM = function () {
         };
         C.CALC_LEFT = 0;
         C.CALC_RIGHT = 0;
-        var f = ta_func(C);
-        f.next();
+
+        try {
+            var f = ta_func(C);
+            f.next();
+        }
+        catch (e) {
+            postMessage({
+                cmd: 'feedback', content: {
+                    error: true,
+                    type: 'define',
+                    message: e.message,
+                    func_name: indicator_name
+                }
+            });
+            return;
+        }
+
+        postMessage({
+            cmd: 'feedback', content: {
+                error: false,
+                type: 'define',
+                message: 'success',
+                func_name: indicator_name
+            }
+        });
 
         //指标信息格式整理
         params.forEach(function (value, key) {
