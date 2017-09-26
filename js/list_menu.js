@@ -409,6 +409,7 @@ CMenu.getIndicatorWH_Prop_Params = function () {
 
 // 删除当前编辑的指标
 CMenu.trashIndicator = function (e) {
+    var indicator_name = CMenu.editing.name;
     // UI界面 删除DOM
     CMenu.item_doms[CMenu.editing.key].remove();
     // 删除内存数据
@@ -422,6 +423,8 @@ CMenu.trashIndicator = function (e) {
         });
         // 关闭确认框
         CMenu.trashModal.modal('hide');
+        // 通知webworker unregister_indicator
+        worker.postMessage({cmd: 'unregister_indicator', content: indicator_name});
     }, function (e) {
         Notify.error(e.toString());
     });

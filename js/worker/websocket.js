@@ -17,9 +17,10 @@ TqWebSocket.prototype.STATUS = {
 }
 
 TqWebSocket.prototype.sendJson = function (obj) {
-    function jsonToStr(obj){
+    function jsonToStr(obj) {
         return JSON.stringify(obj)
     }
+
     if (this.ws.readyState === 1) {
         this.ws.send(jsonToStr(obj));
     } else {
@@ -32,9 +33,10 @@ TqWebSocket.prototype.isReady = function () {
 }
 
 TqWebSocket.prototype.init = function () {
-    function strToJson(message){
+    function strToJson(message) {
         return eval("(" + message + ")")
     }
+
     this.ws = new WebSocket(this.url);
     var this_ws = this;
     this.ws.onmessage = function (message) {
@@ -83,13 +85,19 @@ const WS = new TqWebSocket('ws://tianqin.com:7777/', {
             for (var instance_id in G_Instances) {
                 G_Instances[instance_id].calculate();
             }
-        } else if (message.aid == "set_indicator_instance") {
+        } else if (message.aid == "update_indicator_instance") {
             //主进程要求创建或修改指标实例
             var pack = message["set_indicator_instance"];
             if (!G_Instances[pack.instance_id]) {
                 G_Instances[pack.instance_id] = new IndicatorInstance(pack);
             }
             G_Instances[pack.instance_id].resetByInstance(pack);
+        } else if (message.aid == "delete_indicator_instance") {
+            //主进程要求创建或修改指标实例
+            var instance_id = message["instance_id"];
+            if (G_Instances[instance_id]) {
+                delete G_Instances[instance_id];
+            }
         }
     },
     onopen: function () {
@@ -103,7 +111,7 @@ const WS = new TqWebSocket('ws://tianqin.com:7777/', {
         DM.clear_data();
     },
     onreconnect: function () {
-        postMessage({cmd:'websocket_reconnect'});
+        postMessage({cmd: 'websocket_reconnect'});
     }
 });
 

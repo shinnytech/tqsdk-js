@@ -32,6 +32,12 @@ self.addEventListener('message', function(event) {
         case 'error_class_name':
             G_Error_Class_Name = content;
             break;
+        case 'unregister_indicator':
+            WS.sendJson({
+                aid: 'unregister_indicator',
+                name: content
+            });
+            break;
         default:
             break;
     }
