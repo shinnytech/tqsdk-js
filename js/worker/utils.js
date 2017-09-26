@@ -102,6 +102,7 @@ IndicatorInstance.prototype.exec = function () {
     //执行计算
     var [left, right] = [this.calculate_left, this.calculate_right];
     try {
+        console.log(left, right)
         for (; this.calculate_left <= this.calculate_right; this.calculate_left++) {
             this.func.next(this.calculate_left);
         }

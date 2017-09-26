@@ -338,6 +338,12 @@ var TM = function () {
         }
         catch (e) {
             postMessage({
+                cmd: 'calc_end', content: {
+                    id: id,
+                    className: this.ta_class_name
+                }
+            });
+            postMessage({
                 cmd: 'feedback', content: {
                     error: true,
                     type: 'define',
