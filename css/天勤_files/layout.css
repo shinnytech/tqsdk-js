@@ -1,0 +1,102 @@
+body, html {
+    height: 100%;
+    width: 100%;
+}
+
+.no-padding {
+    padding: 0px;
+}
+
+table.table {
+    word-break: break-all;
+    word-wrap: break-word;
+}
+
+/* ============================= */
+
+.main-container {
+    min-width: 800px;
+    height: 100%;
+    padding: 0px;
+}
+
+.main-container .row {
+    margin: 0px;
+}
+
+.main-container .row:first-child {
+    height: 38px;
+    border-bottom: #c0c0c0 1px solid;
+}
+
+.btn-toolbar {
+    background-color: #d4d4d4;
+    padding: 2px 2px;
+}
+
+div.left-menu,
+div.right-menu,
+div.content-container {
+    height: 100%;
+    padding-bottom: 38px;
+}
+
+div.col.left-menu span.label.label-brand {
+    font-size: 10px;
+    margin-right: 6px;
+    padding: 2px 3px;
+}
+
+
+div.left-menu .panel,
+div.right-menu .panel{
+    border-radius: 0px;
+}
+
+
+div.right-menu #attachment-container {
+    height: 100%;
+    border-left: 1px solid #c0c0c0;
+}
+
+.menu-container {
+    height: 100%;
+    overflow-y: scroll;
+    border-radius: 0px;
+}
+.editor-container {
+    height: 100%;
+    width: 100%;
+    border-left: 1px solid #c0c0c0;
+}
+
+#editor {
+    width: 100%;
+    height: 100%;
+    padding-top: 38px;
+}
+
+table.table.wh-param-list td {
+    padding: 0;
+    vertical-align: middle;
+}
+
+table.table > thead > tr > th {
+    padding: 6px 4px;
+}
+
+table.table.wh-param-list th,
+table.table.wh-param-list td {
+    width: 20%;
+    text-align: center;
+}
+
+table.table.wh-param-list td input.form-control {
+    border-radius: 0;
+    border: none;
+    padding: 3px 4px;
+}
+
+table.table.wh-param-list td input.form-control[readonly] {
+    background-color: #fff;
+}
