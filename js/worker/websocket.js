@@ -73,7 +73,7 @@ TqWebSocket.prototype.init = function () {
     };
 }
 
-const WS = new TqWebSocket('ws://tianqin.com:7777/', {
+const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
     onmessage: function (message) {
         if (message.aid == "rtn_data") {
             //收到行情数据包，更新到数据存储区
@@ -87,7 +87,7 @@ const WS = new TqWebSocket('ws://tianqin.com:7777/', {
             }
         } else if (message.aid == "update_indicator_instance") {
             //主进程要求创建或修改指标实例
-            var pack = message["set_indicator_instance"];
+            var pack = message;
             if (!G_Instances[pack.instance_id]) {
                 G_Instances[pack.instance_id] = new IndicatorInstance(pack);
             }

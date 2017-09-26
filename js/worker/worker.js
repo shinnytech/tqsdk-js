@@ -1,4 +1,4 @@
-importScripts('websocket.js', 'utils.js', 'datamanager.js', 'tamanager.js');
+importScripts('websocket.js', 'utils.js', 'datamanager.js', 'tamanager.js', 'funcs.js');
 
 // 全局对象,存储全部 Instance
 const G_Instances = {};
@@ -34,7 +34,7 @@ self.addEventListener('message', function(event) {
             break;
         case 'unregister_indicator':
             WS.sendJson({
-                aid: 'unregister_indicator',
+                aid: 'unregister_indicator_class',
                 name: content
             });
             break;
