@@ -5,6 +5,7 @@ const IndicatorInstance = function (obj) {
     this.BEGIN = -1;
     this.calculate_left = -1;
     this.calculate_right = -1;
+    this.run_id = -1;
 }
 IndicatorInstance.prototype.resetByInstance = function (obj) {
     Object.assign(this, obj);
@@ -107,10 +108,17 @@ IndicatorInstance.prototype.exec = function () {
         this.calculate_left--;
     } catch (e) {
         postMessage({
-            cmd: 'error_class', content: {
-                type: e.type,
-                message: e.message,
+            cmd: 'calc_end', content: {
+                id: this.run_id,
                 className: this.ta_class_name
+            }
+        });
+        postMessage({
+            cmd: 'feedback', content: {
+                error: true,
+                type: 'run',
+                message: e.message,
+                func_name: this.ta_class_name
             }
         });
         return;
@@ -139,10 +147,10 @@ IndicatorInstance.prototype.calculate = function () {
         if (G_Error_Class_Name.indexOf(this.ta_class_name) > -1) {
             return;
         }
-        var id = Keys.next().value;
+        this.run_id = Keys.next().value;
         postMessage({
             cmd: 'calc_start', content: {
-                id: id,
+                id: this.run_id,
                 className: this.ta_class_name
             }
         });
@@ -155,7 +163,7 @@ IndicatorInstance.prototype.calculate = function () {
         this.invalid = false;
         postMessage({
             cmd: 'calc_end', content: {
-                id: id,
+                id: this.run_id,
                 className: this.ta_class_name
             }
         });
