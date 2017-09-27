@@ -1,0 +1,9 @@
+{
+  "preset": "google",
+  "requireCurlyBraces": null, // or false
+  "maxErrors": null,
+  "validateIndentation": 4,
+  "maximumLineLength": 150,
+  "requireDotNotation": { "allExcept": [ "snake_case" ] },
+  "excludeFiles": ["node_modules/**", "dist/**", "src/assets/**", "defaults"]
+}

@@ -1,32 +1,35 @@
-var IStore = function () {
-    var db;
-    var storeName = 'indicators';
+const IStore = (function () {
+    let db;
+    let storeName = 'indicators';
 
     function init() {
         return new Promise((resolve, reject) => {
-            var openRequest = window.indexedDB.open("TQApp", 5);
+            let openRequest = window.indexedDB.open('TQApp', 5);
             openRequest.onupgradeneeded = function (e) {
-                console.log('onupgradeneeded', e)
+                console.log('onupgradeneeded', e);
                 db = e.target.result;
                 if (!db.objectStoreNames.contains(storeName)) {
-                    var store = db.createObjectStore(storeName, {
-                        autoIncrement: true
+                    let store = db.createObjectStore(storeName, {
+                        autoIncrement: true,
                     });
-                    store.createIndex("name", "name", {unique: true});
+                    store.createIndex('name', 'name', { unique: true });
                 }
-            }
+            };
+
             openRequest.onsuccess = function (e) {
                 db = e.target.result;
                 resolve('success');
-            }
+            };
+
             openRequest.onerror = function (e) {
                 // console.dir("打开数据库时发生error:", e);
                 reject('failed', e);
-            }
+            };
+
             openRequest.blocked = function (e) {
                 // console.log('上一次的数据库连接还未关闭', e);
                 reject('blocked', e);
-            }
+            };
         });
     }
 
@@ -35,188 +38,202 @@ var IStore = function () {
     }
 
     function getObjectStore(mode) {
-        var transaction = db.transaction([storeName], mode);
+        let transaction = db.transaction([storeName], mode);
         transaction.oncomplete = function (event) {
             // console.log('complete', event)
         };
+
         transaction.onabort = function (event) {
             // console.log('abort', event)
         };
+
         transaction.onerror = function (event) {
             // console.log('error', event)
         };
+
         return transaction.objectStore(storeName);
     }
 
     function getIndicators() {
-        var store = getObjectStore('readonly');
+        let store = getObjectStore('readonly');
         return new Promise((resolve, reject) => {
-            var request = store.getAllKeys();
+            let request = store.getAllKeys();
             request.onerror = function (e) {
                 reject(e.target.error.name);
-            }
+            };
+
             request.onsuccess = function (e) {
-                var promiseList = [];
-                for (var i = 0; i < e.target.result.length; i++) {
+                let promiseList = [];
+                for (let i = 0; i < e.target.result.length; i++) {
                     promiseList.push(getIndicator(e.target.result[i]));
                 }
+
                 Promise.all(promiseList).then(values => {
                     resolve(values);
                 });
-            }
+            };
         });
     }
 
     function getIndicator(key) {
-        var store = getObjectStore('readonly');
+        let store = getObjectStore('readonly');
         return new Promise((resolve, reject) => {
-            var request = store.get(key);
+            let request = store.get(key);
             request.onerror = function (e) {
                 reject(e.target.error.name);
-            }
+            };
+
             request.onsuccess = function (e) {
-                if (e.target.result != undefined) {
+                if (e.target.result !== undefined) {
                     e.target.result.key = key;
                 }
+
                 resolve(e.target.result);
-            }
+            };
         });
     }
 
     function addIndicator(indicator) {
-        var store = getObjectStore('readwrite');
-        var dt = getNow();
-        var indicator_obj = {
+        let store = getObjectStore('readwrite');
+        let dt = getNow();
+        let indicatorObj = {
             name: indicator.name,
             type: indicator.type,
             draft: {
                 dt: dt,
-                code: ""
+                code: '',
             },
             final: {
                 dt: dt,
-                code: ""
+                code: '',
             },
             prop: '',
-            params: {}
-        }
+            params: {},
+        };
+
         // prop: indicator.prop,
         //     params: indicator.params
         if (indicator.draft && indicator.draft.code) {
-            indicator_obj.draft.code = indicator.draft.code;
-            indicator_obj.final.code = indicator.draft.code;
+            indicatorObj.draft.code = indicator.draft.code;
+            indicatorObj.final.code = indicator.draft.code;
         }
+
         if (indicator.prop) {
-            indicator_obj.prop = indicator.prop;
+            indicatorObj.prop = indicator.prop;
         }
+
         if (indicator.params) {
-            indicator_obj.params = indicator.params;
+            indicatorObj.params = indicator.params;
         }
+
         return new Promise((resolve, reject) => {
-            var request = store.add(indicator_obj);
+            let request = store.add(indicatorObj);
             request.onerror = function (e) {
                 reject(e.target.error.name);
-            }
+            };
+
             request.onsuccess = function (e) {
                 resolve(getIndicator(e.target.result));
-            }
+            };
         });
     }
 
     function removeIndicator(key) {
-        var store = getObjectStore('readwrite');
+        let store = getObjectStore('readwrite');
         return new Promise((resolve, reject) => {
-            var request = store.delete(key);
+            let request = store.delete(key);
             request.onerror = function (e) {
                 reject(e.target.error.name);
-            }
+            };
+
             request.onsuccess = function (e) {
                 resolve(e.type);
-            }
+            };
         });
     }
 
     function save(key, indicator) {
-        var store = getObjectStore('readwrite');
+        let store = getObjectStore('readwrite');
         return new Promise((resolve, reject) => {
-            var request = store.put(indicator, key);
+            let request = store.put(indicator, key);
             request.onerror = function (e) {
                 reject(e.target.error.name);
-            }
+            };
+
             request.onsuccess = function (e) {
                 indicator.key = e.target.result;
                 resolve(indicator);
-            }
+            };
         });
     }
 
-    function saveDraft(indicator_custom) {
+    function saveDraft(indicatorCustom) {
         return new Promise((resolve, reject) => {
-                getIndicator(indicator_custom.key).then((indicator) => {
-                    var indicator_obj = {
-                        name: indicator_custom.name,
+                getIndicator(indicatorCustom.key).then((indicator) => {
+                    let indicatorObj = {
+                        name: indicatorCustom.name,
                         type: indicator.type,
                         draft: {
                             dt: getNow(),
-                            code: (indicator_custom.draft && indicator_custom.draft.code) ? indicator_custom.draft.code : indicator.draft.code
+                            code: (indicatorCustom.draft && indicatorCustom.draft.code) ?
+                                indicatorCustom.draft.code : indicator.draft.code,
                         },
                         final: {
                             dt: indicator.final.dt,
-                            code: indicator.final.code
+                            code: indicator.final.code,
                         },
-                        prop: indicator_custom.prop,
-                        params: indicator_custom.params
+                        prop: indicatorCustom.prop,
+                        params: indicatorCustom.params,
                     };
-                    resolve(save(indicator_custom.key, indicator_obj));
-                })
+                    resolve(save(indicatorCustom.key, indicatorObj));
+                });
             }
         );
     }
 
-    function saveFinal(indicator_custom) {
+    function saveFinal(indicatorCustom) {
         return new Promise((resolve, reject) => {
-                getIndicator(indicator_custom.key).then(function (indicator) {
-                    var dt = getNow();
-                    var indicator_obj = {
-                        name: indicator_custom.name,
+                getIndicator(indicatorCustom.key).then(function (indicator) {
+                    let dt = getNow();
+                    let indicatorObj = {
+                        name: indicatorCustom.name,
                         type: indicator.type,
                         draft: {
                             dt: dt,
-                            code: indicator_custom.draft.code
+                            code: indicatorCustom.draft.code,
                         },
                         final: {
                             dt: dt,
-                            code: indicator_custom.draft.code
+                            code: indicatorCustom.draft.code,
                         },
-                        prop: indicator_custom.prop,
-                        params: indicator_custom.params
-                    }
-                    resolve(save(indicator_custom.key, indicator_obj));
-                })
+                        prop: indicatorCustom.prop,
+                        params: indicatorCustom.params,
+                    };
+                    resolve(save(indicatorCustom.key, indicatorObj));
+                });
             }
         );
     }
 
     function resetIndicator(key) {
-        var store = getObjectStore('readwrite');
         return new Promise((resolve, reject) => {
                 getIndicator(key).then(function (indicator) {
-                    var indicator_obj = {
+                    let indicatorObj = {
                         name: indicator.name,
                         type: indicator.type,
                         draft: {
                             dt: indicator.final.dt,
-                            code: indicator.final.code
+                            code: indicator.final.code,
                         },
                         final: {
                             dt: indicator.final.dt,
-                            code: indicator.final.code
+                            code: indicator.final.code,
                         },
                         prop: indicator.prop,
-                        params: indicator.params
-                    }
-                    resolve(save(key, indicator_obj));
-                })
+                        params: indicator.params,
+                    };
+                    resolve(save(key, indicatorObj));
+                });
             }
         );
     }
@@ -229,60 +246,72 @@ var IStore = function () {
         saveDraft: saveDraft,
         saveFinal: saveFinal,
         reset: resetIndicator,
-        remove: removeIndicator
-    }
-}();
+        remove: removeIndicator,
+    };
+}());
 
 /*
  * =========== ErrorHandlers ===================
  */
-var ErrorHandlers = function() {
-    var errorKey = 'tq_error';
-    var init = function(){
-        if(localStorage.getItem(errorKey) === null){
+const ErrorHandlers = (function () {
+    let errorKey = 'tq_error';
+    let init = function () {
+        if (localStorage.getItem(errorKey) === null) {
             localStorage.setItem(errorKey, '');
         }
     };
-    var add = function(name){
-        var list = [];
-        if(localStorage.getItem(errorKey) !== ''){
+
+    let add = function (name) {
+        let list = [];
+        if (localStorage.getItem(errorKey) !== '') {
             list = localStorage.getItem(errorKey).split(',');
         }
-        if(list.indexOf(name) === -1){
+
+        if (list.indexOf(name) === -1) {
             list.push(name);
             localStorage.setItem(errorKey, list.join(','));
         }
-        worker.postMessage({cmd: 'error_class_name', content: list});
+
+        worker.postMessage({ cmd: 'error_class_name', content: list });
         return list;
-    }
-    var remove = function(name){
-        var list = [];
-        if(localStorage.getItem(errorKey) !== ''){
+    };
+
+    let remove = function (name) {
+        let list = [];
+        if (localStorage.getItem(errorKey) !== '') {
             list = localStorage.getItem(errorKey).split(',');
         }
-        if(list.indexOf(name) > -1){
+
+        if (list.indexOf(name) > -1) {
             list.splice(list.indexOf(name), 1);
             localStorage.setItem(errorKey, list);
         }
-        worker.postMessage({cmd: 'error_class_name', content: list});
+
+        worker.postMessage({ cmd: 'error_class_name', content: list });
         return list;
-    }
-    var has = function(name){
-        if(localStorage.getItem(errorKey) === ''){
+    };
+
+    let has = function (name) {
+        if (localStorage.getItem(errorKey) === '') {
             return false;
         }
-        var list = localStorage.getItem(errorKey).split(',')
+
+        let list = localStorage.getItem(errorKey).split(',');
         return list.indexOf(name) > -1;
-    }
-    var get = function(){
-        if(localStorage.getItem(errorKey) === ''){
+    };
+
+    let get = function () {
+        if (localStorage.getItem(errorKey) === '') {
             return [];
         }
+
         return localStorage.getItem(errorKey).split(',');
-    }
-    var clear = function (){
+    };
+
+    let clear = function () {
         localStorage.setItem(errorKey, '');
-    }
+    };
+
     return {
         records: {},
         init: init,
@@ -290,9 +319,10 @@ var ErrorHandlers = function() {
         has: has,
         remove: remove,
         get: get,
-        clear: clear
-    }
-}();
+        clear: clear,
+    };
+}());
+
 ErrorHandlers.init();
 
 /*
@@ -304,28 +334,28 @@ ErrorHandlers.init();
  *    "info", "information",
  *    "noty", "notification"
  */
-const Notify = function () {
-    var debug = false;
+const Notify = (function () {
+    let debug = false;
 
-    var defaults = {
+    let defaults = {
         layout: 'topRight',
         theme: 'relax',// defaultTheme, relax, bootstrapTheme, metroui
         type: 'information',
         force: true,
         timeout: 2000,
         maxVisible: 50,
-        closeWith: ['click', 'button']
+        closeWith: ['click', 'button'],
     };
 
     function getNotyFun(type) {
-        if(!debug){
+        if (!debug) {
             return function (text) {
-                return noty(Object.assign(defaults, {text, type}));
-            }
-        }else{
-            return function(text){
+                return noty(Object.assign(defaults, { text, type }));
+            };
+        }else {
+            return function (text) {
                 return console.log('%c%s', 'color: #7C37D4', type + ' : ' + text);
-            }
+            };
         }
     }
 
@@ -336,17 +366,18 @@ const Notify = function () {
     notys.information = notys.info = getNotyFun('information');
     notys.notification = notys.noty = getNotyFun('notification');
     return notys;
-}();
+}());
 
 /*
  * webworker 返回的信息格式
  */
-var TqFeedback = function(e){
+const TqFeedback = function (e) {
     this.error = e.error; // true | false
     this.type = e.type; // define | run
     this.message = e.message;
     this.func_name = e.func_name;
-}
-TqFeedback.prototype.toString = function(){
+};
+
+TqFeedback.prototype.toString = function () {
     return this.func_name + ' #' + this.type + '\n' + this.message;
-}
+};

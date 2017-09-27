@@ -13,17 +13,19 @@ var gutil = require('gulp-util');
 
 var minifyJs = composer(minifyJsEs6, console);
 
+var distDir = 'dist/';
+
 gulp.task('js', ['workerjs'], function () {
     return gulp.src(['./src/js/*.js', './src/index.js'])
         .pipe(concat('index.js'))
         .pipe(minifyJs())
-        .pipe(gulp.dest('dist/'));
+        .pipe(gulp.dest(distDir));
 });
 
 gulp.task('workerjs', ['subworkerjs'], function () {
-    return gulp.src(['./dist/js/worker/worker.js'], {base: 'dist'})
+    return gulp.src([distDir + 'js/worker/worker.js'], {base: distDir})
         .pipe(minifyJs({}))
-        .pipe(gulp.dest('dist/'));
+        .pipe(gulp.dest(distDir));
 });
 
 gulp.task('subworkerjs', ['copy'], function () {
@@ -34,17 +36,17 @@ gulp.task('subworkerjs', ['copy'], function () {
     subWorkers.forEach((ele, index, arr) => {
         if (ele.includes('basefuncs')) {
             arr[index] = '';
-        }else{
+        } else {
             arr[index] = './src/js/worker/' + ele;
         }
     });
     var reg = /importScripts\((.+)\);/;
     var resultContent = fileContent.replace(reg, 'importScripts(\'subworkers.js\', \'/defaults/basefuncs.js\');');
-    fs.writeFileSync('dist/js/worker/worker.js', resultContent, 'utf8');
+    fs.writeFileSync(distDir + 'js/worker/worker.js', resultContent, 'utf8');
     return gulp.src(subWorkers)
         .pipe(concat('subworkers.js'))
         .pipe(minifyJs({}))
-        .pipe(gulp.dest('dist/js/worker'));
+        .pipe(gulp.dest(distDir + 'js/worker'));
 });
 
 gulp.task('copy', ['beforecopy'], function () {
@@ -58,7 +60,7 @@ gulp.task('copy', ['beforecopy'], function () {
         './src/js/worker/worker.js',
         './src/defaults/*',
     ], {base: "src"})
-        .pipe(gulp.dest('dist/'));
+        .pipe(gulp.dest(distDir));
 });
 
 gulp.task('beforecopy', function () {
@@ -78,7 +80,7 @@ gulp.task('beforecopy', function () {
 gulp.task('css', ['js'], function () {
     return gulp.src(['./src/css/*.css'], {base: 'src'})
         .pipe(minifyCss())
-        .pipe(gulp.dest('dist/'))
+        .pipe(gulp.dest(distDir))
 });
 
 gulp.task('html', ['css'], function () {
@@ -96,15 +98,15 @@ gulp.task('html', ['css'], function () {
             arr[index] = '';
         }
     });
-    fs.writeFileSync('dist/index.html', lines.join('\n'), 'utf8');
+    fs.writeFileSync(distDir + 'index.html', lines.join('\n'), 'utf8');
 
-    return gulp.src(['./dist/index.html'])
+    return gulp.src([distDir + '/index.html'])
         .pipe(minifyHtml({collapseWhitespace: true, removeComments: true}))
-        .pipe(gulp.dest('./dist/'));
+        .pipe(gulp.dest(distDir));
 });
 
 gulp.task('clean', function () {
-    return gulp.src(['dist']).pipe(clean());
+    return gulp.src([distDir]).pipe(clean());
 });
 
 gulp.task('default', ['clean'], function () {

@@ -3,10 +3,11 @@ const IndicatorInstance = function (obj) {
     this.rels = []; // 相关节点
     this.invalid = false; // 是否重新计算
     this.BEGIN = -1;
-    this.calculate_left = -1;
-    this.calculate_right = -1;
-    this.run_id = -1;
-}
+    this.calculateLeft = -1;
+    this.calculateRight = -1;
+    this.runId = -1;
+};
+
 IndicatorInstance.prototype.resetByInstance = function (obj) {
     Object.assign(this, obj);
     if (obj.ins_id === '' || obj.dur_nano === -1 || obj.view_left === -1 || obj.view_right === -1) {
@@ -14,51 +15,59 @@ IndicatorInstance.prototype.resetByInstance = function (obj) {
     } else {
         this.invalid = true;
     }
+
     this.rels = [];
     this.BEGIN = -1;
-    this.calculate_left = -1;
-    this.calculate_right = -1;
+    this.calculateLeft = -1;
+    this.calculateRight = -1;
     this.calculate();
 };
 
 IndicatorInstance.prototype.updateRange = function () {
     let path = this.ins_id + '.' + this.dur_nano;
-    let [first_id, last_id] = DM.get_data_range(path);
-    if (this.view_left > -1 && this.view_right > -1 && this.view_right >= first_id && this.view_left <= last_id && first_id < last_id) {
-        // view_left view_right 和 已有全部数据范围 first_id, last_id 有交集
-        let left_id = first_id > this.view_left ? first_id : this.view_left;
-        let right_id = last_id < this.view_right ? last_id : this.view_right;
-        if (this.BEGIN === -1 || this.BEGIN.value > this.view_left) {
-            this.BEGIN = left_id;
-            this.calculate_left = left_id;
-            this.calculate_right = right_id;
+    let { firstId, lastId } = DM.get_data_range(path);
+    if (this.view_left > -1 && this.view_right > -1 && this.view_right >= firstId
+        && this.view_left <= lastId && firstId < lastId) {
+        // view_left view_right 和 已有全部数据范围 firstId, lastId 有交集
+        let leftId = firstId > this.view_left ? firstId : this.view_left;
+        let rightId = lastId < this.view_right ? lastId : this.view_right;
+        if (this.BEGIN === -1 || this.BEGIN > this.view_left) {
+            this.BEGIN = leftId;
+            this.calculateLeft = leftId;
+            this.calculateRight = rightId;
             this.update(); // 重新定义函数
         } else {
-            this.calculate_right = right_id;
+            this.calculateRight = rightId;
         }
     } else {
-        // view_left view_right 和 已有全部数据范围 first_id, last_id 无交集
+        // view_left view_right 和 已有全部数据范围 firstId, lastId 无交集
         this.BEGIN = -1;
     }
 };
+
 IndicatorInstance.prototype.addRelationship = function (path) {
     if (!this.rels.includes(path)) this.rels.push(path);
 };
+
 IndicatorInstance.prototype.setInvalidByPath = function (path) {
     if (!this.invalid && this.rels.includes(path)) this.invalid = true;
 };
+
 IndicatorInstance.prototype.resetInvalid = function () {
     this.invalid = false;
 };
+
 IndicatorInstance.prototype.update = function () {
     //准备计算环境
     this.DEFINE = function () {
     };
-    this.PARAM = function (param_default_value, param_name) {
-        return this.params[param_name].value;
+
+    this.PARAM = function (defaultValue, name) {
+        return this.params[name].value;
     };
-    this.SERIAL = function (serial_selector) {
-        var selector = serial_selector.toLowerCase();
+
+    this.SERIAL = function (serialSelector) {
+        var selector = serialSelector.toLowerCase();
         var ds = DM.get_kdata_obj(this.ins_id, this.dur_nano, this.instance_id);
         return new Proxy({}, {
             get: function (target, key, receiver) {
@@ -67,72 +76,79 @@ IndicatorInstance.prototype.update = function () {
                 } else {
                     return NaN;
                 }
-            }
+            },
         });
     };
+
     this.out_series = {};
     this.out_datas = {};
-    this.OUTS = function (style, serial_name, options) {
-        this.out_series[serial_name] = {};
-        var serial = this.out_series[serial_name];
+    this.OUTS = function (style, serialName, options) {
+        this.out_series[serialName] = {};
+        let serial = this.out_series[serialName];
         serial.style = style;
         serial.width = 1;
         serial.color = RGB(0xFF, 0x00, 0x00);
         serial.yaxis = 0;
         if (options) {
-            serial.width = options["width"] ? options["width"] : serial.width;
-            serial.color = options["color"] ? options["color"] : serial.color;
-            serial.yaxis = options["yaxis"] ? options["yaxis"] : serial.yaxis;
-            serial.memo = options["memo"] ? options["memo"] : serial.memo;
+            serial.width = options.width ? options.width : serial.width;
+            serial.color = options.color ? options.color : serial.color;
+            serial.yaxis = options.yaxis ? options.yaxis : serial.yaxis;
+            serial.memo = options.memo ? options.memo : serial.memo;
         }
-        if (style == "KLINE") {
-            var s = [new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL()];
-            this.out_datas[serial_name] = s;
+
+        if (style === 'KLINE') {
+            let s = [new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL()];
+            this.out_datas[serialName] = s;
             return s;
         } else {
-            var s = new VALUESERIAL();
-            this.out_datas[serial_name] = [s];
+            let s = new VALUESERIAL();
+            this.out_datas[serialName] = [s];
             return s;
         }
     };
+
     //重生成函数
     this.func = self[this.ta_class_name](this);
-}
+};
+
 IndicatorInstance.prototype.exec = function () {
-    //执行计算
-    var [left, right] = [this.calculate_left, this.calculate_right];
+    //执行计算calculateRight
+    var [left, right] = [this.calculateLeft, this.calculateRight];
     try {
-        for (; this.calculate_left <= this.calculate_right; this.calculate_left++) {
-            this.func.next(this.calculate_left);
+        for (; this.calculateLeft <= this.calculateRight; this.calculateLeft++) {
+            this.func.next(this.calculateLeft);
         }
-        this.calculate_left--;
+
+        this.calculateLeft--;
     } catch (e) {
         postMessage({
             cmd: 'calc_end', content: {
-                id: this.run_id,
-                className: this.ta_class_name
-            }
+                id: this.runId,
+                className: this.ta_class_name,
+            },
         });
         postMessage({
             cmd: 'feedback', content: {
                 error: true,
                 type: 'run',
                 message: e.message,
-                func_name: this.ta_class_name
-            }
+                func_name: this.ta_class_name,
+            },
         });
         return;
-    }
+    };
+
     //整理计算结果
-    for (var serial_name in this.out_datas) {
-        var serial_from = this.out_datas[serial_name];
-        for (var j in serial_from) {
-            serial_from[j].setRange(left, right);
+    for (var serial in this.out_datas) {
+        var valueSerail = this.out_datas[serial];
+        for (var j in valueSerail) {
+            valueSerail[j].setRange(left, right);
         }
-    }
+    };
+
     //将计算结果发给主进程
     var pack = {
-        aid: "set_indicator_data",
+        aid: 'set_indicator_data',
         instance_id: this.instance_id,
         epoch: this.epoch,
         range_left: left,
@@ -141,37 +157,40 @@ IndicatorInstance.prototype.exec = function () {
         datas: this.out_datas,
     };
     WS.sendJson(pack);
-}
+};
+
 IndicatorInstance.prototype.calculate = function () {
     if (this.invalid) {
-        if (G_Error_Class_Name.indexOf(this.ta_class_name) > -1) {
+        if (G_ERRORS.indexOf(this.ta_class_name) > -1) {
             return;
         }
-        this.run_id = Keys.next().value;
+
+        this.runId = Keys.next().value;
         postMessage({
             cmd: 'calc_start', content: {
-                id: this.run_id,
-                className: this.ta_class_name
-            }
+                id: this.runId,
+                className: this.ta_class_name,
+            },
         });
 
         this.updateRange();
         if (this.BEGIN === -1) {
             return;
         }
+
         this.exec();
         this.invalid = false;
         postMessage({
             cmd: 'calc_end', content: {
-                id: this.run_id,
-                className: this.ta_class_name
-            }
+                id: this.runId,
+                className: this.ta_class_name,
+            },
         });
     }
-}
+};
 
 function* GenerateKey() {
-    var i = 0;
+    let i = 0;
     while (true) {
         yield i.toString(36);
         i++;
@@ -180,7 +199,7 @@ function* GenerateKey() {
 
 const COLOR = function (r, g, b) {
     this.color = r | (g << 8) | (b << 16);
-}
+};
 
 COLOR.prototype.toJSON = function () {
     return this.color;
@@ -188,7 +207,7 @@ COLOR.prototype.toJSON = function () {
 
 const RGB = function (r, g, b) {
     return new COLOR(r, g, b);
-}
+};
 
 const RED = RGB(0xFF, 0, 0);
 const GREEN = RGB(0, 0xFF, 0);
@@ -204,17 +223,17 @@ const LIGHTRED = RGB(0xF0, 0x80, 0x80);
 const LIGHTGREEN = RGB(0x90, 0xEE, 0x90);
 const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
 
-
-function VALUESERIAL() {
+const VALUESERIAL = function () {
     this.LEFT = 0;
     this.RIGHT = 0;
-}
+};
 
 VALUESERIAL.prototype.toJSON = function () {
-    var n = new Array();
-    for (var i = this.LEFT; i <= this.RIGHT; i++) {
+    let n = [];
+    for (let i = this.LEFT; i <= this.RIGHT; i++) {
         n[i - this.LEFT] = this[i];
     }
+
     return n;
 };
 

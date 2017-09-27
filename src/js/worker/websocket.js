@@ -1,24 +1,25 @@
-var TqWebSocket = function (url, callbacks) {
+const TqWebSocket = function (url, callbacks) {
     this.url = url;
-    this.ws;
+    this.ws = null;
     this.queue = [];
+
     // 自动重连开关
     this.reconnect = true;
-    this.reconnectTask;
+    this.reconnectTask = null;
     this.reconnectInterval = 3000;
     this.callbacks = callbacks;
-}
+};
 
 TqWebSocket.prototype.STATUS = {
     CONNECTING: 0,
     OPEN: 1,
     CLOSING: 2,
-    CLOSED: 3
-}
+    CLOSED: 3,
+};
 
 TqWebSocket.prototype.sendJson = function (obj) {
     function jsonToStr(obj) {
-        return JSON.stringify(obj)
+        return JSON.stringify(obj);
     }
 
     if (this.ws.readyState === 1) {
@@ -26,93 +27,102 @@ TqWebSocket.prototype.sendJson = function (obj) {
     } else {
         this.queue.push(jsonToStr(obj));
     }
-}
+};
 
 TqWebSocket.prototype.isReady = function () {
     return this.ws.readyState === 1;
-}
+};
 
 TqWebSocket.prototype.init = function () {
     function strToJson(message) {
-        return eval("(" + message + ")")
+        return eval('(' + message + ')');
     }
 
     this.ws = new WebSocket(this.url);
-    var this_ws = this;
+    var _this = this;
     this.ws.onmessage = function (message) {
-        this_ws.callbacks.onmessage(strToJson(message.data));
+        _this.callbacks.onmessage(strToJson(message.data));
     };
+
     this.ws.onclose = function (event) {
         // 清空 datamanager
-        this_ws.callbacks.onclose();
+        _this.callbacks.onclose();
+
         // 清空 queue
-        this_ws.queue = [];
+        _this.queue = [];
+
         // 自动重连
-        if (this_ws.reconnect) {
-            this_ws.reconnectTask = setInterval(function () {
-                if (this_ws.ws.readyState === 3) this_ws.init();
-            }, this_ws.reconnectInterval);
+        if (_this.reconnect) {
+            _this.reconnectTask = setInterval(function () {
+                if (_this.ws.readyState === 3) _this.init();
+            }, _this.reconnectInterval);
         }
     };
+
     this.ws.onerror = function (error) {
-        this_ws.ws.close();
+        _this.ws.close();
     };
+
     this.ws.onopen = function () {
         // 请求全部数据同步
-        this_ws.callbacks.onopen();
+        _this.callbacks.onopen();
         if (this.reconnectTask) {
-            clearInterval(this_ws.reconnectTask);
-            this_ws.callbacks.onreconnect();
+            clearInterval(_this.reconnectTask);
+            _this.callbacks.onreconnect();
         }
-        if (this_ws.queue.length > 0) {
-            while (this_ws.queue.length > 0) {
-                if (this_ws.ws.readyState === 1) this_ws.ws.send(this_ws.queue.shift());
+
+        if (_this.queue.length > 0) {
+            while (_this.queue.length > 0) {
+                if (_this.ws.readyState === 1) _this.ws.send(_this.queue.shift());
                 else break;
             }
         }
     };
-}
+};
 
-const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
+const WS = new TqWebSocket('ws://192.168.1.71:7777/', {
     onmessage: function (message) {
-        if (message.aid == "rtn_data") {
+        if (message.aid === 'rtn_data') {
             //收到行情数据包，更新到数据存储区
-            for (var i = 0; i < message.data.length; i++) {
-                var temp = message.data[i];
-                DM.update_data(temp);
+            for (let i = 0; i < message.data.length; i++) {
+                DM.update_data(message.data[i]);
             }
+
             // 重新计算 instance
-            for (var instance_id in G_Instances) {
-                G_Instances[instance_id].calculate();
+            for (let id in G_INSTANCES) {
+                G_INSTANCES[id].calculate();
             }
-        } else if (message.aid == "update_indicator_instance") {
+        } else if (message.aid === 'update_indicator_instance') {
             //主进程要求创建或修改指标实例
-            var pack = message;
-            if (!G_Instances[pack.instance_id]) {
-                G_Instances[pack.instance_id] = new IndicatorInstance(pack);
+            let pack = message;
+            if (!G_INSTANCES[pack.instance_id]) {
+                G_INSTANCES[pack.instance_id] = new IndicatorInstance(pack);
             }
-            G_Instances[pack.instance_id].resetByInstance(pack);
-        } else if (message.aid == "delete_indicator_instance") {
+
+            G_INSTANCES[pack.instance_id].resetByInstance(pack);
+        } else if (message.aid === 'delete_indicator_instance') {
             //主进程要求创建或修改指标实例
-            var instance_id = message["instance_id"];
-            if (G_Instances[instance_id]) {
-                delete G_Instances[instance_id];
+            let id = message.instance_id;
+            if (G_INSTANCES[id]) {
+                delete G_INSTANCES[id];
             }
         }
     },
+
     onopen: function () {
-        var demo_d = {
-            aid: "sync_datas",
+        WS.sendJson({
+            aid: 'sync_datas',
             sync_datas: {},
-        };
-        WS.sendJson(demo_d);
+        });
     },
+
     onclose: function () {
         DM.clear_data();
     },
+
     onreconnect: function () {
-        postMessage({cmd: 'websocket_reconnect'});
-    }
+        postMessage({ cmd: 'websocket_reconnect' });
+    },
 });
 
 WS.init();
