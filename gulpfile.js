@@ -31,9 +31,15 @@ gulp.task('subworkerjs', ['copy'], function () {
     var fileContent = fs.readFileSync('./src/js/worker/worker.js', 'utf8');
     var firstLine = fileContent.split(/\r?\n/)[0];
     var subWorkers = firstLine.match(/(\w+?\.js)/g);
-    subWorkers.forEach((ele, index, arr) => arr[index] = './src/js/worker/' + ele);
+    subWorkers.forEach((ele, index, arr) => {
+        if (ele.includes('basefuncs')) {
+            arr[index] = '';
+        }else{
+            arr[index] = './src/js/worker/' + ele;
+        }
+    });
     var reg = /importScripts\((.+)\);/;
-    var resultContent = fileContent.replace(reg, 'importScripts(\'subworkers.js\', \'../../defaults/basefuncs.js\');');
+    var resultContent = fileContent.replace(reg, 'importScripts(\'subworkers.js\', \'/defaults/basefuncs.js\');');
     fs.writeFileSync('dist/js/worker/worker.js', resultContent, 'utf8');
     return gulp.src(subWorkers)
         .pipe(concat('subworkers.js'))
@@ -80,13 +86,13 @@ gulp.task('html', ['css'], function () {
     var start = false;
     var lines = fileContent.split(/\r?\n/);
     lines.forEach((ele, index, arr) => {
-        if(ele.includes('del:start')){
+        if (ele.includes('del:start')) {
             start = true;
             arr[index] = '';
-        }else if(ele.includes('del:end')){
+        } else if (ele.includes('del:end')) {
             start = false;
             arr[index] = '';
-        }else if(start){
+        } else if (start) {
             arr[index] = '';
         }
     });
