@@ -80,7 +80,7 @@ TqWebSocket.prototype.init = function () {
     };
 };
 
-const WS = new TqWebSocket('ws://192.168.1.71:7777/', {
+const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
     onmessage: function (message) {
         if (message.aid === 'rtn_data') {
             //收到行情数据包，更新到数据存储区

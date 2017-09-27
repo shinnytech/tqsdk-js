@@ -99,7 +99,7 @@ const DM = (function () {
     }
 
     function getDataRange(path) {
-        var res = {firstId: Infinity, lastId: -Infinity};
+        var res = { firstId: Infinity, lastId: -Infinity };
         if (DM.paths.has(path)) {
             res = DM.paths.get(path);
         }

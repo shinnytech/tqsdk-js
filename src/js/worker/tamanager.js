@@ -131,7 +131,7 @@ const TM = (function () {
         let C = {};
         C.DEFINE = function (options) {
             if (!(options === undefined)) {
-                Object.assign(indicatorName, options);
+                Object.assign(classDefine, options);
             }
         };
 
