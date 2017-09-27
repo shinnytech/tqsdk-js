@@ -1,13 +1,13 @@
 const CODE_RUN_TIMEOUT = 500;
 const WAITING_RESULR = new Set();
 
-var worker = null;
-var sendIndicatorList = function () {
-    var content = {};
-    var lists = ['sys_datas', 'datas'];
-    for (var i = 0; i < lists.length; i++) {
-        for (var j = 0; j < CMenu[lists[i]].length; j++) {
-            var funcName = CMenu[lists[i]][j].name;
+let worker = null;
+const sendIndicatorList = function () {
+    let content = {};
+    let lists = ['sys_datas', 'datas'];
+    for (let i = 0; i < lists.length; i++) {
+        for (let j = 0; j < CMenu[lists[i]].length; j++) {
+            let funcName = CMenu[lists[i]][j].name;
             content[funcName] = CMenu[lists[i]][j];
         }
     }
@@ -15,12 +15,12 @@ var sendIndicatorList = function () {
     worker.postMessage({ cmd: 'indicatorList', content: content });
 };
 
-var initWorker = function () {
+const initWorker = function () {
     worker = new Worker('js/worker/worker.js');
     worker.postMessage({ cmd: 'error_class_name', content: ErrorHandlers.get() });
     sendIndicatorList();
     worker.addEventListener('message', function (e) {
-        var content = e.data.content;
+        let content = e.data.content;
         switch (e.data.cmd) {
             case 'websocket_reconnect':
                 sendIndicatorList();
@@ -79,25 +79,24 @@ $(function () {
     });
 
     $('#btn_editor_run').on('click', function (e) {
-        // todo: generate indicator class
-        var funcName = CMenu.editing.name;
-        var code = CMenu.editor.getSession().getValue();
+        let funcName = CMenu.editing.name;
+        let code = CMenu.editor.getSession().getValue();
         code = code.trim();
         if (CMenu.editing.type === 'custom_wh') {
             CMenu.saveDraftIndicator();
             WAITING_RESULR.add(funcName);
         } else {
-            var reg = /^function\s*\*\s*(.*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}$/g;
-            var result = reg.exec(code);
-            if (result && result[0] == result.input) {
+            let reg = /^function\s*\*\s*(.*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}$/g;
+            let result = reg.exec(code);
+            if (result && result[0] === result.input) {
                 if (result[1] !== funcName) {
                     Notify.error('函数名称必须和自定义指标名称相同!');
                 } else if (!result[2].includes('yield')) {
                     Notify.error('函数中返回使用 yield 关键字!');
                 } else {
-                    var annotations = CMenu.editor.getSession().getAnnotations();
+                    let annotations = CMenu.editor.getSession().getAnnotations();
                     for (let i = 0; i < annotations.length; i++) {
-                        if (annotations[i].type == 'error') {
+                        if (annotations[i].type === 'error') {
                             Notify.error(annotations[i].row + ':' + annotations[i].colume + ' ' + annotations[i].text);
                             return;
                         }

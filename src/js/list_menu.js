@@ -317,7 +317,7 @@ CMenu.hasClassName = function (name) {
 CMenu.editIndicator = function (e) {
 
     let name = $('#indicator-name').val();
-    let type = CMenu.editModal.find("input[name='indicator-type']:checked").val();
+    let type = CMenu.$editModal.find("input[name='indicator-type']:checked").val();
     type = type === '0' ? 'custom' : 'custom_wh';
     if (!CMenuUtils.validVariableName(name)) {
         Notify.error('指标名称应符合 JavaScript 变量名命名规则。\n 第一个字符必须是字母、下划线（_）或美元符号（$）\n' +
@@ -350,7 +350,7 @@ CMenu.editIndicator = function (e) {
             CMenu.update(() => {
                 CMenu.dom.find('tr.' + name + ' td')[0].click();
             });
-            CMenu.editModal.modal('hide');
+            CMenu.$editModal.modal('hide');
         }, function (e) {
 
             if (e === 'ConstraintError') {
@@ -360,7 +360,7 @@ CMenu.editIndicator = function (e) {
             }
         });
     } else if (CMenu.doing === 'copy') {
-        let code = CMenu.editModal.attr('data_code');
+        let code = CMenu.$editModal.attr('data_code');
         let re = /^(function\s*\*\s*).*(\s*\(\s*C\s*\)\s*\{[\s\S]*\})$/g;
         let resCode = code.trim().replace(re, '$1' + name + '$2');
         IStore.add({
@@ -373,7 +373,7 @@ CMenu.editIndicator = function (e) {
             CMenu.update(() => {
                 CMenu.dom.find('tr.' + name + ' td')[0].click();
             });
-            CMenu.editModal.modal('hide');
+            CMenu.$editModal.modal('hide');
         }, function (e) {
 
             if (e === 'ConstraintError') {
@@ -398,7 +398,7 @@ CMenu.editIndicator = function (e) {
             CMenu.update(() => {
                 CMenu.dom.find('tr.' + name + ' td')[0].click();
             });
-            CMenu.editModal.modal('hide');
+            CMenu.$editModal.modal('hide');
         }, function (e) {
 
             if (e === 'ConstraintError') {
@@ -414,12 +414,12 @@ CMenu.editIndicator = function (e) {
 CMenu.getIndicatorWH_Prop_Params = function () {
     let prop = CMenu.attach_info.dom.find('td span.show-prop').text();
     let params = {};
-    let trs = CMenu.attach_param.dom.find('tbody tr');
+    let $trs = CMenu.attach_param.dom.find('tbody tr');
     for (let i = 1; i <= 6; i++) {
-        let name = CMenu.attach_param.dom.find('tbody tr').find('.name_' + i).val();
-        let max = CMenu.attach_param.dom.find('tbody tr').find('.max_' + i).val();
-        let min = CMenu.attach_param.dom.find('tbody tr').find('.min_' + i).val();
-        let defaultValue = CMenu.attach_param.dom.find('tbody tr').find('.default_' + i).val();
+        let name = $trs.find('.name_' + i).val();
+        let max = $trs.find('.max_' + i).val();
+        let min = $trs.find('.min_' + i).val();
+        let defaultValue = $trs.find('.default_' + i).val();
         params[i] = { name, max, min, defaultValue };
     }
 
@@ -431,6 +431,12 @@ CMenu.trashIndicator = function (e) {
     let indicatorName = CMenu.editing.name;
 
     // UI界面 删除DOM
+    let $nextTr = CMenu.item_doms[CMenu.editing.key].next('tr');
+    if ($nextTr.length === 0) {
+        $nextTr = CMenu.item_doms[CMenu.editing.key].prev('tr');
+        if ($nextTr.length === 0) $nextTr = null;
+    };
+
     CMenu.item_doms[CMenu.editing.key].remove();
 
     // 删除内存数据
@@ -440,8 +446,11 @@ CMenu.trashIndicator = function (e) {
     IStore.remove(CMenu.editing.key).then(function (i) {
             // 更新界面
             CMenu.update(() => {
-                // todo: 选中下一个自选指标 | 删除选中指标后，选中第一个系统指标
-                CMenu.sys_item_doms[0].find('td:first').click();
+                if ($nextTr) {
+                    $nextTr.find('td:first').click();
+                } else {
+                    CMenu.sys_item_doms[0].find('td:first').click();
+                }
             });
 
             // 关闭确认框
@@ -512,18 +521,18 @@ CMenu.resetIndicator = function (e) {
 CMenu.editCallback = function (tr, key) {
     CMenu.doing = 'edit';
     IStore.getByKey(key).then(function (result) {
-        CMenu.editModal.find('#indicator-name').val(result.name);
+        CMenu.$editModal.find('#indicator-name').val(result.name);
         if (result.type === 'custom') {
-            CMenu.editModal.find('#indicator-type-tq').show();
-            CMenu.editModal.find('#indicator-type-wh').hide();
-            CMenu.editModal.find("input[name='indicator-type']").eq('0').click();
+            CMenu.$editModal.find('#indicator-type-tq').show();
+            CMenu.$editModal.find('#indicator-type-wh').hide();
+            CMenu.$editModal.find("input[name='indicator-type']").eq('0').click();
         } else if (result.type === 'custom_wh') {
-            CMenu.editModal.find('#indicator-type-tq').hide();
-            CMenu.editModal.find('#indicator-type-wh').show();
-            CMenu.editModal.find("input[name='indicator-type']").eq('1').click();
+            CMenu.$editModal.find('#indicator-type-tq').hide();
+            CMenu.$editModal.find('#indicator-type-wh').show();
+            CMenu.$editModal.find("input[name='indicator-type']").eq('1').click();
         }
 
-        CMenu.editModal.modal('show');
+        CMenu.$editModal.modal('show');
     });
 };
 
