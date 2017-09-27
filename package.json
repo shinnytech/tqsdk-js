@@ -27,5 +27,9 @@
     "gulp-uglify": "^3.0.0",
     "gulp-util": "^3.0.8",
     "uglify-es": "^3.1.2"
+  },
+  "devDependencies": {
+    "gulp-connect": "^5.0.0",
+    "gulp-watch": "^4.3.11"
   }
 }

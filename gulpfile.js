@@ -3,8 +3,7 @@ var fs = require('fs');
 var gulp = require('gulp');
 var minifyHtml = require('gulp-htmlmin');
 var minifyCss = require("gulp-minify-css");
-
-var minifyJs = require('gulp-uglify');
+// var minifyJs = require('gulp-uglify');
 var composer = require('gulp-uglify/composer');
 var minifyJsEs6 = require('uglify-es');
 var clean = require('gulp-clean');

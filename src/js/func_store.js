@@ -233,16 +233,6 @@ var IStore = function () {
     }
 }();
 
-// Keys
-function* GenerateKey() {
-    var i = 0;
-    while (true) {
-        yield i.toString(36);
-        i++;
-    }
-}
-const Keys = GenerateKey();
-
 /*
  * =========== ErrorHandlers ===================
  */
