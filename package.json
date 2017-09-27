@@ -1,0 +1,35 @@
+{
+  "name": "efng_sdk",
+  "version": "1.0.0",
+  "description": "tianqin indicator editor",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm install && gulp",
+    "server": "gulp && http-server ./dist -a 0.0.0.0 -p 9999"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://scm.shinnytech.com/scm/git/efng_sdk"
+  },
+  "keywords": [
+    "indicators",
+    "tianqin"
+  ],
+  "author": "shinny",
+  "license": "ISC",
+  "dependencies": {
+    "gulp": "^3.9.1",
+    "gulp-clean": "^0.3.2",
+    "gulp-concat": "^2.6.1",
+    "gulp-htmlmin": "^3.0.0",
+    "gulp-minify-css": "^1.2.4",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^3.0.0",
+    "gulp-util": "^3.0.8",
+    "uglify-es": "^3.1.2"
+  },
+  "devDependencies": {
+    "gulp-connect": "^5.0.0",
+    "gulp-watch": "^4.3.11"
+  }
+}

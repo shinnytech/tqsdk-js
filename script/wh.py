@@ -14,46 +14,58 @@ log = logging.getLogger()
 
 
 #转换支持环境
-input_serials = []
-input_params = []
-serials = []
-output_serials = []
-body_lines = []
-function_serials = []
-scount = 1
-current_line = []
-convert_result = {
-    "errline": -1,
-    "errcol": -1,
-    "errvalue": "",
-    "target": "",
-}
+
+def reset():
+    global input_serials, input_params, serials, output_serials, body_lines, function_serials, scount, current_line, convert_result, temp_serials
+    input_serials = []  # 所有输入序列
+    input_params = []
+    serials = []
+    output_serials = []
+    temp_serials = []
+    body_lines = []
+    function_serials = []
+    scount = 0
+    current_line = []
+    convert_result = {
+        "errline": 0,
+        "errcol": 0,
+        "errvalue": "",
+        "target": "",
+    }
 
 def get_auto_color():
     return "RED"
+
+def auto_serial_name():
+    global scount
+    scount += 1
+    return "S_%d" % scount
 
 def is_param(n):
     return n in input_params
 
 def is_serial(n):
-    return n in input_serials or n in serials
+    return n in serials
+
+def define_serial(serial_name, is_temp):
+    if serial_name not in serials:
+        serials.append(serial_name)
+    if is_temp and serial_name not in temp_serials:
+        temp_serials.append(serial_name)
 
 def define_param(param_name):
     if param_name not in input_params:
         input_params.append(param_name)
 
 def define_input_serial(serial_name):
+    define_serial(serial_name, False)
     if serial_name not in input_serials:
         input_serials.append(serial_name)
 
-def define_serial(serial_name):
-    if serial_name not in serials:
-        serials.append(serial_name)
-
 def define_output(serial_name, serial_type, serial_color):
-    define_serial(serial_name)
-    if serial_type=="COLORSTICK":
-        serial_type="BAR"
+    define_serial(serial_name, False)
+    if serial_type == "COLORSTICK":
+        serial_type = "BAR"
     output_serials.append({
         "name": serial_name,
         "type": serial_type,
@@ -64,19 +76,22 @@ def define_function_serial(fname, fparam):
     for i in range(0, len(function_serials)):
         if function_serials[i]["name"] == nname and function_serials[i]["param"] == fparam:
             return function_serials[i]["id"]
+    id = auto_serial_name()
     s = {
-        "id": "_f%d" % len(function_serials),
+        "id": id,
         "name": nname,
         "param": fparam,
     }
     function_serials.append(s)
     current_line.append("{id}[i]={name}(i, {param}, {id});".format(**s))
+    define_serial(id, True)
     return s["id"]
 
-def auto_serial_name():
-    global scount
-    scount += 1
-    return "S_%d" % scount
+def define_compare_serial(compare_expr):
+    id = auto_serial_name()
+    define_serial(id, True)
+    current_line.append("{id}[i]=({compare_expr});".format(id=id, compare_expr=compare_expr))
+    return id
 
 def as_value(s):
     return s+"[i]";
@@ -101,6 +116,7 @@ tokens = [
     "FUNCSSVV",
     "OFUNC",
     "IFELSE",
+    "COUNT",
     "BACKGROUNDSTYLE",
     # 0 是保持本身坐标不变。
     # 1 是将坐标固定在0到100之间。
@@ -134,6 +150,7 @@ reserved = {
     "COLORSTICK": "OFUNC",
     # 特殊函数
     "IFELSE": "IFELSE",
+    "COUNT": "COUNT",
     "BACKGROUNDSTYLE": "BACKGROUNDSTYLE",
 }
 
@@ -237,7 +254,7 @@ def p_line_temp_serial_define(p):
     line : ID COLON_EQUALS expressionv SEMICOLON
     """
     print("p_line_temp_serial_define", p[1], p[3])
-    define_serial(p[1])
+    define_serial(p[1], True)
     p[0] = '%s[i] = %s;' % (p[1], p[3])
     finish_line(p[0])
 
@@ -323,7 +340,14 @@ def p_expressions_id(p):
 def p_function_ifelse(p):
     """ function : IFELSE LPAREN compare_expression COMMA expressionv COMMA expressionv RPAREN"""
     print("p_function_ifelse", p[3], p[5], p[7])
-    p[0] = "(%s) ? (%s) : (%s)" % (p[3], p[5], p[7])
+    s_name = define_function_serial("IFELSE", "%s,%s,%s" % (p[3], p[5],p[7]))
+    p[0] = "%s[i]" % s_name
+
+def p_function_count(p):
+    """ function : COUNT LPAREN compare_expression COMMA expressionv RPAREN"""
+    print("p_function_count", p[3], p[5])
+    s_name = define_function_serial("COUNT", "%s,%s" % (p[3], p[5]))
+    p[0] = "%s[i]" % s_name
 
 def p_function_s_sv(p):
     """ function : FUNCSSV LPAREN expressions COMMA expressionv RPAREN"""
@@ -353,17 +377,22 @@ def p_compare_expression(p):
                           | expressionv EQUALS expressionv
     """
     print("p_compare_expression", p[1], p[2], p[3])
-    p[0] = "(%s %s %s)" % (p[1], p[2], p[3])
+    ce = "%s %s %s" %(p[1], p[2], p[3])
+    s_name = define_compare_serial(ce)
+    p[0] = "%s[i]" % s_name
 
 def p_error(p):
     global convert_result
-    convert_result["errline"] = p.lineno
-    convert_result["errcol"] = p.lexpos - p.lexer.colstart + 1
-    convert_result["errvalue"] = p.value
     if p:
         print("Syntax error at token", p.type)
+        convert_result["errline"] = p.lineno
+        convert_result["errcol"] = p.lexpos - p.lexer.colstart + 1
+        convert_result["errvalue"] = p.value
     else:
         print("Syntax error at EOF")
+        convert_result["errline"] = -1
+        convert_result["errcol"] = -1
+        convert_result["errvalue"] = ""
 
 
 import ply.yacc as yacc
@@ -381,12 +410,13 @@ def wenhua_translate(req):
         src: "...", //文华原代码
     }
     ret: {
-        errline: 10,   //当转换过程出错时，标记出错行号，无错时为-1
-        errcol: 3, //当转换过程出错时，标记出错列号，无错时为-1
+        errline: 10,   //当转换过程出错时，标记出错行号，无错时为0, 在文件尾部出错为-1
+        errcol: 3, //当转换过程出错时，标记出错列号，无错时为0, 在文件尾部出错为-1
         errvalue: "sum", //当转换过程出错时，标记出错字符，无错时为""
         target: "...", //转换好的目标代码
     }
     """
+    reset()
     global input_params
     global convert_result
     #检查请求信息
@@ -410,7 +440,7 @@ function* {indicator_id}(C){{
     //输出序列
 {output_serial_lines}
     //临时序列
-{function_serial_declare_lines}
+{temp_serial_declare_lines}
     //指标计算
     while(true){{
         let i = yield;
@@ -424,12 +454,13 @@ function* {indicator_id}(C){{
                input_serial_lines="\n".join(['    let %s = C.SERIAL("%s");' % (p, p) for p in input_serials]),
                output_serial_lines="\n".join(['    let {name} = C.OUTS("{type}", "{name}", {{color: {color}}});'.format(**p) for p in
                                     output_serials]),
-               function_serial_declare_lines="\n".join(['    let {id} = [];'.format(**p) for p in function_serials]),
+               temp_serial_declare_lines="\n".join(['    let %s = [];' % (p) for p in temp_serials]),
                body="\n".join(body_lines))
     convert_result["target"] = target
     return convert_result
 
 #---------------------------------------------------------------------------------
+ma = {"id":"macdw","cname":"macdw","type":"SUB","params":[["N1",10,1,100]],"src":"MA1:MA(CLOSE,N1);"}
 
 ma2 = {
     "id": "ma2",
@@ -653,6 +684,23 @@ MA1:MA(LON,10);//取LON的10周期均值。
     """,
 }
 
+
+psy2 = {
+    "id": "psy2",
+    "cname": "PSY2",
+    "type": "SUB",
+    "src": """
+PSY:COUNT(CLOSE>REF(CLOSE,1),N)/N*100;//N个周期内满足收盘价大于一个周期前的收盘价的周期数，比N*100；
+PSYMA:MA(PSY,M);//PSY在M个周期内的简单移动平均；
+""",
+    "params": [
+        ("N", 1, 100, 20),
+        ("M", 1, 100, 20),
+    ],
+    "expected": """
+    """,
+}
+
 if __name__ == "__main__":
     def tryconvert(f):
         ret = wenhua_translate(f)
@@ -661,8 +709,8 @@ if __name__ == "__main__":
         %s
         -OUTPUT--------------------------------
         %s
-        -EXPECTED--------------------------------
         %s
-        """ % (f["src"], json.dumps(ret, indent=2), f["expected"]))
-    tryconvert(macd2)
+        -EXPECTED--------------------------------
+        """ % (f["src"], json.dumps(ret, indent=2), ret["target"]))
+    tryconvert(arbr2)
 

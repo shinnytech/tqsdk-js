@@ -1,27 +1,25 @@
-importScripts('websocket.js', 'utils.js', 'datamanager.js', 'tamanager.js', 'funcs.js');
+importScripts('websocket.js', 'utils.js', 'datamanager.js', 'tamanager.js', '/defaults/basefuncs.js');
 
 // 全局对象,存储全部 Instance
-const G_Instances = {};
+const G_INSTANCES = {};
 const Keys = GenerateKey();
-let G_Error_Class_Name = [];
-
+let G_ERRORS = [];
 
 // -------------- worker listener start --------------
-const log = (m) => console.log('%c%s',  "background: #ffffb0", m);
+const log = (m) => console.log('%c%s', 'background: #ffffb0', m);
 
-self.addEventListener('error', function(event) {
+self.addEventListener('error', function (event) {
     event.preventDefault();
-    console.log('%c%s',  "background: #ffffb0; color: red;", event.error.stack);
+    console.log('%c%s', 'background: #ffffb0; color: red;', event.error.stack);
     postMessage({
         cmd: 'error_all', content: {
-            type: event.type
-        }
+            type: event.type,
+        },
     });
 });
 
-self.addEventListener('message', function(event) {
+self.addEventListener('message', function (event) {
     var content = event.data.content;
-    // console.log(event.data)
     switch (event.data.cmd) {
         case 'indicatorList':
             TM.sendIndicatorClassList(content);
@@ -30,12 +28,12 @@ self.addEventListener('message', function(event) {
             TM.sendIndicatorClass(content);
             break;
         case 'error_class_name':
-            G_Error_Class_Name = content;
+            G_ERRORS = content;
             break;
         case 'unregister_indicator':
             WS.sendJson({
                 aid: 'unregister_indicator_class',
-                name: content
+                name: content,
             });
             break;
         default:
@@ -44,5 +42,4 @@ self.addEventListener('message', function(event) {
 });
 
 // -------------- worker listener end --------------
-
 
