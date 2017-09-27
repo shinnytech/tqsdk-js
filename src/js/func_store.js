@@ -267,6 +267,13 @@ const ErrorHandlers = (function () {
             list = localStorage.getItem(errorKey).split(',');
         }
 
+        // 系统函数不记录错误
+        for (let i = 0; i < CMenu.sys_datas.length; i++) {
+            if (name === CMenu.sys_datas[i].name) {
+                return list;
+            }
+        }
+
         if (list.indexOf(name) === -1) {
             list.push(name);
             localStorage.setItem(errorKey, list.join(','));
@@ -350,9 +357,9 @@ const Notify = (function () {
     function getNotyFun(type) {
         if (!debug) {
             return function (text) {
-                return noty(Object.assign(defaults, { text, type }));
+                return noty(Object.assign(defaults, {text, type}));
             };
-        }else {
+        } else {
             return function (text) {
                 return console.log('%c%s', 'color: #7C37D4', type + ' : ' + text);
             };
