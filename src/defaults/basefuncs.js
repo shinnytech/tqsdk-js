@@ -7,7 +7,7 @@ function _sum(serial, n, p) {
 }
 
 function SUM(i, serial, n, cache) {
-    if (cache.length == 0 || isNaN(cache[i - 1]))
+    if (cache === undefined || cache.length == 0 || isNaN(cache[i - 1]))
         return _sum(serial, n, i);
     return cache[i - 1] - serial[i - n] + serial[i];
 }
@@ -21,25 +21,6 @@ function IFELSE(c, a, b) {
 }
 
 function MA(i, serial, n, cache) {
-    /*
-        MA
-        MA(X,N) 求X在N个周期内的简单移动平均
-
-        算法：MA(X,5)=(X1+X2+X3+X4+X5)/5
-        注：
-        1、N包含当前k线。
-        2、简单移动平均线沿用最简单的统计学方式，将过去某特定时间内的价格取其平均值。
-        3、当N为有效值，但当前的k线数不足N根，函数返回空值。
-        4、N为0或空值的情况下，函数返回空值。
-        5、N可以为变量
-
-        例1：
-        MA5:=MA(C,5);//求5周期收盘价的简单移动平均。
-        例2：
-        N:=BARSLAST(DATE<>REF(DATE,1))+1;//分钟周期，日内k线根数
-        M:=IFELSE(N>10,10,N);//k线超过10根，M取10，否则M取实际根数
-        MA10:MA(C,M);//在分钟周期上，当天k线不足10根，按照实际根数计算MA10，超过10根按照10周期计算MA10。
-        */
     if (cache.length == 0 || isNaN(cache[i - 1]))
         return _sum(serial, n, i) / n;
     return cache[i - 1] - serial[i - n] / n + serial[i] / n;
