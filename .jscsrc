@@ -5,5 +5,5 @@
   "validateIndentation": 4,
   "maximumLineLength": 150,
   "requireDotNotation": { "allExcept": [ "snake_case" ] },
-  "excludeFiles": ["node_modules/**", "dist/**", "src/assets/**", "defaults"]
+  "excludeFiles": ["node_modules/**", "dist/**", "src/assets/**", "gulpfile.js", "defaults"]
 }
