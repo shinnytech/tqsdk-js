@@ -78,6 +78,10 @@ $(function () {
         CMenu.editor.focus();
     });
 
+    $('#btn_help').on('click', function (e) {
+        window.open('http://doc.tq18.cn/ta/latest');
+    });
+
     $('#btn_editor_run').on('click', function (e) {
         let funcName = CMenu.editing.name;
         let code = CMenu.editor.getSession().getValue();

@@ -9,6 +9,7 @@ var minifyJsEs6 = require('uglify-es');
 var clean = require('gulp-clean');
 var rename = require("gulp-rename");
 var concat = require('gulp-concat');
+var connect = require('gulp-connect');
 var gutil = require('gulp-util');
 
 var minifyJs = composer(minifyJsEs6, console);
@@ -80,7 +81,7 @@ gulp.task('beforecopy', function () {
 gulp.task('css', ['js'], function () {
     return gulp.src(['./src/css/*.css'], {base: 'src'})
         .pipe(minifyCss())
-        .pipe(gulp.dest(distDir))
+        .pipe(gulp.dest(distDir));
 });
 
 gulp.task('html', ['css'], function () {
@@ -111,4 +112,17 @@ gulp.task('clean', function () {
 
 gulp.task('default', ['clean'], function () {
     return gulp.start("html");
+});
+
+gulp.task('localRun', function () {
+    connect.server({
+        root: 'src',
+        port: 9999,
+        livereload: true,
+        middleware: function(connect, opt) {
+            console.log(connect)
+            console.log(opt)
+            return []
+        }
+    })
 });
