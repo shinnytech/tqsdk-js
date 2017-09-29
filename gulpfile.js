@@ -57,6 +57,8 @@ gulp.task('copy', ['beforecopy'], function () {
         './src/assets/bootstrap/**',
         './src/assets/ace-min/ace.js',
         './src/assets/ace-min/*-javascript.js',
+        './src/assets/ace-min/ext-*.js',
+        './src/assets/ace-min/keybinding-*.js',
         './src/assets/ace-min/theme-*.js',
         './src/js/worker/worker.js',
         './src/defaults/*',
@@ -69,7 +71,7 @@ gulp.task('beforecopy', function () {
     var files = fs.readdirSync('./src/defaults/');
     var list = [];
     files.forEach(function (filename) {
-        if (filename.endsWith('.js') && filename != 'basefuncs.js') {
+        if (filename.endsWith('.js') && filename != 'basefuncs.js' && filename != 'template.js') {
             list.push(filename.substr(0, filename.length - 3))
         }
     });
