@@ -90,7 +90,7 @@ $(function () {
             CMenu.saveDraftIndicator();
             WAITING_RESULR.add(funcName);
         } else {
-            let reg = /^function\s*\*\s*(.*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}$/g;
+            let reg = /^function\s*\*\s*(\S*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}\n*$/g;
             let result = reg.exec(code);
             if (result && result[0] === result.input) {
                 if (result[1] !== funcName) {
