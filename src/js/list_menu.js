@@ -4,6 +4,7 @@ const CMenu = (function () {
         sys_dom: null,
         dom: null,
         editor: null,
+        codeTemplate: '',
 
         // 指标数据存储
         sys_datas: [],
@@ -55,12 +56,18 @@ CMenu.init = function (div) {
 
     // 初始化代码编辑区域
     CMenu.editor = ace.edit('editor');
+    CMenu.editor.getSession().setMode('ace/mode/javascript');
+    ace.require('ace/ext/language_tools');
     CMenu.editor.$blockScrolling = Infinity;
     CMenu.editor.getSession().on('changeMode', function () {
         CMenu.editor.getSession().$worker.send('changeOptions', [{ loopfunc: true }]);
     });
 
-    CMenu.editor.getSession().setMode('ace/mode/javascript');
+    CMenu.editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: true
+    });
+
     CMenu.editor.commands.addCommand({
         name: 'saverun',
         bindKey: { win: 'Ctrl-Shift-S', mac: 'Command-Shift-S', sender: 'editor|cli' },
@@ -98,7 +105,13 @@ CMenu.selectCallback = function (tr, data) {
         $('#btn_editor_reset').attr('disabled', false);
         IStore.getByKey(data.key).then(function (result) {
             CMenu.editing = result;
-            CMenu.editor.setValue(result.draft.code, 1);
+            if (data.type === 'custom') {
+                CMenu.editor.setValue('', 1);
+                CMenu.editor.insertSnippet(result.draft.code);
+            } else {
+                CMenu.editor.setValue(result.draft.code, 1);
+            }
+
             CMenu.editor.setReadOnly(false);
             CMenu.updateAttachUI();
         });
@@ -242,7 +255,31 @@ CMenu.initSysIndicators = function () {
                         CMenu.sys_datas.push(item);
                     });
                 }(response[i]));
-            }
+            };
+
+            allPromises.push(function () {
+                return $.ajax({
+                    url: '/defaults/template.js',
+                    dataType: 'text',
+                }).then(function (response) {
+                    CMenu.codeTemplate = response;
+
+                    let snippetManager = ace.require('ace/snippets').snippetManager;
+
+                    ace.config.loadModule('ace/snippets/javascript', function (m) {
+                        if (m) {
+                            snippetManager.files.javascript = m;
+                            m.snippets.push({
+                                content: response,
+                                name: 'indicator',
+                                tabTrigger: 'indicator',
+                            });
+
+                            snippetManager.register(m.snippets, m.scope);
+                        }
+                    });
+                });
+            }());
 
             Promise.all(allPromises).then(function () {
                 CMenu.sys_dom.empty();
@@ -331,11 +368,12 @@ CMenu.editIndicator = function (e) {
     }
 
     if (CMenu.doing === 'new') {
-        let codeDefault = 'function* ' + name + '(C) {\n\t\n}';
+        let codeDefault = '';
         let wenhua = { prop: null, params: null };
         if (type === 'custom_wh') {
             wenhua = CMenu.getIndicatorWH_Prop_Params();
-            codeDefault = '';
+        } else {
+            codeDefault = CMenu.codeTemplate.replace('${1:function_name}', name);
         }
 
         IStore.add({
@@ -505,7 +543,6 @@ CMenu.saveFinalIndicator = function (e) {
     }).then(function (result) {
         CMenu.updateUI(result);
     }, function (e) {
-
         Notify.error(e);
     });
 };
