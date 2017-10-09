@@ -10,44 +10,30 @@ var clean = require('gulp-clean');
 var rename = require("gulp-rename");
 var concat = require('gulp-concat');
 var connect = require('gulp-connect');
+var replace = require('gulp-replace');
 var gutil = require('gulp-util');
 
 var minifyJs = composer(minifyJsEs6, console);
 
+var vString = '-v' + require('./package').version;
+
 var distDir = 'dist/';
 
 gulp.task('js', ['workerjs'], function () {
-    return gulp.src(['./src/js/*.js', './src/index.js'])
-        .pipe(concat('index.js'))
+    return gulp.src(['./src/js/*.js', './src/index.js'], {base: 'src'})
+        .pipe(concat('index' + vString + '.js'))
         .pipe(minifyJs())
+        .pipe(replace('worker.js', 'worker' + vString + '.js'))
         .pipe(gulp.dest(distDir));
 });
 
-gulp.task('workerjs', ['subworkerjs'], function () {
-    return gulp.src([distDir + 'js/worker/worker.js'], {base: distDir})
+gulp.task('workerjs', ['copy'], function () {
+    var reg = /importScripts\((.+?)\);/;
+    return gulp.src(['./src/js/worker/worker.js', './src/js/worker/*.js'])
+        .pipe(concat('worker' + vString + '.js'))
+        .pipe(replace(reg, 'importScripts("/defaults/basefuncs.js");'))
         .pipe(minifyJs({}))
-        .pipe(gulp.dest(distDir));
-});
-
-gulp.task('subworkerjs', ['copy'], function () {
-    // 压缩 webworker
-    var fileContent = fs.readFileSync('./src/js/worker/worker.js', 'utf8');
-    var firstLine = fileContent.split(/\r?\n/)[0];
-    var subWorkers = firstLine.match(/(\w+?\.js)/g);
-    subWorkers.forEach((ele, index, arr) => {
-        if (ele.includes('basefuncs')) {
-            arr[index] = '';
-        } else {
-            arr[index] = './src/js/worker/' + ele;
-        }
-    });
-    var reg = /importScripts\((.+)\);/;
-    var resultContent = fileContent.replace(reg, 'importScripts(\'subworkers.js\', \'/defaults/basefuncs.js\');');
-    fs.writeFileSync(distDir + 'js/worker/worker.js', resultContent, 'utf8');
-    return gulp.src(subWorkers)
-        .pipe(concat('subworkers.js'))
-        .pipe(minifyJs({}))
-        .pipe(gulp.dest(distDir + 'js/worker'));
+        .pipe(gulp.dest('dist/js/worker/'));
 });
 
 gulp.task('copy', ['beforecopy'], function () {
@@ -60,7 +46,8 @@ gulp.task('copy', ['beforecopy'], function () {
         './src/assets/ace-min/ext-*.js',
         './src/assets/ace-min/keybinding-*.js',
         './src/assets/ace-min/theme-*.js',
-        './src/js/worker/worker.js',
+        './src/assets/ace-min/snippets/javascript.js',
+        './src/assets/ace-min/snippets/text.js',
         './src/defaults/*',
     ], {base: "src"})
         .pipe(gulp.dest(distDir));
@@ -82,8 +69,9 @@ gulp.task('beforecopy', function () {
 
 gulp.task('css', ['js'], function () {
     return gulp.src(['./src/css/*.css'], {base: 'src'})
+        .pipe(concat('index' + vString + '.css'))
         .pipe(minifyCss())
-        .pipe(gulp.dest(distDir));
+        .pipe(gulp.dest('dist/css/'));
 });
 
 gulp.task('html', ['css'], function () {
@@ -105,6 +93,8 @@ gulp.task('html', ['css'], function () {
 
     return gulp.src([distDir + '/index.html'])
         .pipe(minifyHtml({collapseWhitespace: true, removeComments: true}))
+        .pipe(replace('index.js', 'index' + vString + '.js'))
+        .pipe(replace('index.css', 'index' + vString + '.css'))
         .pipe(gulp.dest(distDir));
 });
 
@@ -121,7 +111,7 @@ gulp.task('localRun', function () {
         root: 'src',
         port: 9999,
         livereload: true,
-        middleware: function(connect, opt) {
+        middleware: function (connect, opt) {
             console.log(connect)
             console.log(opt)
             return []
