@@ -1,3 +1,5 @@
+.. _cfunc:
+
 核心函数
 ===================================
 
@@ -7,6 +9,6 @@
    define.rst
    param.rst
    serial.rst
-   out.rst
+   outs.rst
 
 

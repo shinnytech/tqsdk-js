@@ -1,8 +1,10 @@
+.. _efunc:
+
 计算函数
 ===================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    sum.rst
    ma.rst

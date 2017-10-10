@@ -20,7 +20,7 @@ function* boll(C){
     while(true) {
         let i = yield;
         mid[i] = MA(i, close, n, mid);
-        std[i] = STD(i, close, n, std);
+        std[i] = STDEV(i, close, n, std);
         top[i] = mid[i] + p * std[i];
         bottom[i] = mid[i] - p * std[i];
     }
