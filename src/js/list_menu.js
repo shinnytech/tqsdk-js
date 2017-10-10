@@ -144,10 +144,6 @@ CMenu.initAttachUI = function () {
                         <th>类型:</th>
                         <td class="type"></td>
                     </tr>
-                    <tr>
-                        <th>描述:</th>
-                        <td class="memo"></td>
-                    </tr>
                     <tr class="prop">
                         <th>属性:</th>
                         <td class="prop">
@@ -217,7 +213,7 @@ CMenu.updateAttachUI = function () {
         custom_wh: '文华脚本语言',
     };
     if (indicator.type === 'custom_wh') {
-        CMenu.editor.getSession().setMode('ace/mode/text');
+        CMenu.editor.getSession().setOption('useWorker', false);
         CMenu.attach_info.dom.find('.name').text(indicator.name);
         CMenu.attach_info.dom.find('.type').text(typeStr[indicator.type]);
         CMenu.attach_info.dom.find('td span.show-prop').text(indicator.prop);
@@ -228,8 +224,8 @@ CMenu.updateAttachUI = function () {
             trs.find('.min_' + i).val(indicator.params[i].min);
             trs.find('.default_' + i).val(indicator.params[i].defaultValue);
         }
-    }else{
-        CMenu.editor.getSession().setMode('ace/mode/javascript');
+    } else {
+        CMenu.editor.getSession().setOption('useWorker', true);
     }
 };
 
@@ -517,6 +513,7 @@ CMenu.saveDraftIndicator = function (e) {
         params: wenhua.params,
     }).then(function (result) {
         CMenu.editing = result;
+        console.log(result)
         worker.postMessage({ cmd: 'indicator', content: result });
     }, function (e) {
 

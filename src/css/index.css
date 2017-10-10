@@ -12,6 +12,12 @@ table.table {
     word-wrap: break-word;
 }
 
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0;
+}
+
 /* ============================= */
 
 .main-container {

@@ -99,7 +99,7 @@ const TM = (function () {
         for (let i = 1; i <= 6; i++) {
             let p = indicator.params[i];
             if (p && p.name)
-                params.push([p.name, Number(p.min), Number(p.max), Number(p.default_value)]);
+                params.push([p.name, Number(p.min), Number(p.max), Number(p.defaultValue)]);
         }
 
         return {
@@ -183,8 +183,8 @@ const TM = (function () {
         postMessage({
             cmd: 'calc_start', content: {
                 id: id,
-                className: indicatorName
-            }
+                className: indicatorName,
+            },
         });
         try {
             let f = func(C);
