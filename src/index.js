@@ -29,7 +29,7 @@ const initWorker = function () {
                 ErrorHandlers.records[content.id] = setTimeout(() => {
                     Notify.error(content.className + ' 运行超时！');
                     ErrorHandlers.add(content.className);
-                    CMenu.updateUI();
+                    CMenu.update();
                     worker.terminate();
                     initWorker();
                 }, CODE_RUN_TIMEOUT);
@@ -41,7 +41,7 @@ const initWorker = function () {
                 if (content.error) {
                     Notify.error((new TqFeedback(content)).toString());
                     ErrorHandlers.add(content.func_name);
-                    CMenu.updateUI();
+                    CMenu.update();
                     if (content.type === 'run' || content.type === 'define') {
                         worker.terminate();
                         initWorker();

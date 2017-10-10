@@ -59,9 +59,6 @@ CMenu.init = function (div) {
     CMenu.editor.getSession().setMode('ace/mode/javascript');
     ace.require('ace/ext/language_tools');
     CMenu.editor.$blockScrolling = Infinity;
-    CMenu.editor.getSession().on('changeMode', function () {
-        CMenu.editor.getSession().$worker.send('changeOptions', [{ loopfunc: true }]);
-    });
 
     CMenu.editor.setOptions({
         enableBasicAutocompletion: true,
@@ -159,11 +156,10 @@ CMenu.initAttachUI = function () {
                                 <div class="btn-group">
                                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" 
                                         aria-haspopup="true" aria-expanded="false">
-                                    <span class="show-prop">主图K线形态</span> <span class="caret"></span>
+                                    <span class="show-prop">副图指标</span> <span class="caret"></span>
                                     </button>
                                       <ul class="dropdown-menu">
                                         <li><a href="#" class="indicator-prop">副图指标</a></li>
-                                        <li><a href="#" class="indicator-prop">主图K线形态</a></li>
                                         <li><a href="#" class="indicator-prop">K线附属指标</a></li>
                                       </ul>
                                 </div>
@@ -187,9 +183,9 @@ CMenu.initAttachUI = function () {
                         <tr>
                             <th>参数</th>
                             <th>名称</th>
-                            <th>最大</th>
-                            <th>最小</th>
                             <th>缺省</th>
+                            <th>最小</th>
+                            <th>最大</th>
                         </tr>
                         </thead>`);
     let $paramTbody = $('<tbody></tbody>');
@@ -200,7 +196,7 @@ CMenu.initAttachUI = function () {
         let $tdMax = $('<td><input type="number" readonly class="form-control ' + ('max_' + i) + '"/></td>');
         let $tdMin = $('<td><input type="number" readonly class="form-control ' + ('min_' + i) + '"/></td>');
         let $tdDefault = $('<td><input type="number" readonly class="form-control ' + ('default_' + i) + '"/></td>');
-        $tr.append($tdId).append($tdName).append($tdMax).append($tdMin).append($tdDefault);
+        $tr.append($tdId).append($tdName).append($tdDefault).append($tdMin).append($tdMax);
         $paramTbody.append($tr);
     }
 
@@ -221,6 +217,7 @@ CMenu.updateAttachUI = function () {
         custom_wh: '文华脚本语言',
     };
     if (indicator.type === 'custom_wh') {
+        CMenu.editor.getSession().setMode('ace/mode/text');
         CMenu.attach_info.dom.find('.name').text(indicator.name);
         CMenu.attach_info.dom.find('.type').text(typeStr[indicator.type]);
         CMenu.attach_info.dom.find('td span.show-prop').text(indicator.prop);
@@ -229,8 +226,10 @@ CMenu.updateAttachUI = function () {
             trs.find('.name_' + i).val(indicator.params[i].name);
             trs.find('.max_' + i).val(indicator.params[i].max);
             trs.find('.min_' + i).val(indicator.params[i].min);
-            trs.find('.default_' + i).val(indicator.params[i].default_value);
+            trs.find('.default_' + i).val(indicator.params[i].defaultValue);
         }
+    }else{
+        CMenu.editor.getSession().setMode('ace/mode/javascript');
     }
 };
 
@@ -425,7 +424,6 @@ CMenu.editIndicator = function (e) {
         if (type === 'custom_wh') {
             wenhua = CMenu.getIndicatorWH_Prop_Params();
         }
-
         IStore.saveDraft({
             key: CMenu.editing.key,
             name: name,
