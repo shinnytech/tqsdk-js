@@ -386,6 +386,10 @@ const TqFeedback = function (e) {
 };
 
 TqFeedback.prototype.toString = function () {
-    // '报错类型: ' + this.type
-    return '报错函数: ' + this.func_name + '<br/>错误内容: ' + this.message;
+    if (this.error) {
+        // '报错类型: ' + this.type
+        return `报错函数: ${this.func_name}<br/>错误内容: ${this.message}`;
+    } else {
+        return `函数  ${this.func_name} 运行成功！`;
+    }
 };

@@ -513,7 +513,6 @@ CMenu.saveDraftIndicator = function (e) {
         params: wenhua.params,
     }).then(function (result) {
         CMenu.editing = result;
-        console.log(result)
         worker.postMessage({ cmd: 'indicator', content: result });
     }, function (e) {
 

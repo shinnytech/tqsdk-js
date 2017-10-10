@@ -55,7 +55,7 @@ const TM = (function () {
                             cmd: 'feedback', content: {
                                 error: true,
                                 type: 'eval',
-                                message: 'wh' + error.message,
+                                message: error.message,
                                 func_name: funcName,
                             },
                         });
