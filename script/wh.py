@@ -190,7 +190,8 @@ def t_COMMENT(t):
 
 def t_newline(t):
     r'\n+'
-    t.lexer.lineno += t.value.count("\n")
+    n = t.value.count("\n")
+    t.lexer.lineno += n
     t.lexer.colstart = t.lexer.lexpos
 
 def t_error(t):
@@ -386,7 +387,7 @@ def p_error(p):
     if p:
         print("Syntax error at token", p.type)
         convert_result["errline"] = p.lineno
-        convert_result["errcol"] = p.lexpos - p.lexer.colstart + 1
+        convert_result["errcol"] = p.lexpos - getattr(p.lexer, "colstart", 0) + 1
         convert_result["errvalue"] = p.value
     else:
         print("Syntax error at EOF")
@@ -458,6 +459,7 @@ function* {indicator_id}(C){{
                body="\n".join(body_lines))
     convert_result["target"] = target
     return convert_result
+
 
 #---------------------------------------------------------------------------------
 ma = {"id":"macdw","cname":"macdw","type":"SUB","params":[["N1",10,1,100]],"src":"MA1:MA(CLOSE,N1);"}
@@ -701,6 +703,20 @@ PSYMA:MA(PSY,M);//PSY在M个周期内的简单移动平均；
     """,
 }
 
+
+# ma3 = {
+#     "id": "ma2",
+#     "cname": "ma2",
+#     "type": "MAIN",
+#     "src": """
+#     MA1MA(CLOSE,N1);""",
+#     "params": [
+#         ["N1", 1, 100, 20],
+#     ],
+#     "expected": """
+#     """,
+# }
+
 if __name__ == "__main__":
     def tryconvert(f):
         ret = wenhua_translate(f)
@@ -712,5 +728,5 @@ if __name__ == "__main__":
         %s
         -EXPECTED--------------------------------
         """ % (f["src"], json.dumps(ret, indent=2), ret["target"]))
-    tryconvert(arbr2)
+    tryconvert(ma2)
 

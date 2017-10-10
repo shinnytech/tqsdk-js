@@ -15,6 +15,7 @@ class WenhuaTranslate(tornado.web.RequestHandler):
         req = json.loads(s)
         ret = wenhua_translate(req)
         self.set_header("Access-Control-Allow-Origin", "*")
+        print("output:", ret["target"])
         self.finish(ret)
 
     def options(self, *args, **kwargs):
