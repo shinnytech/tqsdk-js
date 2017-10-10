@@ -10,9 +10,16 @@ from wh import wenhua_translate
 
 class WenhuaTranslate(tornado.web.RequestHandler):
     def post(self):
-        req = json.loads(self.request.body.decode("utf-8"))
+        s = self.request.body.decode("utf-8")
+        print("input:", s)
+        req = json.loads(s)
         ret = wenhua_translate(req)
+        self.set_header("Access-Control-Allow-Origin", "*")
         self.finish(ret)
+
+    def options(self, *args, **kwargs):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.finish()
 
 
 class Application(tornado.web.Application):
