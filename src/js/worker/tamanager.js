@@ -43,8 +43,7 @@ const TM = (function () {
                                 cmd: 'feedback', content: {
                                     error: true,
                                     type: 'eval',
-                                    message: 'error in '
-                                        + data.errline + ':' + data.errcol + ' ' + data.errvalue,
+                                    message: `error in ${data.errline}:${data.errcol} ${data.errvalue}`,
                                     func_name: funcName,
                                 },
                             });

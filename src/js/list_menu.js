@@ -59,10 +59,19 @@ CMenu.init = function (div) {
     CMenu.editor.getSession().setMode('ace/mode/javascript');
     ace.require('ace/ext/language_tools');
     CMenu.editor.$blockScrolling = Infinity;
+    let session = CMenu.editor.getSession();
+    var interval = setInterval(() => {
+        if (session.$worker) {
+            session.$worker.send('changeOptions', [{
+                strict: false,
+            }]);
+            clearInterval(interval);
+        }
+    }, 50);
 
     CMenu.editor.setOptions({
         enableBasicAutocompletion: true,
-        enableSnippets: true
+        enableSnippets: true,
     });
 
     CMenu.editor.commands.addCommand({
