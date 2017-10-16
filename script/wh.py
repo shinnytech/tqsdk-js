@@ -3,38 +3,48 @@
 
 import logging
 import json
+import ply.lex as lex
+import ply.yacc as yacc
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    # filename = "parselog.txt",
-    # filemode = "w",
-    format="%(filename)10s:%(lineno)4d:%(message)s"
-)
-log = logging.getLogger()
+
+logger = logging.getLogger()
+
+
+class TranslateException(Exception):
+    def __init__(self, err_line, err_col, err_msg):
+        self.err_line = err_line
+        self.err_col = err_col
+        self.err_msg = err_msg
+    def __str__(self):
+        return "line:%d, col:%d, msg:%s" % (self.err_line, self.err_col, self.err_msg)
 
 
 #转换支持环境
 
 def reset():
-    global input_serials, input_params, serials, output_serials, body_lines, function_serials, scount, current_line, convert_result, temp_serials
+    global input_serials, input_params, serials, output_serials, body_lines, function_serials, scount, current_line, temp_serials, line_start_map, current_output_serial
     input_serials = []  # 所有输入序列
-    input_params = []
-    serials = []
     output_serials = []
     temp_serials = []
-    body_lines = []
     function_serials = []
+    serials = []
+    input_params = [] # 所有参数
+    body_lines = [] # 输出行
     scount = 0
     current_line = []
-    convert_result = {
-        "errline": 0,
-        "errcol": 0,
-        "errvalue": "",
-        "target": "",
+    line_start_map = {} #行号->行第一个字符pos的映射表
+    current_output_serial = {
+        "color": get_auto_color(),
+        "type": "LINE"
     }
 
+next_color = 0
 def get_auto_color():
-    return "RED"
+    global next_color
+    colors = ["RED", "GREEN", "BLUE", "CYAN", "GRAY", "MAGENTA", "YELLOW", "LIGHTGRAY", "LIGHTRED", "LIGHTGREEN", "LIGHTBLUE"]
+    c = colors[next_color]
+    next_color = (next_color + 1) % len(colors)
+    return c
 
 def auto_serial_name():
     global scount
@@ -62,14 +72,24 @@ def define_input_serial(serial_name):
     if serial_name not in input_serials:
         input_serials.append(serial_name)
 
-def define_output(serial_name, serial_type, serial_color):
+def define_output(serial_name):
     define_serial(serial_name, False)
-    if serial_type == "COLORSTICK":
-        serial_type = "BAR"
-    output_serials.append({
-        "name": serial_name,
-        "type": serial_type,
-        "color": serial_color})
+    global current_output_serial
+    current_output_serial["name"] = serial_name
+    output_serials.append(current_output_serial)
+    current_output_serial = {
+        "color": get_auto_color(),
+        "type":"LINE"
+    }
+
+def set_output_color(color):
+    global current_output_serial
+    c = color_map.get(color, color)
+    current_output_serial["color"] = c
+
+def set_output_type(t):
+    global current_output_serial
+    current_output_serial["type"] = t
 
 def define_function_serial(fname, fparam):
     nname = function_map.get(fname, fname)
@@ -106,14 +126,20 @@ def finish_line(last):
 #lex+yacc语法规范
 tokens = [
     "ID", 'NUMBER', "COMMENT",
+    "VVALUE", "VSERIAL",
     'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'EQUALS',
     'LPAREN','RPAREN',
     'COMMA', "SEMICOLON", "COLON", "COLON_EQUALS",
     "LT", "LTE", "GT", "GTE",
+    "AND", "OR", "NOT",
     "SERIAL",
-    "FUNCVVV", #函数，返回值
-    "FUNCSSV", #函数，返回值是一个序列，有两参数，分别是serial和value
-    "FUNCSSVV",
+    "FUNCS", #函数，1个序列参数
+    "FUNCSS", #函数，2个序列参数
+    "FUNCSV", #函数，1个序列参数,一个数值参数
+    "FUNCSVV",
+    "FUNCVV",
+    "FUNCV",
+    "COLOR",
     "OFUNC",
     "IFELSE",
     "COUNT",
@@ -136,16 +162,32 @@ reserved = {
     "L": "SERIAL",
     "C": "SERIAL",
     # 序列函数
-    "REF": "FUNCSSV",
-    "MA": "FUNCSSV",
-    "EMA": "FUNCSSV",
-    "DMA": "FUNCSSV",
-    "HHV": "FUNCSSV",
-    "LLV": "FUNCSSV",
-    "SUM": "FUNCSSV",
-    "SMA": "FUNCSSVV",
-    "MAX": "FUNCVVV",
-    "MIN": "FUNCVVV",
+    "ABS": "FUNCV",
+    "REF": "FUNCSV",
+    "MA": "FUNCSV",
+    "STD": "FUNCSV",
+    "EMA": "FUNCSV",
+    "DMA": "FUNCSV",
+    "HHV": "FUNCSV",
+    "LLV": "FUNCSV",
+    "SUM": "FUNCSV",
+    "SMA": "FUNCSVV",
+    "MAX": "FUNCVV",
+    "MIN": "FUNCVV",
+    # 颜色
+    "COLORRED": "COLOR",
+    "COLORGREEN": "COLOR",
+    "COLORBLUE": "COLOR",
+    "COLORCYAN": "COLOR",
+    "COLORBLACK": "COLOR",
+    "COLORWHITE": "COLOR",
+    "COLORGRAY": "COLOR",
+    "COLORMAGENTA": "COLOR",
+    "COLORYELLOW": "COLOR",
+    "COLORLIGHTGRAY": "COLOR",
+    "COLORLIGHTRED": "COLOR",
+    "COLORLIGHTGREEN": "COLOR",
+    "COLORLIGHTBLUE": "COLOR",
     # 输出函数
     "COLORSTICK": "OFUNC",
     # 特殊函数
@@ -158,12 +200,47 @@ function_map = {
     #文华函数到本地函数名映射表
     "HHV": "HIGHEST",
     "LLV": "LOWEST",
+    "STD": "STDEV",
 }
+
+inserial_selector_map = {
+    "O": "OPEN",
+    "H": "HIGH",
+    "L": "LOW",
+    "C": "CLOSE",
+    "VOL": "VOLUME",
+}
+
+color_map = {
+    #文华函数到本地函数名映射表
+    "COLORRED": "RED",
+    "COLORGREEN": "GREEN",
+    "COLORBLUE": "BLUE",
+    "COLORCYAN": "CYAN",
+    "COLORBLACK": "BLACK",
+    "COLORWHITE": "WHITE",
+    "COLORGRAY": "GRAY",
+    "COLORMAGENTA": "MAGENTA",
+    "COLORYELLOW": "YELLOW",
+    "COLORLIGHTGRAY": "LIGHTGRAY",
+    "COLORLIGHTRED": "LIGHTRED",
+    "COLORLIGHTGREEN": "LIGHTGREEN",
+    "COLORLIGHTBLUE": "LIGHTBLUE",
+}
+
 
 # Tokens
 def t_ID(t):
     r'[a-zA-Z_][a-zA-Z_0-9]*'
-    t.type = reserved.get(t.value, 'ID')    # Check for reserved words
+    t.type = reserved.get(t.value, None)    # Check for reserved words
+    if t.type:
+        return t
+    if is_param(t.value):
+        t.type = "VVALUE"
+    elif is_serial(t.value):
+        t.type = "VSERIAL"
+    else:
+        t.type = "ID"
     return t
 
 t_COLON_EQUALS = r':='
@@ -181,6 +258,8 @@ t_LT = r'<'
 t_LTE = r'<='
 t_GT = r'>'
 t_GTE = r'>='
+t_AND = r'&&'
+t_OR = r'\|\|'
 t_NUMBER = r'[\d\.]+'
 t_ignore = " \t"
 
@@ -192,15 +271,12 @@ def t_newline(t):
     r'\n+'
     n = t.value.count("\n")
     t.lexer.lineno += n
-    t.lexer.colstart = t.lexer.lexpos
+    global line_start_map
+    line_start_map[t.lexer.lineno] = t.lexer.lexpos 
 
 def t_error(t):
-    print("Illegal character '%s'" % t.value[0])
+    logger.warning("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
-
-# Build the lexer
-import ply.lex as lex
-lexer = lex.lex()
 
 precedence = (
     ('left', 'COLON'),
@@ -212,163 +288,245 @@ def p_lines_line(p):
     """
     lines : line
     """
-    print("p_lines_line", p[1])
+    logger.debug("p_lines_line: %s", p[1])
     p[0] = p[1]
 
 def p_lines_lines_line(p):
     """
     lines : lines line
     """
-    print("p_lines_lines_line", p[1], p[2])
+    logger.debug("p_lines_lines_line: %s, %s", p[1], p[2])
     p[0] = p[1] + "\n" + p[2]
 
-def p_line_output_serial_define(p):
+def p_line_statement(p):
     """
-    line : ID COLON expressionv SEMICOLON
+    line : statement SEMICOLON
     """
-    print("p_line_output_serial_define", p[1], p[3])
-    define_output(p[1], "LINE", get_auto_color())
-    p[0] = '%s[i] = %s;' % (p[1], p[3])
+    logger.debug("p_line_statement: %s", p[1])
+    p[0] = p[1] + ";"
     finish_line(p[0])
 
-def p_line_output_serial_define_with_func(p):
+def p_statement_output_serial_define(p):
     """
-    line : ID COLON expressionv COMMA OFUNC SEMICOLON
+    statement : ID COLON expressions
     """
-    print("p_line_output_serial_define_with_func", p[1], p[3], p[5])
-    define_output(p[1], p[5], get_auto_color())
-    p[0] = '%s[i] = %s;' % (p[1], p[3])
-    finish_line(p[0])
+    logger.debug("p_line_output_serial_define: %s, %s", p[1], p[3])
+    define_output(p[1])
+    p[0] = '%s[i] = %s' % (p[1], as_value(p[3]))
 
-def p_line_anoymouse_output_with_func(p):
+def p_statement_anoymouse_output(p):
     """
-    line : expressionv COMMA OFUNC SEMICOLON
+    statement : expressions
     """
-    print("p_line_anoymouse_output_with_func", p[1], p[3])
+    logger.debug("p_statement_anoymouse_output: %s", p[1])
     name = auto_serial_name()
-    define_output(name, p[3], get_auto_color())
-    p[0] = "%s[i] = %s" % (name, p[1])
-    finish_line(p[0])
+    define_output(name)
+    p[0] = "%s[i] = %s" % (name, as_value(p[1]))
 
-def p_line_temp_serial_define(p):
+def p_statement_temp_serial_define(p):
     """
-    line : ID COLON_EQUALS expressionv SEMICOLON
+    statement : ID COLON_EQUALS expressions
     """
-    print("p_line_temp_serial_define", p[1], p[3])
+    logger.debug("p_line_temp_serial_define: %s, %s", p[1], p[3])
     define_serial(p[1], True)
-    p[0] = '%s[i] = %s;' % (p[1], p[3])
-    finish_line(p[0])
+    p[0] = '%s[i] = %s' % (p[1], as_value(p[3]))
+
+def p_statement_with_ofunc(p):
+    """
+    statement : statement COMMA OFUNC
+    """
+    logger.debug("p_statement_with_ofunc: %s, %s", p[1], p[3])
+    set_output_type(p[3])
+    p[0] = p[1]
+
+def p_statement_with_color(p):
+    """
+    statement : statement COMMA COLOR
+    """
+    logger.debug("p_statement_with_color: %s, %s", p[1], p[3])
+    set_output_color(p[1])
+    p[0] = p[1]
 
 def p_line_background_style(p):
     """
     line : BACKGROUNDSTYLE LPAREN NUMBER RPAREN SEMICOLON
     """
-    print("p_line_background_style", p[3])
+    logger.debug("p_line_background_style: %s", p[3])
     #@todo
     p[0] = ""
 
+def p_expression_expressionv(p):
+    '''expression : expressionv'''
+    logger.debug("p_expression_expressionv: %s", p[1])
+    p[0] = p[1]
+
+def p_expression_expressions(p):
+    '''expression : expressions'''
+    logger.debug("p_expression_expressions: %s", p[1])
+    p[0] = p[1]
+
+def p_param_expression(p):
+    '''param : expression'''
+    logger.debug("p_param_expression: %s", p[1])
+    p[0] = p[1]
+
+def p_params_param(p):
+    '''params : param'''
+    logger.debug("p_params_param: %s", p[1])
+    p[0] = p[1]
+
+def p_params_params_param(p):
+    '''params : params COMMA param'''
+    logger.debug("p_params_params_param: %s, %s", p[1], p[3])
+    p[0] = p[1] + ", " + p[3]
+
 def p_expressionv_paren(t):
     '''expressionv : LPAREN expressionv RPAREN'''
-    print("p_expressionv_paren", t[2])
+    logger.debug("p_expressionv_paren: %s", t[2])
     t[0] = "(%s)" % t[2]
 
+def p_expressions_paren(t):
+    '''expressions : LPAREN expressions RPAREN'''
+    logger.debug("p_expressions_paren: %s", t[2])
+    t[0] = "(%s)" % t[2]
+
+def p_expressionv_expressions(t):
+    '''expressionv : expressions'''
+    logger.debug("p_expressionv_expressions: %s", t[1])
+    t[0] = "%s[i]" % (t[1])
+
 def p_expressionv_binop(t):
-    '''expressionv : expressionv PLUS expressionv
+    '''expressions : expressionv PLUS expressionv
                   | expressionv MINUS expressionv
                   | expressionv TIMES expressionv
                   | expressionv DIVIDE expressionv'''
-    print("p_expressionv_binop", t[1], t[2], t[3])
-    t[0] = "(%s %s %s)" % (t[1], t[2], t[3])
+    logger.debug("p_expressionv_binop: %s", t[1], t[2], t[3])
+    id = auto_serial_name()
+    define_serial(id, True)
+    expr = "(%s %s %s)" % (t[1], t[2], t[3])
+    current_line.append("{id}[i]=({expr});".format(id=id, expr=expr))
+    t[0] = id
+    # t[0] = "(%s %s %s)" % (t[1], t[2], t[3])
+
 
 def p_expressionv_number(p):
     """expressionv : NUMBER"""
-    print("p_expressionv_number", p[1])
+    logger.debug("p_expressionv_number: %s", p[1])
     p[0] = p[1]
-
-def p_expressionv_serial(p):
-    """expressionv : SERIAL"""
-    if p[1] == "O":
-        p[0] = "OPEN"
-    elif p[1] == "H":
-        p[0] = "HIGH"
-    elif p[1] == "L":
-        p[0] = "LOW"
-    elif p[1] == "C":
-        p[0] = "CLOSE"
-    else:
-        p[0] = p[1]
-    define_input_serial(p[0])
-    p[0] = as_value(p[0])
 
 def p_expressions_serial(p):
     """expressions : SERIAL
     """
-    if p[1] == "O":
-        p[0] = "OPEN"
-    elif p[1] == "H":
-        p[0] = "HIGH"
-    elif p[1] == "L":
-        p[0] = "LOW"
-    elif p[1] == "C":
-        p[0] = "CLOSE"
-    else:
-        p[0] = p[1]
-    define_input_serial(p[0])
+    logger.debug("p_expressions_serial: %s", p[1])
+    s = inserial_selector_map.get(p[1], p[1])
+    define_input_serial(s)
+    p[0] = s
 
-def p_expressionv_id(p):
-    """expressionv : ID
+def p_expressionv_vvalue(p):
+    """expressionv : VVALUE
     """
-    print("p_expressionv_id", p[1])
+    logger.debug("p_expressionv_id: %s", p[1])
     if is_param(p[1]):
         p[0] = p[1]
     elif is_serial(p[1]):
         p[0] = as_value(p[1])
     else:
-        p[0] = ""
-        # raise Exception("unknown id:"+p[1])
+        global line_start_map
+        raise TranslateException(err_line=p.slice[1].lineno,
+                                 err_col=p.slice[1].lexpos - line_start_map.get(p.slice[1].lineno, 0) + 1,
+                                 err_msg="无法识别的标识符: %s. 如果这是一个指标参数,请将它加入参数表中" % p[1])
 
-def p_expressionv_function(p):
-    'expressionv : function'
-    print("p_expressionv_function", p[1])
-    p[0] = p[1]
-
-def p_expressions_id(p):
-    """expressions : ID
+def p_expressionv_id(p):
+    """expressionv : ID
     """
-    print("p_expressions_id", p[1])
+    logger.debug("p_expressionv_id: %s", p[1])
+    global line_start_map
+    raise TranslateException(err_line=p.slice[1].lineno,
+                             err_col=p.slice[1].lexpos - line_start_map.get(p.slice[1].lineno, 0) + 1,
+                             err_msg="无法识别的标识符: %s. 如果这是一个指标参数,请将它加入参数表中" % p[1])
+
+def p_expressions_function(p):
+    'expressions : function'
+    logger.debug("p_expressions_function: %s", p[1])
     p[0] = p[1]
+
+def p_expressions_vserial(p):
+    """expressions : VSERIAL
+    """
+    logger.debug("p_expressions_id: %s", p[1])
+    if is_serial(p[1]):
+        p[0] = p[1]
+    else:
+        global line_start_map
+        raise TranslateException(err_line=p.slice[1].lineno,
+                                 err_col=p.slice[1].lexpos - line_start_map.get(p.slice[1].lineno, 0) + 1,
+                                 err_msg="无法识别的标识符: %s. 请检查拼写是否有误" % p[1])
 
 def p_function_ifelse(p):
     """ function : IFELSE LPAREN compare_expression COMMA expressionv COMMA expressionv RPAREN"""
-    print("p_function_ifelse", p[3], p[5], p[7])
-    s_name = define_function_serial("IFELSE", "%s,%s,%s" % (p[3], p[5],p[7]))
-    p[0] = "%s[i]" % s_name
+    logger.debug("p_function_ifelse: %s, %s, %s", p[3], p[5], p[7])
+    id = auto_serial_name()
+    define_serial(id, True)
+    current_line.append("{id}[i]=IFELSE({cond}, {vtrue}, {vfalse});".format(id=id, cond=p[3], vtrue=p[5], vfalse=p[7]))
+    p[0] = id
 
 def p_function_count(p):
     """ function : COUNT LPAREN compare_expression COMMA expressionv RPAREN"""
-    print("p_function_count", p[3], p[5])
+    logger.debug("p_function_count: %s, %s", p[3], p[5])
     s_name = define_function_serial("COUNT", "%s,%s" % (p[3], p[5]))
-    p[0] = "%s[i]" % s_name
+    p[0] = "%s" % s_name
 
-def p_function_s_sv(p):
-    """ function : FUNCSSV LPAREN expressions COMMA expressionv RPAREN"""
-    print("p_function_s_sv", p[1], p[3], p[5])
+def p_function_s(p):
+    """ function : FUNCS LPAREN expressions RPAREN"""
+    logger.debug("p_function_s: %s, %s", p[1], p[3])
+    fname = function_map.get(p[1], p[1])
+    s_name = define_function_serial(fname, "%s" % (p[3]))
+    p[0] = "%s" % s_name
+
+def p_function_sv(p):
+    """ function : FUNCSV LPAREN expressions COMMA expressionv RPAREN"""
+    logger.debug("p_function_sv: %s, %s, %s", p[1], p[3], p[5])
     fname = function_map.get(p[1], p[1])
     s_name = define_function_serial(fname, "%s,%s" % (p[3], p[5]))
-    p[0] = "%s[i]" % s_name
+    p[0] = "%s" % s_name
 
-def p_function_s_svv(p):
-    """ function : FUNCSSVV LPAREN expressions COMMA expressionv COMMA expressionv RPAREN"""
-    print("p_function_s_svv", p[1], p[3], p[5], p[7])
+def p_function_ss(p):
+    """ function : FUNCSS LPAREN expressions COMMA expressions RPAREN"""
+    logger.debug("p_function_ss: %s, %s, %s", p[1], p[3], p[5])
+    fname = function_map.get(p[1], p[1])
+    s_name = define_function_serial(fname, "%s,%s" % (p[3], p[5]))
+    p[0] = "%s" % s_name
+
+def p_function_vv(p):
+    """ function : FUNCVV LPAREN expressionv COMMA expressionv RPAREN"""
+    logger.debug("p_function_vv: %s, %s, %s", p[1], p[3], p[5])
+    fname = function_map.get(p[1], p[1])
+    id = auto_serial_name()
+    define_serial(id, True)
+    current_line.append("{id}[i]={name}({param});".format(id=id, name=fname, param="%s,%s" % (p[3], p[5])))
+    p[0] = id
+
+def p_function_v(p):
+    """ function : FUNCV LPAREN expressionv RPAREN"""
+    logger.debug("p_function_vv: %s, %s, %s", p[1], p[3])
+    fname = function_map.get(p[1], p[1])
+    id = auto_serial_name()
+    define_serial(id, True)
+    current_line.append("{id}[i]={name}({param});".format(id=id, name=fname, param=p[3]))
+    p[0] = id
+
+def p_function_svv(p):
+    """ function : FUNCSVV LPAREN expressions COMMA expressionv COMMA expressionv RPAREN"""
+    logger.debug("p_function_svv: %s, %s, %s", p[1], p[3], p[5], p[7])
     fname = function_map.get(p[1], p[1])
     s_name = define_function_serial(fname, "%s,%s,%s" % (p[3], p[5], p[7]))
-    p[0] = "%s[i]" % s_name
+    p[0] = "%s" % s_name
 
-def p_function_v_vv(p):
-    """ function : FUNCVVV LPAREN expressionv COMMA expressionv RPAREN"""
-    print("p_function_v_vv", p[1], p[3], p[5])
-    fname = function_map.get(p[1], p[1])
-    p[0] = "%s(%s,%s)" % (fname, p[3], p[5])
+def p_function_unknown(p):
+    """ function : ID LPAREN params RPAREN"""
+    raise TranslateException(err_line=p.slice[1].lineno,
+                             err_col=p.slice[1].lexpos - line_start_map.get(p.slice[1].lineno, 0) + 1,
+                             err_msg="尚未支持此函数: %s." % p[1])
 
 def p_compare_expression(p):
     """compare_expression : expressionv LT expressionv
@@ -377,26 +535,29 @@ def p_compare_expression(p):
                           | expressionv GTE expressionv
                           | expressionv EQUALS expressionv
     """
-    print("p_compare_expression", p[1], p[2], p[3])
+    logger.debug("p_compare_expression: %s, %s, %s", p[1], p[2], p[3])
+    ce = "%s %s %s" %(p[1], p[2], p[3])
+    s_name = define_compare_serial(ce)
+    p[0] = "%s[i]" % s_name
+
+def p_compare_expression_expression(p):
+    """compare_expression : compare_expression AND compare_expression
+                          | compare_expression OR compare_expression
+    """
+    logger.debug("p_compare_expression_expression: %s, %s, %s", p[1], p[2], p[3])
     ce = "%s %s %s" %(p[1], p[2], p[3])
     s_name = define_compare_serial(ce)
     p[0] = "%s[i]" % s_name
 
 def p_error(p):
-    global convert_result
     if p:
-        print("Syntax error at token", p.type)
-        convert_result["errline"] = p.lineno
-        convert_result["errcol"] = p.lexpos - getattr(p.lexer, "colstart", 0) + 1
-        convert_result["errvalue"] = p.value
+        raise TranslateException(err_line=p.lineno,
+                                 err_col=p.lexpos - line_start_map.get(p.lineno, 0) + 1,
+                                 err_msg="不应该出现在这里的字符 %s" % p.value)
     else:
-        print("Syntax error at EOF")
-        convert_result["errline"] = -1
-        convert_result["errcol"] = -1
-        convert_result["errvalue"] = ""
-
-
-import ply.yacc as yacc
+        raise TranslateException(err_line=-1,
+                                 err_col=-1,
+                                 err_msg="代码未正确结束,请检查括号匹配和行末分号等")
 
 def wenhua_translate(req):
     """
@@ -417,305 +578,66 @@ def wenhua_translate(req):
         target: "...", //转换好的目标代码
     }
     """
+    # Build the lexer
+    lexer = lex.lex()
+
     reset()
     global input_params
-    global convert_result
     #检查请求信息
     indicator_id = req["id"]
     wenhua_src = req["src"]
     input_params = [p[0] for p in req["params"]]
     #解析并拼装
-    parser = yacc.yacc(debug=True, debuglog=log)
+    parser = yacc.yacc(debug=True, debuglog=logger)
     parser.parse(wenhua_src)
     target = """
 function* {indicator_id}(C){{
-    C.DEFINE({{
-        type: "{type}",
-        cname: "{cname}",
-        state: "KLINE",
-    }});
-    //定义指标参数
+C.DEFINE({{
+type: "{type}",
+cname: "{cname}",
+state: "KLINE",
+}});
+//定义指标参数
 {param_lines}
-    //输入序列
+//输入序列
 {input_serial_lines}
-    //输出序列
+//输出序列
 {output_serial_lines}
-    //临时序列
+//临时序列
 {temp_serial_declare_lines}
-    //指标计算
-    while(true){{
-        let i = yield;
+//指标计算
+while(true){{
+let i = yield;
 {body}
-    }}
+}}
 }}        
     """.format(indicator_id=indicator_id,
                type=req["type"],
                cname=req["cname"],
-               param_lines="\n".join(['    let %s = C.PARAM(%f, "%s", {"MIN": %f, "MAX":%f});' % (p[0], p[3], p[0], p[1], p[2]) for p in req["params"]]),
-               input_serial_lines="\n".join(['    let %s = C.SERIAL("%s");' % (p, p) for p in input_serials]),
-               output_serial_lines="\n".join(['    let {name} = C.OUTS("{type}", "{name}", {{color: {color}}});'.format(**p) for p in
+               param_lines="\n".join(['let %s = C.PARAM(%f, "%s", {"MIN": %f, "MAX":%f});' % (p[0], p[3], p[0], p[1], p[2]) for p in req["params"]]),
+               input_serial_lines="\n".join(['let %s = C.SERIAL("%s");' % (p, p) for p in input_serials]),
+               output_serial_lines="\n".join(['let {name} = C.OUTS("{type}", "{name}", {{color: {color}}});'.format(**p) for p in
                                     output_serials]),
-               temp_serial_declare_lines="\n".join(['    let %s = [];' % (p) for p in temp_serials]),
+               temp_serial_declare_lines="\n".join(['let %s = [];' % (p) for p in temp_serials]),
                body="\n".join(body_lines))
-    convert_result["target"] = target
-    return convert_result
+    return target
 
 
 #---------------------------------------------------------------------------------
-ma = {"id":"macdw","cname":"macdw","type":"SUB","params":[["N1",10,1,100]],"src":"MA1:MA(CLOSE,N1);"}
-
-ma2 = {
-    "id": "ma2",
-    "cname": "ma2",
-    "type": "MAIN",
-    "src": """
-//#移动平均线组合
-//@N1:0,200,5
-//@N2:0,200,10
-//@N3:0,200,20
-//@N4:0,200,40
-//@N5:0,200,60
-//该模型仅仅用来示范如何根据指标编写简单的模型
-//用户需要根据自己交易经验，进行修改后再实际应用!!!
-// //后为文字说明，编写模型时不用写出
-MA1:MA(CLOSE,N1);
-MA2:MA(CLOSE,N2);
-MA3:MA(CLOSE,N3);
-MA4:MA(CLOSE,N4);
-MA5:MA(CLOSE,N5);
-MA6:MA(CLOSE,N6);//定义6条均线    
-    """,
-    "params": [
-        ("N1", 1, 100, 20),
-        ("N2", 1, 100, 20),
-        ("N3", 1, 100, 20),
-        ("N4", 1, 100, 20),
-        ("N5", 1, 100, 20),
-        ("N6", 1, 100, 20),
-    ],
-    "expected": """
-function* ma(C){
-    C.DEFINE({
-        type: "MAIN",
-        cname: "均线组",
-        state: "KLINE",
-    });
-    let n1 = C.PARAM(3, "N1");
-    let n2 = C.PARAM(5, "N2");
-    let n3 = C.PARAM(10, "N3");
-    let n4 = C.PARAM(20, "N4");
-    let n5 = C.PARAM(50, "N5");
-    let n6 = C.PARAM(100, "N6");
-    let s = C.SERIAL("CLOSE");
-
-    let s1 = C.OUTS("LINE", "ma" + n1, {color: RED});
-    let s2 = C.OUTS("LINE", "ma" + n2, {color: GREEN});
-    let s3 = C.OUTS("LINE", "ma" + n3, {color: BLUE});
-    let s4 = C.OUTS("LINE", "ma" + n4, {color: RED});
-    let s5 = C.OUTS("LINE", "ma" + n5, {color: GREEN});
-    let s6 = C.OUTS("LINE", "ma" + n6, {color: BLUE});
-    while(true) {
-        let i = yield;
-        s1[i] = MA(i, s, n1, s1);
-        s2[i] = MA(i, s, n2, s2);
-        s3[i] = MA(i, s, n3, s3);
-        s4[i] = MA(i, s, n4, s4);
-        s5[i] = MA(i, s, n5, s5);
-        s6[i] = MA(i, s, n6, s6);
-    }
-}
-    """,
-}
-
-macd2 = {
-    "id": "macd2",
-    "cname": "MACD2",
-    "type": "SUB",
-    "src": """
-//该模型仅仅用来示范如何根据指标编写简单的模型
-//用户需要根据自己交易经验，进行修改后再实际应用!!!
-// //后为文字说明，编写模型时不用写出
-DIFF : EMA(CLOSE,SHORT) - EMA(CLOSE,LONG);//短周期与长周期的收盘价的指数平滑移动平均值做差。
-DEA  : EMA(DIFF,M);//DIFF的M个周期指数平滑移动平均
-2*(DIFF-DEA),COLORSTICK;//DIFF减DEA的2倍画柱状线
-    """,
-    "params": [
-        ("SHORT", 1, 100, 20),
-        ("LONG", 1, 100, 20),
-        ("M", 1, 100, 20),
-    ],
-    "expected": """
-function* macd(C) {
-    // DIFF : EMA(CLOSE,SHORT) - EMA(CLOSE,LONG);//短周期与长周期的收盘价的指数平滑移动平均值做差。
-    // DEA  : EMA(DIFF,M);//DIFF的M个周期指数平滑移动平均
-    // 2*(DIFF-DEA),COLORSTICK;//DIFF减DEA的2倍画柱状线
-    C.DEFINE({
-        type: "SUB",
-        cname: "MACD",
-        state: "KLINE",
-        yaxis: [
-            {id: 0, mid: 0, format: "NUMBER2"},
-        ]
-    });
-    //参数
-    let vshort = C.PARAM(20, "SHORT", {MIN: 5, STEP: 5});
-    let vlong = C.PARAM(35, "LONG", {MIN: 5, STEP: 5});
-    let vm = C.PARAM(10, "M", {MIN: 5, STEP: 5});
-    //输入
-    let sclose = C.SERIAL("CLOSE");
-    //输出
-    let diff = C.OUTS("LINE", "diff", {color: RED});
-    let dea = C.OUTS("LINE", "dea", {color: BLUE, width: 2});
-    let bar = C.OUTS("BAR", "bar", {color: RED});
-    //临时序列
-    let eshort = [];
-    let elong = [];
-    //计算
-    while(true) {
-        let i = yield;
-        eshort[i] = EMA(i, sclose, vshort, eshort);
-        elong[i] = EMA(i, sclose, vlong, elong);
-        diff[i] = eshort[i] - elong[i];
-        dea[i] = EMA(i, diff, vm, dea);
-        bar[i] = 2 * (diff[i] - dea[i]);
-    }
-}
-    """,
-}
-
-# RSV:=(CLOSE-LLV(LOW,N))/(HHV(HIGH,N)-LLV(LOW,N))*100;//收盘价与N周期最低值做差，N周期最高值与N周期最低值做差，两差之间做比值。
-# K:SMA(RSV,M1,1);//RSV的移动平均值
-# D:SMA(K,M2,1);//K的移动平均值
-# J:3*K-2*D;
-# BACKGROUNDSTYLE(1);
-
-kdj2 = {
-    "id": "kdj2",
-    "cname": "KDJ2",
-    "type": "SUB",
-    "src": """
-RSV:=(CLOSE-LLV(LOW,N))/(HHV(HIGH,N)-LLV(LOW,N))*100;//收盘价与N周期最低值做差，N周期最高值与N周期最低值做差，两差之间做比值。
-K:SMA(RSV,M1,1);//RSV的移动平均值
-D:SMA(K,M2,1);//K的移动平均值
-J:3*K-2*D;
-BACKGROUNDSTYLE(1);
-""",
-    "params": [
-        ("N", 1, 100, 20),
-        ("M1", 1, 100, 20),
-        ("M2", 1, 100, 20),
-    ],
-    "expected": """
-function* kdj(C){
-    C.DEFINE({
-        type: "SUB",
-        cname: "KDJ",
-        memo: "",
-        state: "KLINE",
-    });
-    let n = C.PARAM(3, "N");
-    let m1 = C.PARAM(5, "M1");
-    let m2 = C.PARAM(5, "M2");
-    let close = C.SERIAL("CLOSE");
-    let high = C.SERIAL("HIGH");
-    let low = C.SERIAL("LOW");
-
-    let k = C.OUTS("LINE", "k", {color: RED});
-    let d = C.OUTS("LINE", "d", {color: GREEN});
-    let j = C.OUTS("LINE", "j", {color: YELLOW});
-
-    let rsv = [];
-
-    while(true) {
-        let i = yield;
-        let hv = HIGHEST(i, high, n);
-        let lv = LOWEST(i, low, n);
-        rsv[i] = (hv == lv) ? 0 : (close[i] - lv) / (hv - lv) * 100;
-        k[i] = SMA(i, rsv, m1, 1, k);
-        d[i] = SMA(i, k, m2, 1, d);
-        j[i] = 3*k[i] -2*d[i];
-    }
-}
-    """,
-}
-
-adtm2 = {
-    "id": "adtm2",
-    "cname": "ADTM2",
-    "type": "SUB",
-    "src": """
-//#动态买卖气指标
-//副图指标
-//@N:1,100,23
-//@M:1,100,8
-//该模型仅仅用来示范如何根据指标编写简单的模型
-//用户需要根据自己交易经验，进行修改后再实际应用!!!
-// //后为文字说明，编写模型时不用写出
-DTM:=IFELSE(OPEN<=REF(OPEN,1),0,MAX((HIGH-OPEN),(OPEN-REF(OPEN,1))));//如果开盘价小于等于一个周期前的开盘价，DTM取值为0，否则取最高价减去开盘价和开盘价减去前一个周期开盘价这两个差值中的最大值
-DBM:=IFELSE(OPEN>=REF(OPEN,1),0,MAX((OPEN-LOW),(OPEN-REF(OPEN,1))));//如果开盘价大于等于一个周期前的开盘价，DBM取值为0，否则取开盘价减去最低价和开盘价减去前一个周期开盘价这两个差值中的最大值
-STM:=SUM(DTM,N);//求N个周期内的DTM的总和
-SBM:=SUM(DBM,N);//求N个周期内的DBM的总和
-ADTM:IFELSE(STM>SBM,(STM-SBM)/STM,IFELSE(STM=SBM,0,(STM-SBM)/SBM));//如果STM大于SBM，ADTM取值为(STM-SBM)/STM，如果STM等于SBM，ADTM取值为0,如果STM小于SBM，ADTM取值为(STM-SBM)/SBM
-ADTMMA:MA(ADTM,M);//求M个周期内的ADTM的简单移动平均
-""",
-    "params": [
-        ("N", 1, 100, 20),
-        ("M", 1, 100, 20),
-    ],
-    "expected": """
-    """,
-}
-
-arbr2 = {
-    "id": "arbr2",
-    "cname": "ARBR2",
-    "type": "SUB",
-    "src": """
-TB:=IFELSE(HIGH>REF(CLOSE,1),HIGH-REF(CLOSE,1)+CLOSE-LOW,CLOSE-LOW);//若最高价大于前收盘价则取当根K线下影线与当根K线幅度的和，否则取当根K线下影线长度
-TS:=IFELSE(REF(CLOSE,1)>LOW,REF(CLOSE,1)-LOW+HIGH-CLOSE,HIGH-CLOSE);//若前收盘价大于最低价则取当根K线上影线与当根K线幅度的和，否则取当根K线上影线长度
-VOL1:=(TB-TS)*VOL/(TB+TS)/10000;//TB与TS差值和成交量求积在与TB和TS的和做商
-VOL10:=DMA(VOL1,0.1);//取得VOL1的0.1动态均值
-VOL11:=DMA(VOL1,0.05);//取的VOL1的0.05动态均值
-RES1:=VOL10-VOL11;//取VOL10与VOL11的差
-LON:SUM(RES1,0),COLORSTICK;//取得历史所有K线的RES1的和
-MA1:MA(LON,10);//取LON的10周期均值。
-""",
-    "params": [
-    ],
-    "expected": """
-    """,
-}
 
 
-psy2 = {
-    "id": "psy2",
-    "cname": "PSY2",
-    "type": "SUB",
-    "src": """
-PSY:COUNT(CLOSE>REF(CLOSE,1),N)/N*100;//N个周期内满足收盘价大于一个周期前的收盘价的周期数，比N*100；
-PSYMA:MA(PSY,M);//PSY在M个周期内的简单移动平均；
-""",
-    "params": [
-        ("N", 1, 100, 20),
-        ("M", 1, 100, 20),
-    ],
-    "expected": """
-    """,
-}
+# MID := (HIGH+LOW+CLOSE)/3;//求最新价，最高价和最低价三者的简单平均
+# CR:SUM(MAX(0,HIGH-REF(MID,1)),N)/SUM(MAX(0,REF(MID,1)-LOW),N)*100;//取最高价减去一个周期前的MID的与0中的最大值，求和，取一个周期前的MID减去最低价与0中的最大值，求和，两个和的百分比
+# CRMA1:REF(MA(CR,M1),M1/2.5+1);//取(M1/2.5+1)个周期前的M1周期CR简单平均值
+
+# TR : MAX((HIGH-LOW),(CLOSE-OPEN));
+# TR : MAX((HIGH-LOW),ABS(REF(CLOSE,1)-HIGH));
+# TR : MAX(MAX((HIGH-LOW),ABS(REF(CLOSE,1)-HIGH)),ABS(REF(CLOSE,1)-LOW));//求最高价减去最低价，一个周期前的收盘价减去最高价的绝对值，一个周期前的收盘价减去最低价的绝对值，这三个值中的最大值
+# ATR : MA(TR,N),COLORYELLOW;//求N个周期内的TR的简单移动平均
+
+# {"id":"macdw","cname":"macdw","type":"SUB","params":[["N1",10,1,100]],"src":"MA1:ddd(CLOSE,N1);"}
 
 
-# ma3 = {
-#     "id": "ma2",
-#     "cname": "ma2",
-#     "type": "MAIN",
-#     "src": """
-#     MA1MA(CLOSE,N1);""",
-#     "params": [
-#         ["N1", 1, 100, 20],
-#     ],
-#     "expected": """
-#     """,
-# }
 
 if __name__ == "__main__":
     def tryconvert(f):
@@ -725,8 +647,8 @@ if __name__ == "__main__":
         %s
         -OUTPUT--------------------------------
         %s
-        %s
         -EXPECTED--------------------------------
-        """ % (f["src"], json.dumps(ret, indent=2), ret["target"]))
-    tryconvert(ma2)
+        """ % (f["src"], ret))
 
+    from cases.psy import case
+    tryconvert(case)
