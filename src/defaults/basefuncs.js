@@ -16,10 +16,6 @@ function REF(i, serial, n) {
     return serial[i-n];
 }
 
-function IFELSE(c, a, b) {
-    return c?a:b;
-}
-
 function MA(i, serial, n, cache) {
     if (cache.length == 0 || isNaN(cache[i - 1]))
         return _sum(serial, n, i) / n;
@@ -77,4 +73,20 @@ function STDEV(i, serial, n, cache) {
         s[i] = [x, x2];
     }
     return std;
+}
+
+function IFELSE(c, a, b) {
+    return c?a:b;
+}
+
+function ABS(v){
+    return Math.abs(v);
+}
+
+function MAX(v1, v2) {
+    return Math.max(v1, v2);
+}
+
+function MIN(v1, v2) {
+    return Math.min(v1, v2);
 }
