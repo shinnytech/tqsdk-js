@@ -64,7 +64,7 @@ CMenu.init = function (div) {
         if (session.$worker) {
             session.$worker.send('changeOptions', [{
                 strict: false,
-            }]);
+            }, ]);
             clearInterval(interval);
         }
     }, 50);
@@ -72,8 +72,89 @@ CMenu.init = function (div) {
     CMenu.editor.setOptions({
         enableBasicAutocompletion: true,
         enableSnippets: true,
+        enableLiveAutocompletion: true,
+        enableLinking: true,
     });
 
+    /*************** breakpoints ***************/
+
+    CMenu.editor.on('guttermousedown', function (e) {
+        if (CMenu.editor.getReadOnly()) return;
+
+        var target = e.domEvent.target;
+
+        if (target.className.indexOf('ace_gutter-cell') == -1) return;
+
+        if (!CMenu.editor.isFocused()) return;
+
+        if (e.clientX > 25 + target.getBoundingClientRect().left) return;
+
+        var row = e.getDocumentPosition().row;
+        var breakpointsArray = e.editor.session.getBreakpoints();
+        if (!(row in breakpointsArray)) {
+            e.editor.session.setBreakpoint(row);
+        } else {
+            e.editor.session.clearBreakpoint(row);
+        }
+
+        e.stop();
+    });
+
+    CMenu.editor.session.on('changeBreakpoint', function (e) {
+        // captures set and clear breakpoint events
+    });
+
+    /*************** selection action ***************/
+    let selectionAction = 'NONE';
+    let selectionKeyStrokes = ['golineup', 'gotoright', 'golinedown', 'gotoleft', 'selectup', 'selectright', 'selectdown', 'selectleft'];
+
+    CMenu.editor.on('mousedown', function (e) {
+        selectionAction = 'MOUSE';
+        // console.log(e, e.clientX, e.clientY);
+    });
+
+    CMenu.editor.getSession().selection.on('changeSelection', function(e) {
+        let range = CMenu.editor.getSelectionRange();
+        if (range) {
+            // console.log(selectionAction, range.start, range.end);
+        }
+    });
+
+    CMenu.editor.commands.on('exec', function (e) {
+        console.log(e.command.name, e);
+        if (selectionKeyStrokes.indexOf(e.command.name) > -1) {
+            selectionAction = 'KEYBOARD';
+        }
+    });
+
+    CMenu.editor.on('linkClick', function (data) {
+        var types = ['support.function.tianqin', 'constant.language.function'];
+        if (data && data.token && types.indexOf(data.token.type) > -1) {
+            let lowerCase = data.token.value.toLowerCase();
+            window.open(`http://doc.tq18.cn/ta/latest/cfunc/${lowerCase}.html`);
+        }
+
+    });
+
+    /*************** mousemove + tooltips ***************/
+
+    CMenu.editor.on('mousemove', function (e) {
+        var position = e.getDocumentPosition();
+        var token = CMenu.editor.getSession().getTokenAt(position.row, position.column);
+        if (position && token) {
+            var types = Object.keys(CMenu.tooltips);
+            if (types.indexOf(token.type) > -1) {
+                let pixelPosition = CMenu.editor.renderer.textToScreenCoordinates(position);
+                pixelPosition.pageY += CMenu.editor.renderer.lineHeight;
+                CMenu.updateTooltip(pixelPosition, token);
+            } else {
+                CMenu.updateTooltip(CMenu.editor.renderer.textToScreenCoordinates(position));
+            }
+        }
+        console.log(e)
+    });
+
+    /*************** Command-S / Ctrl-S ***************/
     CMenu.editor.commands.addCommand({
         name: 'saverun',
         bindKey: { win: 'Ctrl-Shift-S', mac: 'Command-Shift-S', sender: 'editor|cli' },
@@ -84,7 +165,60 @@ CMenu.init = function (div) {
         readOnly: false,
     });
 
+    CMenu.editor.commands.addCommand({
+        name: 'saverun',
+        bindKey: { win: 'Ctrl-S', mac: 'Command-S', sender: 'editor|cli' },
+        exec: function (editor) {
+            $('#btn_editor_run').click();
+        },
+
+        readOnly: false,
+    });
+
+    CMenu.editor.commands.addCommand({
+        name: 'saverun',
+        bindKey: { win: 'Ctrl-S', mac: 'Command-S', sender: 'editor|cli' },
+        exec: function (editor) {
+            $('#btn_editor_run').click();
+        },
+
+        readOnly: false,
+    });
+
     CMenu.initThemeContainer();
+};
+
+CMenu.updateTooltip = function (position, token) {
+    //example with container creation via JS
+    var div = document.getElementById('tooltip_0');
+    if (div === null) {
+        div = document.createElement('div');
+        div.setAttribute('id', 'tooltip_0');
+        div.setAttribute('class', 'seecoderun_tooltip'); // and make sure myclass has some styles in css
+        document.body.appendChild(div);
+    }
+
+    div.style.display = 'block';
+    div.style.left = position.pageX + 'px';
+    div.style.top = position.pageY + 'px';
+    div.style.visibility = 'hidden';
+
+    if (token) {
+        var color = CMenu.getTooltipColor(token);
+        if (color) {
+            div.style.backgroundColor = color;
+            div.style.visibility = 'visible';
+            div.innerText = '   ';
+        } else {
+            div.style.backgroundColor = '#FFFFFF';
+            var text = CMenu.getTooltipText(token);
+            if (text && text.length > 0) {
+                div.style.visibility = 'visible';
+                div.innerText = text;
+            }
+        }
+
+    }
 };
 
 CMenu.selectCallback = function (tr, data) {
@@ -124,6 +258,8 @@ CMenu.selectCallback = function (tr, data) {
     }
 
     CMenu.editor.focus();
+    // 清空全部断点
+    CMenu.editor.session.clearBreakpoints();
     if (data.type === 'system' || data.type === 'custom') {
         let center = $('div.main-container div.content-container')[0];
         center.classList.remove('col-xs-6');
@@ -429,6 +565,7 @@ CMenu.editIndicator = function (e) {
         if (type === 'custom_wh') {
             wenhua = CMenu.getIndicatorWH_Prop_Params();
         }
+
         IStore.saveDraft({
             key: CMenu.editing.key,
             name: name,
@@ -546,6 +683,7 @@ CMenu.saveFinalIndicator = function (e) {
     }).then(function (result) {
         CMenu.updateUI(result);
     }, function (e) {
+
         Notify.error(e);
     });
 };
@@ -782,3 +920,75 @@ CMenuUtils = (function () {
         getIndicatorTr: getIndicatorTr,
     };
 }());
+
+
+class COLOR {
+    constructor(r, g, b) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+    }
+
+    toString() {
+        return '#' + this.r.toString(16).padStart(2, '0') + this.g.toString(16).padStart(2, '0') + this.b.toString(16).padStart(2, '0');
+    }
+}
+
+
+CMenu.tooltips = {
+    'support.function.tianqin': {
+        DEFINE: '定义技术指标属性',
+        PARAM: '定义指标参数',
+        SERIAL: '定义输入序列',
+        OUTS: '定义输出序列',
+    },
+    'constant.language.context': {
+        C: '系统核心函数提供者',
+    },
+    'constant.language.color': {
+        RED: new COLOR(0xFF, 0, 0),
+        GREEN: new COLOR(0, 0xFF, 0),
+        BLUE: new COLOR(0, 0, 0xFF),
+        CYAN: new COLOR(0, 0xFF, 0xFF),
+        BLACK: new COLOR(0, 0, 0),
+        WHITE: new COLOR(0xFF, 0xFF, 0xFF),
+        GRAY: new COLOR(0x80, 0x80, 0x80),
+        MAGENTA: new COLOR(0xFF, 0, 0xFF),
+        YELLOW: new COLOR(0xFF, 0xFF, 0),
+        LIGHTGRAY: new COLOR(0xD3, 0xD3, 0xD3),
+        LIGHTRED: new COLOR(0xF0, 0x80, 0x80),
+        LIGHTGREEN: new COLOR(0x90, 0xEE, 0x90),
+        LIGHTBLUE: new COLOR(0x8C, 0xCE, 0xFA),
+    },
+    'constant.language.function': {
+        MA: '求一个序列中连续N项的平均值',
+        STDEV: '求一个序列中连续N项的标准差',
+        SUM: '求一个序列中连续N项的和',
+    },
+    'support.keyword.tianqin': {
+        cname: '可选，指定技术指标的中文名称。默认为技术指标名',
+        type: '必填，“MAIN” 或 “SUB”, MAIN=主图技术指标, SUB=副图技术指标',
+        state: '必填，“KLINE” 或 “TICK”',
+        color: '设置颜色',
+        memo: '可选，设定此技术指标的文字说明。',
+        yaxis: '可选, 描述此指标所需要使用的Y坐标轴',
+    },
+};
+
+
+CMenu.getTooltipColor = function (token) {
+    if (token.type === 'constant.language.color') {
+        return CMenu.tooltips[token.type][token.value].toString();
+    } else {
+        return false;
+    }
+};
+
+CMenu.getTooltipText = function (token) {
+    return CMenu.tooltips[token.type][token.value];
+};
+
+// 核心函数 core
+// 计算函数 basefunc
+// 颜色 color
+

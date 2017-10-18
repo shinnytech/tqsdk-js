@@ -12,7 +12,7 @@ function* boll(C){
     let close = C.SERIAL("CLOSE");
     //输出序列
     let top = C.OUTS("LINE", "top", {color: YELLOW});
-    let bottom = C.OUTS("LINE", "bottom", {color: YELLOW});
+    let bottom = C.OUTS("LINE", "bottom", {color: LIGHTRED});
     //临时序列
     let mid = [];
     let std = [];
