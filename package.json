@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm install && gulp",
-    "server": "gulp && http-server ./dist -a 0.0.0.0 -p 9999"
+    "server": "gulp && sudo http-server ./dist -a 0.0.0.0 -p 80",
+    "src": "sudo http-server ./src -a 0.0.0.0 -p 80"
   },
   "repository": {
     "type": "git",
