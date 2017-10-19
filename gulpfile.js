@@ -57,12 +57,16 @@ gulp.task('beforecopy', function () {
     // 生成 defaults.json
     var files = fs.readdirSync('./src/defaults/');
     var list = [];
+    var obj = {};
     files.forEach(function (filename) {
-        if (filename.endsWith('.js') && filename != 'basefuncs.js' && filename != 'template.js') {
-            list.push(filename.substr(0, filename.length - 3))
+        if (filename.endsWith('.js') && filename != 'basefuncs.js') {
+            // list.push(filename.substr(0, filename.length - 3))
+            var name = filename.substr(0, filename.length - 3);
+            var content = fs.readFileSync('./src/defaults/' + filename, 'utf8');
+            obj[name] = content.trim();
         }
     });
-    fs.writeFileSync('./src/defaults/defaults.json', JSON.stringify(list), 'utf8');
+    fs.writeFileSync('./src/defaults/defaults.json', JSON.stringify(obj), 'utf8');
     return;
 });
 

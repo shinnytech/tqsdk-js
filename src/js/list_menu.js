@@ -129,9 +129,11 @@ CMenu.init = function (div) {
 
     CMenu.editor.on('linkClick', function (data) {
         var types = ['support.function.tianqin', 'constant.language.function'];
-        if (data && data.token && types.indexOf(data.token.type) > -1) {
+        var functype = ['cfunc', 'efunc'];
+        var index = types.indexOf(data.token.type);
+        if (data && data.token && index > -1) {
             let lowerCase = data.token.value.toLowerCase();
-            window.open(`http://doc.tq18.cn/ta/latest/cfunc/${lowerCase}.html`);
+            window.open(`http://doc.tq18.cn/ta/latest/${functype[index]}/${lowerCase}.html`);
         }
 
     });
@@ -151,7 +153,6 @@ CMenu.init = function (div) {
                 CMenu.updateTooltip(CMenu.editor.renderer.textToScreenCoordinates(position));
             }
         }
-        console.log(e)
     });
 
     /*************** Command-S / Ctrl-S ***************/
@@ -203,8 +204,12 @@ CMenu.updateTooltip = function (position, token) {
     div.style.top = position.pageY + 'px';
     div.style.visibility = 'hidden';
 
+    var types = ['support.function.tianqin', 'constant.language.function'];
+   
+    
     if (token) {
         var color = CMenu.getTooltipColor(token);
+        var typeIndex = types.indexOf(token.type);
         if (color) {
             div.style.backgroundColor = color;
             div.style.visibility = 'visible';
@@ -212,7 +217,9 @@ CMenu.updateTooltip = function (position, token) {
         } else {
             div.style.backgroundColor = '#FFFFFF';
             var text = CMenu.getTooltipText(token);
+            
             if (text && text.length > 0) {
+                if (typeIndex > -1) text = text += ' (按住Ctrl单击打开链接)';
                 div.style.visibility = 'visible';
                 div.innerText = text;
             }
@@ -377,65 +384,34 @@ CMenu.updateAttachUI = function () {
 CMenu.initSysIndicators = function () {
     return new Promise((resolve, reject) => {
         $.get('/defaults/defaults.json').then(function (response) {
-            let allPromises = [];
-            for (let i = 0; i < response.length; i++) {
-                allPromises.push(function (name) {
-                    return $.ajax({
-                        url: '/defaults/' + name + '.js',
-                        dataType: 'text',
-                    }).then(function (response) {
-                        let item = {
-                            // key: name,
-                            name: name,
-                            type: 'system',
-                            draft: {
-                                code: response,
-                            },
-                        };
-                        CMenu.sys_datas.push(item);
-                    });
-                }(response[i]));
-            };
-
-            allPromises.push(function () {
-                return $.ajax({
-                    url: '/defaults/template.js',
-                    dataType: 'text',
-                }).then(function (response) {
-                    CMenu.codeTemplate = response;
-
-                    let snippetManager = ace.require('ace/snippets').snippetManager;
-
-                    ace.config.loadModule('ace/snippets/javascript', function (m) {
-                        if (m) {
-                            snippetManager.files.javascript = m;
-                            m.snippets.push({
-                                content: response,
-                                name: 'indicator',
-                                tabTrigger: 'indicator',
-                            });
-
-                            snippetManager.register(m.snippets, m.scope);
+            for (let name in response) {
+                if (name === 'template') {
+                    CMenu.codeTemplate = response[name];
+                } else {
+                    CMenu.sys_datas.push({
+                        name: name,
+                        type: 'system',
+                        draft: {
+                            code: response[name]
                         }
                     });
-                });
-            }());
-
-            Promise.all(allPromises).then(function () {
-                CMenu.sys_dom.empty();
-                for (let i = 0; i < CMenu.sys_datas.length; i++) {
-                    let tr = CMenuUtils.getIndicatorTr(CMenu.sys_datas[i], {
-                        select: CMenu.selectCallback,
-                        copy: CMenu.copyCallback,
-                    });
-                    CMenu.sys_item_doms.push(tr);
-                    CMenu.sys_dom.append(tr);
                 }
+            }
+            
+            // 初始化界面
+            CMenu.sys_dom.empty();
+            for (let i = 0; i < CMenu.sys_datas.length; i++) {
+                let tr = CMenuUtils.getIndicatorTr(CMenu.sys_datas[i], {
+                    select: CMenu.selectCallback,
+                    copy: CMenu.copyCallback,
+                });
+                CMenu.sys_item_doms.push(tr);
+                CMenu.sys_dom.append(tr);
+            }
 
-                // 初始化时默认选中第一个系统指标
-                CMenu.sys_item_doms[0].find('td:first').click();
-                resolve();
-            });
+            // 初始化时默认选中第一个系统指标
+            CMenu.sys_item_doms[0].find('td:first').click();
+            resolve();
         });
     });
 
