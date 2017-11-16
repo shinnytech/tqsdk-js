@@ -7,6 +7,7 @@ const sendIndicatorList = function () {
     let lists = ['sys_datas', 'datas'];
     for (let i = 0; i < lists.length; i++) {
         for (let j = 0; j < CMenu[lists[i]].length; j++) {
+            if(CMenu[lists[i]][j].type === 'trader') continue;
             let funcName = CMenu[lists[i]][j].name;
             content[funcName] = CMenu[lists[i]][j];
         }
@@ -36,6 +37,12 @@ const initWorker = function () {
                 break;
             case 'calc_end':
                 clearTimeout(ErrorHandlers.records[content.id]);
+                break;
+            case 'trade_start':
+                console.log('trade_start');
+                break;
+            case 'trade_end':
+                console.log('trade_end');
                 break;
             case 'feedback':
                 if (content.error) {
@@ -89,7 +96,7 @@ $(function () {
         if (CMenu.editing.type === 'custom_wh') {
             CMenu.saveDraftIndicator();
             WAITING_RESULR.add(funcName);
-        } else {
+        } else if (CMenu.editing.type === 'custom' || CMenu.editing.type === 'system') {
             let reg = /^function\s*\*\s*(\S*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}\n*$/g;
             let result = reg.exec(code);
             if (result && result[0] === result.input) {
@@ -117,6 +124,18 @@ $(function () {
             }
         }
 
+        CMenu.editor.focus();
+    });
+
+    $('#btn_tarder_run').on('click', function (e) {
+        if(CMenu.editing.type !== 'trader') return null;
+        let funcName = CMenu.editing.name;
+        let code = CMenu.editor.getSession().getValue();
+        code = code.trim();
+
+        CMenu.saveDraftIndicator();
+        WAITING_RESULR.add(funcName);
+        
         CMenu.editor.focus();
     });
 

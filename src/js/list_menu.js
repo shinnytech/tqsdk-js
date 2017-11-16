@@ -121,7 +121,6 @@ CMenu.init = function (div) {
     });
 
     CMenu.editor.commands.on('exec', function (e) {
-        console.log(e.command.name, e);
         if (selectionKeyStrokes.indexOf(e.command.name) > -1) {
             selectionAction = 'KEYBOARD';
         }
@@ -471,7 +470,20 @@ CMenu.editIndicator = function (e) {
 
     let name = $('#indicator-name').val();
     let type = CMenu.$editModal.find("input[name='indicator-type']:checked").val();
-    type = type === '0' ? 'custom' : 'custom_wh';
+    console.log(type)
+    switch (type){
+        case '0':
+            type = 'custom';
+            break;
+        case '1':
+            type = 'custom_wh';
+            break;
+        case '2':
+            type = 'trader';
+            break;
+    }
+    console.log(type)
+    
     if (!CMenuUtils.validVariableName(name)) {
         Notify.error('指标名称应符合 JavaScript 变量名命名规则。\n 第一个字符必须是字母、下划线（_）或美元符号（$）\n' +
             '余下的字符可以是下划线（_）、美元符号（$）或任何字母或数字字符。 \n 长度限制为20。');
@@ -635,7 +647,7 @@ CMenu.saveDraftIndicator = function (e) {
         params: wenhua.params,
     }).then(function (result) {
         CMenu.editing = result;
-        worker.postMessage({ cmd: 'indicator', content: result });
+        worker.postMessage({ cmd: 'trader', content: result });
     }, function (e) {
 
         Notify.error(e);
@@ -839,6 +851,10 @@ CMenuUtils = (function () {
                 label_name: 'danger',
                 label_text: '错误',
             },
+            trader: {
+                label_name: 'warning',
+                label_text: '交易',
+            }
         };
         let $d = $('<span></span>');
 
@@ -897,7 +913,6 @@ CMenuUtils = (function () {
     };
 }());
 
-
 class COLOR {
     constructor(r, g, b) {
         this.r = r;
@@ -909,7 +924,6 @@ class COLOR {
         return '#' + this.r.toString(16).padStart(2, '0') + this.g.toString(16).padStart(2, '0') + this.b.toString(16).padStart(2, '0');
     }
 }
-
 
 CMenu.tooltips = {
     'support.function.tianqin': {
@@ -950,7 +964,6 @@ CMenu.tooltips = {
         yaxis: '可选, 描述此指标所需要使用的Y坐标轴',
     },
 };
-
 
 CMenu.getTooltipColor = function (token) {
     if (token.type === 'constant.language.color') {

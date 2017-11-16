@@ -1,8 +1,9 @@
-importScripts('websocket.js', 'utils.js', 'datamanager.js', 'tamanager.js', '/defaults/basefuncs.js');
+importScripts('websocket.js', 'utils.js', 'datamanager.js', 'tamanager.js', 'trader.js', '/defaults/basefuncs.js');
 
 // 全局对象,存储全部 Instance
 const G_INSTANCES = {};
 const Keys = GenerateKey();
+const OrderIds = GenerateKey();
 let G_ERRORS = [];
 
 // -------------- worker listener start --------------
@@ -26,6 +27,9 @@ self.addEventListener('message', function (event) {
             break;
         case 'indicator':
             TM.sendIndicatorClass(content);
+            break;
+        case 'trader':
+            TD.execTrader(content);
             break;
         case 'error_class_name':
             G_ERRORS = content;
