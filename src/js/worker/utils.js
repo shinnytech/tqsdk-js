@@ -111,6 +111,15 @@ IndicatorInstance.prototype.update = function () {
     this.func = self[this.ta_class_name](this);
 };
 
+IndicatorInstance.prototype.postEndMessage = function () {
+    postMessage({
+        cmd: 'calc_end', content: {
+            id: this.runId,
+            className: this.ta_class_name,
+        },
+    });
+}    
+
 IndicatorInstance.prototype.exec = function () {
     //执行计算calculateRight
     var [left, right] = [this.calculateLeft, this.calculateRight];
@@ -121,12 +130,7 @@ IndicatorInstance.prototype.exec = function () {
 
         this.calculateLeft--;
     } catch (e) {
-        postMessage({
-            cmd: 'calc_end', content: {
-                id: this.runId,
-                className: this.ta_class_name,
-            },
-        });
+        this.postEndMessage();
         postMessage({
             cmd: 'feedback', content: {
                 error: true,
@@ -175,23 +179,13 @@ IndicatorInstance.prototype.calculate = function () {
 
         this.updateRange();
         if (this.BEGIN === -1) {
-            postMessage({
-                cmd: 'calc_end', content: {
-                    id: this.runId,
-                    className: this.ta_class_name,
-                },
-            });
+            this.postEndMessage();
             return;
         }
 
         this.exec();
         this.invalid = false;
-        postMessage({
-            cmd: 'calc_end', content: {
-                id: this.runId,
-                className: this.ta_class_name,
-            },
-        });
+        this.postEndMessage();
     }
 };
 
