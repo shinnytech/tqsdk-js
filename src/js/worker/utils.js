@@ -175,6 +175,12 @@ IndicatorInstance.prototype.calculate = function () {
 
         this.updateRange();
         if (this.BEGIN === -1) {
+            postMessage({
+                cmd: 'calc_end', content: {
+                    id: this.runId,
+                    className: this.ta_class_name,
+                },
+            });
             return;
         }
 

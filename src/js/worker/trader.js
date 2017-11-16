@@ -144,7 +144,7 @@ var cancel_order = function(ord, cb){
     
 }
 
-var insertOrder = thunkify(make_order);
+// var insertOrder = thunkify(make_order);
 
 	
 const TD = (function () {
