@@ -382,36 +382,38 @@ CMenu.updateAttachUI = function () {
 
 CMenu.initSysIndicators = function () {
     return new Promise((resolve, reject) => {
-        $.get('/defaults/defaults.json').then(function (response) {
-            for (let name in response) {
-                if (name === 'template') {
-                    CMenu.codeTemplate = response[name];
-                } else {
-                    CMenu.sys_datas.push({
-                        name: name,
-                        type: 'system',
-                        draft: {
-                            code: response[name]
-                        }
-                    });
-                }
-            }
+        CMenu.sys_dom.empty();
+        resolve();
+        // $.get('/defaults/defaults.json').then(function (response) {
+        //     for (let name in response) {
+        //         if (name === 'template') {
+        //             CMenu.codeTemplate = response[name];
+        //         } else {
+        //             CMenu.sys_datas.push({
+        //                 name: name,
+        //                 type: 'system',
+        //                 draft: {
+        //                     code: response[name]
+        //                 }
+        //             });
+        //         }
+        //     }
             
-            // 初始化界面
-            CMenu.sys_dom.empty();
-            for (let i = 0; i < CMenu.sys_datas.length; i++) {
-                let tr = CMenuUtils.getIndicatorTr(CMenu.sys_datas[i], {
-                    select: CMenu.selectCallback,
-                    copy: CMenu.copyCallback,
-                });
-                CMenu.sys_item_doms.push(tr);
-                CMenu.sys_dom.append(tr);
-            }
+        //     // 初始化界面
+        //     CMenu.sys_dom.empty();
+        //     for (let i = 0; i < CMenu.sys_datas.length; i++) {
+        //         let tr = CMenuUtils.getIndicatorTr(CMenu.sys_datas[i], {
+        //             select: CMenu.selectCallback,
+        //             copy: CMenu.copyCallback,
+        //         });
+        //         CMenu.sys_item_doms.push(tr);
+        //         CMenu.sys_dom.append(tr);
+        //     }
 
-            // 初始化时默认选中第一个系统指标
-            CMenu.sys_item_doms[0].find('td:first').click();
-            resolve();
-        });
+        //     // 初始化时默认选中第一个系统指标
+        //     CMenu.sys_item_doms[0].find('td:first').click();
+        //     resolve();
+        // });
     });
 
 };
@@ -726,7 +728,6 @@ CMenu.update = function (fun) {
 
 CMenu.updateUI = function (indicator) {
     for (let i = 0; i < CMenu.datas.length; i++) {
-        if (CMenu.datas[i].type === 'trader') continue;
         if (indicator && CMenu.datas[i].key === indicator.key) {
             CMenu.datas[i] = indicator;
             CMenu.editing = indicator;

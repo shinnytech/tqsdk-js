@@ -182,7 +182,7 @@ const TD = (function () {
         let funcName = content.name;
         let code = content.draft.code;
 
-        let id = Keys.next().value;
+        let id = OrderIds.next().value;
         postMessage({
             cmd: 'trade_start', content: {
                 id: id,

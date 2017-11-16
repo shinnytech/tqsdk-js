@@ -7,8 +7,8 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <title>天勤</title>
     <!-- base ui && js -->
-    <link href="assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/index.css">
+    <link href="/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/index.css">
 </head>
 <body style="overflow:scroll;overflow:hidden;">
 <!--Modal-->
@@ -32,6 +32,12 @@
                             <label>
                                 <input type="radio" name="indicator-type" value="0">
                                 天勤脚本语言<span class="label label-danger">天勤指标</span>
+                            </label>
+                        </div>
+                        <div class="radio" id="indicator-type-tq">
+                            <label>
+                                <input type="radio" name="indicator-type" value="2">
+                                天勤脚本语言<span class="label label-warning btn_editor_reset">天勤交易</span>
                             </label>
                         </div>
                         <div class="radio" id="indicator-type-wh">
@@ -83,6 +89,9 @@
                     <button type="button" class="btn btn-default" id="btn_editor_reset">回到上一版本</button>
                 </div>
                 
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-default" id="btn_tarder_run">运行</button>
+                </div>
                 <div class="btn-group" role="group">
                     <button type="button" class="btn btn-default" id="btn_help">帮助文档</button>
                 </div>
@@ -136,14 +145,14 @@
         </div>
     </div>
 </div>
-<script type="text/javascript" src="assets/jquery.min.js"></script>
-<script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
-<script type="text/javascript" src="assets/ace-min/ace.js"></script>
-<script type="text/javascript" src="assets/ace-min/ext-language_tools.js"></script>
-<script type="text/javascript" src="assets/ace-min/ext-linking.js"></script>
-<script type="text/javascript" src="assets/noty.js"></script>
+<script type="text/javascript" src="/assets/jquery.min.js"></script>
+<script type="text/javascript" src="/assets/bootstrap/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="/assets/ace-min/ace.js"></script>
+<script type="text/javascript" src="/assets/ace-min/ext-language_tools.js"></script>
+<script type="text/javascript" src="/assets/ace-min/ext-linking.js"></script>
+<script type="text/javascript" src="/assets/noty.js"></script>
 <!-- del:start -->
-<script type="text/javascript" src="js/func_store.js"></script>
+<script type="text/javascript" src="/js/func_store.js"></script>
 <script type="text/javascript" src="js/list_menu.js"></script>
 <!-- del:end -->
 <script type="text/javascript" src="index.js"></script>

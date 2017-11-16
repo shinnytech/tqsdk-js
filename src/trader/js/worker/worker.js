@@ -1,4 +1,4 @@
-importScripts('websocket.js', 'utils.js', 'datamanager.js', 'tamanager.js', '/defaults/basefuncs.js');
+importScripts('/js/worker/websocket.js', '/js/worker/utils.js', '/js/worker/datamanager.js', '/js/worker/tamanager.js', 'trader.js', '/defaults/basefuncs.js');
 
 // 全局对象,存储全部 Instance
 const G_INSTANCES = {};
