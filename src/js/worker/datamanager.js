@@ -41,12 +41,6 @@ const DM = (function () {
                 for (let dur in diff.klines[key]) {
                     let perfix = key + '.' + dur;
 
-                    // setInvalid 
-                    // todo: G_INSTANCES
-                    for (let id in G_INSTANCES) {
-                        G_INSTANCES[id].setInvalidByPath(perfix);
-                    }
-
                     // 更新 path 对应的 first_id, last_id
                     if (!DM.paths.has(perfix)) {
                         DM.paths.set(perfix,  { firstId: Infinity, lastId: -Infinity });
@@ -85,9 +79,6 @@ const DM = (function () {
     }
 
     function getKdataObj(insId, durId, instanceId) {
-        var path = insId + '.' + durId;
-        // todo: G_INSTANCES
-        G_INSTANCES[instanceId].addRelationship(path);
         try {
             return DM.datas.klines[insId][durId].data;
         } catch (e) {

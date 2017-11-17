@@ -69,6 +69,8 @@ IndicatorInstance.prototype.update = function () {
     this.SERIAL = function (serialSelector) {
         var selector = serialSelector.toLowerCase();
         var ds = DM.get_kdata_obj(this.ins_id, this.dur_nano, this.instance_id);
+        var path = this.ins_id + '.' + this.dur_nano;
+        G_INSTANCES[this.instance_id].addRelationship(path);
         return new Proxy({}, {
             get: function (target, key, receiver) {
                 if (ds && ds[key]) {

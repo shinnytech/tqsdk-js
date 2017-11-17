@@ -62,6 +62,10 @@
     <script type="text/javascript" src="/assets/ace-min/ext-language_tools.js"></script>
     <script type="text/javascript" src="/assets/ace-min/ext-linking.js"></script>
     <script type="text/javascript" src="/assets/noty.js"></script>
+    <script type="text/javascript" src="/js/worker/datamanager.js"></script>
+    <script type="text/javascript" src="/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="trader_sdk.js"></script>
+    
     <!-- del:start -->
     <!-- <script type="text/javascript" src="/js/func_store.js"></script> -->
     <!-- <script type="text/javascript" src="js/list_menu.js"></script> -->
@@ -162,15 +166,23 @@
                         var limit_price = $('#limit_price').val();
                         limit_price = Number(limit_price)
 
-                        worker.postMessage({
-                            cmd: 'trader', content: {
-                                name: 'trade_func',
-                                code: trade_func.toString(),
-                                params: {
-                                    exchange_id, instrument_id, volume, limit_price, direction, offset
-                                }
+                        TD.execTrader({
+                            name: 'trade_func',
+                            code: trade_func.toString(),
+                            params: {
+                                exchange_id, instrument_id, volume, limit_price, direction, offset
                             }
-                        });
+                        })
+
+                        // worker.postMessage({
+                        //     cmd: 'trader', content: {
+                        //         name: 'trade_func',
+                        //         code: trade_func.toString(),
+                        //         params: {
+                        //             exchange_id, instrument_id, volume, limit_price, direction, offset
+                        //         }
+                        //     }
+                        // });
                     }
                 }
             })
@@ -188,7 +200,6 @@
             $('#operat button.start').attr('disabled', false);
         }
     </script>
-    <script type="text/javascript" src="trader_sdk.js"></script>
 </body>
 
 </html>
