@@ -64,7 +64,7 @@
     <script type="text/javascript" src="/assets/noty.js"></script>
     <!-- del:start -->
     <!-- <script type="text/javascript" src="/js/func_store.js"></script> -->
-    <script type="text/javascript" src="js/list_menu.js"></script>
+    <!-- <script type="text/javascript" src="js/list_menu.js"></script> -->
     <!-- del:end -->
     <script>
         var uiconfig = {
@@ -114,7 +114,7 @@
             var i = 0;
 
             //整个函数是一个循环, 直至委托单完全成交才退出循环
-            while (order_prarams.volume > 0 && i < 10) {
+            while (order_prarams.volume > 0 && i < 10 ) {
                 //按照给定参数报送一个委托单
                 var order = C.INSERT_ORDER(order_prarams);
                 //等待直到委托单状态不再是unknown为止, 或者超过2000毫秒仍然为超时状态
