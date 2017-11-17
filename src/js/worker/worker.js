@@ -1,4 +1,4 @@
-importScripts('websocket.js', 'utils.js', 'datamanager.js', 'tamanager.js', '/defaults/basefuncs.js');
+importScripts('websocket.js', 'utils.js', 'datamanager.js', 'tamanager.js', 'trader.js', '/defaults/basefuncs.js');
 
 // 全局对象,存储全部 Instance
 const G_INSTANCES = {};
@@ -31,6 +31,10 @@ self.addEventListener('message', function (event) {
         case 'trader':
             TD.execTrader(content);
             break;
+        case 'trader_end':
+            TD.endTrader();
+            break;
+            
         case 'error_class_name':
             G_ERRORS = content;
             break;

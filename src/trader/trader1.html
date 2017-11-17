@@ -36,16 +36,21 @@
 
         <div class="row" id="buttons">
             <div class="col col-xs-12 left-menu no-padding">
-                <div class="btn-toolbar" role="toolbar" id='make-orker'>
+                <div class="btn-toolbar" role="toolbar" id='operat'>
                     <div class="btn-group" role="group">
-                        <button type="button" id='BUY-OPEN' class="btn btn-success">买开</button>
+                        <button type="button" id='BUY-OPEN' class="btn btn-success start">买开</button>
 
-                        <button type="button" id='SELL-OPEN' class="btn btn-danger">卖开</button>
+                        <button type="button" id='SELL-OPEN' class="btn btn-danger start">卖开</button>
                     </div>
                     <div class="btn-group" role="group">
-                        <button type="button" id='BUY-CLOSE' class="btn btn-default">买平</button>
+                        <button type="button" id='BUY-CLOSE' class="btn btn-default start">买平</button>
 
-                        <button type="button" id='SELL-CLOSE' class="btn btn-default">卖平</button>
+                        <button type="button" id='SELL-CLOSE' class="btn btn-default start">卖平</button>
+                    </div>
+
+
+                    <div class="btn-group" role="group">
+                        <button type="button" id='STOP' class="btn btn-info end">停止</button>
                     </div>
                 </div>
             </div>
@@ -99,7 +104,7 @@
 
             }
         };
-        
+
         // 不要修改函数名字
         var trade_func = function* (C) {
 
@@ -131,8 +136,59 @@
                 i++;
             }
         }
+
+
+        $(function () {
+
+            // 默认参数
+            $('#instrument_id').val('cu1801');
+            $('#volume').val(2);
+            $('#limit_price').val(52730);
+
+            $('#operat').on('click', function (e) {
+                var target = e.target;
+                if (target.nodeName === 'BUTTON') {
+                    var [direction, offset] = target.id.split('-');
+                    if(direction === 'STOP'){
+                        worker.postMessage({
+                            cmd: 'trader_end', content: {}
+                        });
+                        
+                    }else{
+                        var exchange_id = "SHFE";
+                        var instrument_id = $('#instrument_id').val();
+                        var volume = $('#volume').val();
+                        volume = parseInt(volume);
+                        var limit_price = $('#limit_price').val();
+                        limit_price = Number(limit_price)
+
+                        worker.postMessage({
+                            cmd: 'trader', content: {
+                                name: 'trade_func',
+                                code: trade_func.toString(),
+                                params: {
+                                    exchange_id, instrument_id, volume, limit_price, direction, offset
+                                }
+                            }
+                        });
+                    }
+                }
+            })
+
+
+        });
+
+        // 执行交易开始回调　不要修改函数名字
+        var onTradeStart = function(){
+            $('#operat button.start').attr('disabled', true);
+        }
+
+        // 执行交易结束回调　不要修改函数名字
+        var onTradeEnd = function(){
+            $('#operat button.start').attr('disabled', false);
+        }
     </script>
-    <script type="text/javascript" src="index.js"></script>
+    <script type="text/javascript" src="trader_sdk.js"></script>
 </body>
 
 </html>
