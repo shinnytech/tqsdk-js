@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -8,153 +9,130 @@
     <title>天勤</title>
     <!-- base ui && js -->
     <link href="/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="index.css">
 </head>
+
 <body style="overflow:scroll;overflow:hidden;">
-<!--Modal-->
-<div class="modal fade" id="EditModal" tabindex="-1" role="dialog" aria-labelledby="EditModalTitle">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
-                </button>
-                <h4 class="modal-title" id="EditModalTitle">编辑／添加 指标</h4>
-            </div>
-            <div class="modal-body">
 
-                    <div class="form-group">
-                        <label for="indicator-name" class="control-label">指标名称:</label>
-                        <input type="text" class="form-control" id="indicator-name">
+    <div class="container-fluid main-container">
+
+        <div class="row" id="contents">
+            <div class="col col-xs-12 left-menu no-padding">
+
+                <div class="input-group">
+                    <span class="input-group-addon" id="basic-addon1">合约</span>
+                    <input type="text" id='instrument_id' class="form-control" placeholder="合约代码" aria-describedby="basic-addon1">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-addon" id="basic-addon2">手数</span>
+                    <input type="number" id='volume' class="form-control" placeholder="手数" aria-describedby="basic-addon2">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-addon" id="basic-addon3">价格</span>
+                    <input type="number" id='limit_price' class="form-control" placeholder="价格" aria-describedby="basic-addon3">
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="buttons">
+            <div class="col col-xs-12 left-menu no-padding">
+                <div class="btn-toolbar" role="toolbar" id='make-orker'>
+                    <div class="btn-group" role="group">
+                        <button type="button" id='BUY-OPEN' class="btn btn-success">买开</button>
+
+                        <button type="button" id='SELL-OPEN' class="btn btn-danger">卖开</button>
                     </div>
-                    <div class="form-group">
-                        <label class="control-label">指标类型(选择后无法更改):</label>
-                        <div class="radio" id="indicator-type-tq">
-                            <label>
-                                <input type="radio" name="indicator-type" value="0">
-                                天勤脚本语言<span class="label label-danger">天勤指标</span>
-                            </label>
-                        </div>
-                        <div class="radio" id="indicator-type-tq">
-                            <label>
-                                <input type="radio" name="indicator-type" value="2">
-                                天勤脚本语言<span class="label label-warning btn_editor_reset">天勤交易</span>
-                            </label>
-                        </div>
-                        <div class="radio" id="indicator-type-wh">
-                            <label>
-                                <input type="radio" name="indicator-type" value="1">
-                                文华脚本语言<span class="label label-info">文华</span>
-                            </label>
-                        </div>
+                    <div class="btn-group" role="group">
+                        <button type="button" id='BUY-CLOSE' class="btn btn-default">买平</button>
+
+                        <button type="button" id='SELL-CLOSE' class="btn btn-default">卖平</button>
                     </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" id="edit-btn">保存</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
-<div class="modal fade" id="TrashModal" tabindex="-1" role="dialog" aria-labelledby="TrashModalTitle">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
-                </button>
-                <h4 class="modal-title" id="TrashModalTitle">删除指标</h4>
-            </div>
-            <div class="modal-body">
-                确认删除指标 <code id="trash-indicator-name"></code> ?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
-                <button type="button" class="btn btn-primary" id="trash-btn">删除</button>
-            </div>
-        </div>
-    </div>
-</div>
+    <script type="text/javascript" src="/assets/jquery.min.js"></script>
+    <script type="text/javascript" src="/assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/assets/ace-min/ace.js"></script>
+    <script type="text/javascript" src="/assets/ace-min/ext-language_tools.js"></script>
+    <script type="text/javascript" src="/assets/ace-min/ext-linking.js"></script>
+    <script type="text/javascript" src="/assets/noty.js"></script>
+    <!-- del:start -->
+    <!-- <script type="text/javascript" src="/js/func_store.js"></script> -->
+    <script type="text/javascript" src="js/list_menu.js"></script>
+    <!-- del:end -->
+    <script>
+        var uiconfig = {
+            inputs: {
+                instrument_id: {
+                    id: 'instrument_id',
+                    type: 'text',
+                    default: 'cu1801',
+                    memo: '合约代码',
+                },
+                volume: {
+                    id: 'volume',
+                    type: 'number',
+                    default: 2,
+                    memo: '手数',
+                },
+                limit_price: {
+                    id: 'limit_price',
+                    type: 'number',
+                    default: 52730,
+                    memo: '价格',
+                },
+                direction: {
+                    id: 'direction',
+                    type: 'options',
+                    items: ['BUY', 'SELL'],
+                    default: 'BUY',
+                    memo: '买卖',
+                },
+                offset: {
+                    id: 'offset',
+                    type: 'options',
+                    items: ['OPEN', 'CLOSE'],
+                    default: 'OPEN',
+                    memo: '开平'
+                }
 
-<!-- 主体内容区域 -->
-<div class="container-fluid main-container">
-    <div class="row">
-        <div class="col-xs-12 no-padding">
-            <div class="btn-toolbar" role="toolbar">
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-default" id="btn_new_indicator">新建指标</button>
-                </div>
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-default" id="btn_editor_run">保存代码并更新指标(Ctrl+S)</button>
-                </div>
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-default" id="btn_editor_reset">回到上一版本</button>
-                </div>
-                
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-default" id="btn_tarder_run">运行</button>
-                </div>
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-default" id="btn_help">帮助文档</button>
-                </div>
-                <div class="btn-group pull-right theme-container">
-                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
-                            aria-haspopup="true" aria-expanded="false">主题：
-                        <span class="show-theme"></span> <span class="caret"></span>
-                    </button>
-                    <ul class="dropdown-menu theme-list">
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="row" style="height: 100%;margin-bottom: 38px;">
-        <!-- 指标列表 -->
-        <div class="col col-xs-3 left-menu no-padding">
-            <div class="menu-container">
-            <div class="panel panel-default">
-                <table class="table" id="list_menu">
-                    <thead>
-                    <tr>
-                        <th colspan="3">系统指标</th>
-                    </tr>
-                    </thead>
-                    <tbody id="system-indicators">
+            }
+        };
+        
+        // 不要修改函数名字
+        var trade_func = function* (C) {
 
-                    </tbody>
-                    <thead>
-                    <tr>
-                        <th colspan="3">用户自定义指标</th>
-                    </tr>
-                    </thead>
-                    <tbody id="custom-indicators">
+            // 从页面读取对应的参数
+            var order_prarams = C.UI_VALUES;
 
-                    </tbody>
-                </table>
-            </div>
-            </div>
-        </div>
-        <div class="col col-xs-9 content-container no-padding">
-            <div class="editor-container">
-                <div id="editor"></div>
-            </div>
-        </div>
-        <div class="col col-xs-3 right-menu no-padding hide">
-            <div class="menu-container">
-                <div id="attachment-container">
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<script type="text/javascript" src="/assets/jquery.min.js"></script>
-<script type="text/javascript" src="/assets/bootstrap/js/bootstrap.min.js"></script>
-<script type="text/javascript" src="/assets/ace-min/ace.js"></script>
-<script type="text/javascript" src="/assets/ace-min/ext-language_tools.js"></script>
-<script type="text/javascript" src="/assets/ace-min/ext-linking.js"></script>
-<script type="text/javascript" src="/assets/noty.js"></script>
-<!-- del:start -->
-<script type="text/javascript" src="/js/func_store.js"></script>
-<script type="text/javascript" src="js/list_menu.js"></script>
-<!-- del:end -->
-<script type="text/javascript" src="index.js"></script>
+            var i = 0;
+
+            //整个函数是一个循环, 直至委托单完全成交才退出循环
+            while (order_prarams.volume > 0 && i < 10) {
+                //按照给定参数报送一个委托单
+                var order = C.INSERT_ORDER(order_prarams);
+                //等待直到委托单状态不再是unknown为止, 或者超过2000毫秒仍然为超时状态
+                var result = yield C.WAIT({
+                    "STATUS.FINISHED": function () { return order.status === "FINISHED" },
+                    "TIMEOUT": 2000
+                });
+                console.log(result);
+                //如果委托单完全成交了则退出循环
+                if (result.status === 'STATUS.FINISHED') {
+                    return;
+                }
+                //撤销委托单
+                C.CANCEL_ORDER(order);
+
+                //在总手数总扣减当前委托单的已成交手数, 回到循环头部按剩余手数重新下单
+                console.log(order)
+                order_prarams.volume -= (order.volume_orign - order.volume_left);
+                i++;
+            }
+        }
+    </script>
+    <script type="text/javascript" src="index.js"></script>
 </body>
+
 </html>

@@ -1,11 +1,3 @@
-class ORDER {
-    constructor(session_id, order_id) {
-        this.session_id = session_id;
-        this.order_id = order_id;
-        this.id = session_id + '|' + order_id;
-    }
-}
-
 const trader_context = function() {
     function insertOrder(ord){
         var order_id = OrderIds.next().value;
@@ -15,26 +7,44 @@ const trader_context = function() {
             "user_id": DM.get_session().user_id,
             "exchange_id": ord.exchange_id,
             "instrument_id": ord.instrument_id,
-            "direction": "BUY",
-            "offset": "OPEN",
+            "direction": ord.direction,
+            "offset": ord.offset,
             "volume": ord.volume,
             "price_type": "LIMIT",
             "limit_price": ord.limit_price
         };
         WS.sendJson(send_obj);
-        return new ORDER(DM.get_session().session_id, order_id);
+        var session_id = DM.get_session().session_id;
+        var id = session_id+'|'+order_id;
+        if(DM.get_order(id)){
+            return DM.get_order(id);
+        }else{
+            var orders = {};
+            orders[id] = {
+                order_id: order_id,
+                session_id: session_id,
+                exchange_order_id: id,
+                status: "UNDEFINED",
+            }
+            DM.update_data({
+                "trade":{
+                    "SIM":{
+                        "orders": orders
+                    }
+                }
+            });
+            return DM.get_order(id);
+        }
     };
 
     function cancelOrder(order){
-        if(order instanceof ORDER){
-            var ord = DM.get_order(order.id);
-            
+        if(order.exchange_order_id){
             var send_obj = {
                 "aid": "cancel_order",          //必填, 撤单请求
-                "order_session_id": ord.session_id,     //必填, 委托单的session_id
-                "order_id": ord.order_id,             //必填, 委托单的order_id
-                "exchange_id": ord.exchange_id,         //必填, 交易所
-                "instrument_id": ord.instrument_id,      //必填, 合约代码
+                "order_session_id": order.session_id,     //必填, 委托单的session_id
+                "order_id": order.order_id,             //必填, 委托单的order_id
+                "exchange_id": order.exchange_id,         //必填, 交易所
+                "instrument_id": order.instrument_id,      //必填, 合约代码
                 //"action_id": "0001",            //当指令发送给飞马后台时需填此字段, 
                 "user_id": DM.get_session().user_id,             //可选, 与登录用户名一致, 当只登录了一个用户的情况下,此字段可省略
             }
@@ -86,7 +96,7 @@ const trader_context = function() {
         }
     }
 
-    var check_order = function(params, cb){
+    var wait = function(params, cb){
         var TIMEOUT = params.TIMEOUT ? parseInt(params.TIMEOUT) : 5000;
         
         var cdt = getConditions(params);
@@ -137,26 +147,10 @@ const trader_context = function() {
 
     }
 
-    function getOrderStatus(ord){
-        if(DM.get_order(ord.id) == undefined){
-            return 'UNDEFINED';
-        }else{
-            return DM.get_order(ord.id).status;
-        } 
-    }
-
-    function getOrderTradedVolume(ord){
-        var o = DM.get_order(ord.id);
-        return o.volume_orign - o.volume_left;
-    }
-
-
     return {
         INSERT_ORDER: insertOrder,
         CANCEL_ORDER: cancelOrder,
-        CHECK_ORDER: thunkify(check_order),
-        GET_ORDER_STATUS: getOrderStatus,
-        GET_ORDER_TRADED_VOLUME: getOrderTradedVolume,
+        WAIT: thunkify(wait),
         GET_ACCOUNT: DM.get_account,
         GET_POSITION: DM.get_positions,
         GET_SESSION: DM.get_session,
@@ -180,7 +174,8 @@ const TD = (function () {
      
     function execTrader(content) {
         let funcName = content.name;
-        let code = content.draft.code;
+        let code = content.code;
+        trader_context.UI_VALUES = content.params;
 
         let id = OrderIds.next().value;
         postMessage({
