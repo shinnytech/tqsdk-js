@@ -134,6 +134,7 @@ const DM = (function () {
                 id = (ins_list.substr(-1, 1) === ',') ? id : (',' + id);
                 var s = ins_list + id;
                 WS.sendJson({
+                    aid: "subscribe_quote",
                     ins_list: s
                 });
             }
@@ -141,3 +142,15 @@ const DM = (function () {
         }
     };
 }());
+
+
+ /**
+         *  TODO 
+         * 显示 task 状态
+         * 累加时间 -》 只记录结束时间
+         * 显示源码
+         * subscribe_quote
+         * 显示用户提示
+         * 提取公共代码
+         * 
+         * */
