@@ -170,17 +170,7 @@
                             params: {
                                 exchange_id, instrument_id, volume, limit_price, direction, offset
                             }
-                        })
-
-                        // worker.postMessage({
-                        //     cmd: 'trader', content: {
-                        //         name: 'trade_func',
-                        //         code: trade_func.toString(),
-                        //         params: {
-                        //             exchange_id, instrument_id, volume, limit_price, direction, offset
-                        //         }
-                        //     }
-                        // });
+                        });
                     }
                 }
             })

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>天勤</title>
+    <!-- base ui && js -->
+    <link href="/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body style="overflow:scroll;overflow:hidden;">
+
+    <div class="container-fluid main-container">
+
+        <div class="row" id="contents">
+            <div class="col col-xs-9 no-padding">
+                <div class="input-group">
+                    <span class="input-group-addon" id="basic-addon1">合约1</span>
+                    <input type="text" id='instrument_1' class="form-control" placeholder="合约代码1" aria-describedby="basic-addon1">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-addon" id="basic-addon2">合约2</span>
+                    <input type="text" id='instrument_2' class="form-control" placeholder="合约代码2" aria-describedby="basic-addon2">
+                </div>
+            </div>
+            <div class="col col-xs-3 ">
+                <div class="btn-group" role="group">
+                    <button type="button" id='INSPECT' class="btn btn-default">开始监视</button>
+                    <button type="button" id='STOP_INSPECT' class="btn btn-default">停止监视</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="contents">
+            <div class="col col-xs-6 no-padding">
+                买入价差:
+                <span id='spread_ask'>计算买入价差</span>
+            </div>
+            <div class="col col-xs-6">
+                卖出价差:
+                <span id='spread_bid'>计算卖出价差</span>
+            </div>
+        </div>
+
+        <div class="row" id="contents">
+            <div class="col col-xs-12 no-padding">
+                <div class="input-group">
+                    <span class="input-group-addon">买开</span>
+                    <input type="number" id='price_buy_open' class="form-control" placeholder="买开">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-addon">买平</span>
+                    <input type="number" id='price_sell_close' class="form-control" placeholder="买开">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-addon">卖开</span>
+                    <input type="number" id='price_sell_open' class="form-control" placeholder="买开">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-addon">卖平</span>
+                    <input type="number" id='price_buy_close' class="form-control" placeholder="买开">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-addon">手数</span>
+                    <input type="number" id='volume' class="form-control" placeholder="手数">
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="buttons">
+            <div class="col col-xs-12 no-padding">
+                <div class="btn-toolbar" role="toolbar" id='operat'>
+                    <div class="btn-group" role="group">
+                        <button type="button" id='START' class="btn btn-default start">开始</button>
+                        <button type="button" id='PAUSE' class="btn btn-default start">暂停</button>
+                        <button type="button" id='RESUME' class="btn btn-default start">恢复</button>
+                        <button type="button" id='STOP' class="btn btn-default start">停止</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="/assets/jquery.min.js"></script>
+    <script type="text/javascript" src="/assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/assets/ace-min/ace.js"></script>
+    <script type="text/javascript" src="/assets/ace-min/ext-language_tools.js"></script>
+    <script type="text/javascript" src="/assets/ace-min/ext-linking.js"></script>
+    <script type="text/javascript" src="/assets/noty.js"></script>
+
+    <script type="text/javascript" src="/js/worker/datamanager.js"></script>
+    <script type="text/javascript" src="/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="trader_sdk.js"></script>
+    <script>
+
+        var task_quote = null;
+        var task_trade = null;
+
+        function* TaskQuote(C) {
+            var insid_a = $('#instrument_1').val();
+            var insid_b = $('#instrument_2').val();
+            var quote_a = C.GET_QUOTE(insid_a);
+            var quote_b = C.GET_QUOTE(insid_b);
+            var datetime_a = C.GET_QUOTE(insid_a).datetime;
+            var datetime_b = C.GET_QUOTE(insid_b).datetime;
+
+            var spread_ask = quote_a.ask_price1 - quote_b.bid_price1;
+            var spread_bid = quote_a.bid_price1 - quote_b.ask_price1;
+            $('#spread_ask').text(spread_ask);
+            $('#spread_bid').text(spread_bid);
+
+            while (true) {
+
+                var result = yield {
+                    'CHANGED_A': function () { return quote_a.datetime > datetime_a; },
+                    'CHANGED_B': function () { return quote_a.datetime > datetime_b; },
+                    'TIMEOUT': 20000
+                };
+
+                if (result) {
+                    var spread_bid = quote_a.bid_price1 - quote_b.ask_price1;
+                    var spread_ask = quote_a.ask_price1 - quote_b.bid_price1;
+                    $('#spread_bid').text(spread_bid);
+                    $('#spread_ask').text(spread_ask);
+                }
+            }
+        }
+
+        function* TaskSpread(C) {
+            var short_volume = 0, long_volume = 0;
+            var insid_a = $('#instrument_1').val();
+            var insid_b = $('#instrument_2').val();
+            var quote_a = C.GET_QUOTE(insid_a);
+            var quote_b = C.GET_QUOTE(insid_b);
+
+            var [exchange_id_a, instrument_id_a] = insid_a.split('.');
+            var [exchange_id_b, instrument_id_b] = insid_b.split('.');
+
+            var price_buy_open = $('#price_buy_open').val();
+            var price_sell_close = $('#price_sell_close').val();
+            var price_sell_open = $('#price_sell_open').val();
+            var price_buy_close = $('#price_buy_close').val();
+
+            var volume = parseInt($('#volume').val());
+
+
+            while (true) {
+                var result = yield {
+                    "OPEN_BUY": function () { return quote_a.ask_price1 - quote_b.bid_price1 <= price_buy_open && long_volume == 0; },
+                    "CLOSE_SELL": function () { return quote_a.bid_price1 - quote_b.ask_price1 >= price_sell_close && long_volume > 0; },
+                    "OPEN_SELL": function () { return quote_a.bid_price1 - quote_b.ask_price1 >= price_sell_open && short_volume == 0; },
+                    "CLOSE_BUY ": function () { return quote_a.ask_price1 - quote_b.bid_price1 <= price_buy_close && short_volume > 0; },
+                    "TIMEOUT": 5000
+                };
+                console.log(result);
+                if (result["OPEN_BUY"]) {
+                    //买开
+                    var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, {
+                        exchange_id: exchange_id_a,
+                        instrument_id: instrument_id_a,
+                        direction: 'BUY',
+                        offset: 'OPEN',
+                        volume: volume
+                    });
+                    var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, {
+                        exchange_id: exchange_id_b,
+                        instrument_id: instrument_id_b,
+                        direction: 'SELL',
+                        offset: 'OPEN',
+                        volume: volume
+                    });
+                    var result = yield {
+                        "STATUS.FINISHED": [task_a, task_b],
+                        "TIMEOUT": 1000000
+                    }
+                    STOP_TASK(task_a);
+                    STOP_TASK(task_b);
+                    if (result["STATUS.FINISHED"]) {
+                        long_volume = volume;
+                    }
+                }
+                if (result["CLOSE_SELL"]) {
+                    //卖平
+                    var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, {
+                        exchange_id: exchange_id_a,
+                        instrument_id: instrument_id_a,
+                        direction: 'SELL',
+                        offset: 'CLOSE',
+                        volume: volume
+                    });
+                    var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, {
+                        exchange_id: exchange_id_b,
+                        instrument_id: instrument_id_b,
+                        direction: 'BUY',
+                        offset: 'CLOSE',
+                        volume: volume
+                    });
+                    var result = yield {
+                        "STATUS.FINISHED": [task_a, task_b],
+                        "TIMEOUT": 1000000
+                    }
+                    STOP_TASK(task_a);
+                    STOP_TASK(task_b);
+                    if (result["STATUS.FINISHED"]) {
+                        long_volume = volume;
+                    }
+                }
+                if (result["OPEN_SELL"]) {
+                    //卖开
+                    task_a = START_TASK(MakeSingleOrderByCompetitorPrice, {
+                        exchange_id: exchange_id_a,
+                        instrument_id: instrument_id_a,
+                        direction: 'SELL',
+                        offset: 'OPEN',
+                        volume: volume
+                    });
+                    task_b = START_TASK(MakeSingleOrderByCompetitorPrice, {
+                        exchange_id: exchange_id_b,
+                        instrument_id: instrument_id_b,
+                        direction: 'BUY',
+                        offset: 'OPEN',
+                        volume: volume
+                    });
+                    var result = yield {
+                        "STATUS.FINISHED": [task_a, task_b],
+                        "TIMEOUT": 1000000
+                    }
+                    STOP_TASK(task_a);
+                    STOP_TASK(task_b);
+                    console.log(result)
+                    if (result["STATUS.FINISHED"]) {
+                        short_volume = volume;
+                    }
+                }
+                if (result["CLOSE_BUY"]) {
+                    //卖平
+                    var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, {
+                        exchange_id: exchange_id_a,
+                        instrument_id: instrument_id_a,
+                        direction: 'BUY',
+                        offset: 'CLOSE',
+                        volume: volume,
+                    });
+                    var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, {
+                        exchange_id: exchange_id_b,
+                        instrument_id: instrument_id_b,
+                        direction: 'SELL',
+                        offset: 'CLOSE',
+                        volume: volume,
+                    });
+                    var result = yield {
+                        "STATUS.FINISHED": [task_a, task_b],
+                        "TIMEOUT": 1000000
+                    }
+                    STOP_TASK(task_a);
+                    STOP_TASK(task_b);
+                    if (result["STATUS.FINISHED"]) {
+                        short_volume = volume;
+                    }
+                }
+            }
+        }
+
+        // 按照给定参数的对手价下单
+        function* MakeSingleOrderByCompetitorPrice(C, params) {
+            // 合约的行情对象
+            var quote = C.GET_QUOTE(params.exchange_id + '.' + params.instrument_id);
+
+            // 整个函数是一个循环, 直至委托单完全成交才退出循环
+            while (params.volume > 0) {
+                // 价格设定为对手价
+                if(params.direction === 'SELL'){
+                    params.limit_price = quote.ask_price1;
+                }
+                if(params.direction === 'BUY'){
+                    params.limit_price = quote.bid_price1;
+                }
+                
+                var order = C.INSERT_ORDER(params);
+                //等待直到委托单状态不再是unknown为止, 或者超过2000毫秒仍然为超时状态
+                var result = yield {
+                    "STATUS.FINISHED": function () { return order.status === "FINISHED" },
+                    "TIMEOUT": 5000
+                };
+                //如果委托单完全成交了则退出循环
+                if (result.status === 'STATUS.FINISHED') {
+                    return;
+                }
+                if (order.status === "ALIVE") {
+                    //撤销委托单
+                    C.CANCEL_ORDER(order);
+                }
+
+                //在总手数总扣减当前委托单的已成交手数, 回到循环头部按剩余手数重新下单
+                params.volume -= (order.volume_orign - order.volume_left);
+            }
+        }
+
+
+        $(function () {
+
+            // 默认参数
+            $('#instrument_1').val('SHFE.rb1801');
+            $('#instrument_2').val('SHFE.rb1805');
+
+            $('#price_buy_open').val(160);
+            $('#price_sell_close').val(165);
+            $('#price_sell_open').val(166);
+            $('#price_buy_close').val(160);
+
+
+            $('#volume').val(1);
+
+            // 开始监视
+            $('#INSPECT').on('click', function () {
+                if (task_quote === null) {
+                    // 初始化监视任务
+                    task_quote = START_TASK(TaskQuote);
+                }
+                flag_stop_inspect = false;
+            });
+
+            // 停止监视
+            $('#STOP_INSPECT').on('click', function () {
+                if (task_quote) STOP_TASK(task_quote);
+                flag_stop_inspect = true;
+                task_quote = null;
+            });
+
+            // 开始交易
+            $('#START').on('click', function () {
+                if (task_trade === null) {
+                    task_trade = START_TASK(TaskSpread);
+                }
+            });
+
+            $('#PAUSE').on('click', function () {
+                PAUSE_TASK(task_trade);
+            });
+
+            $('#RESUME').on('click', function () {
+                RESUME_TASK(task_trade);
+            });
+
+            $('#STOP').on('click', function () {
+                if (task_trade) {
+                    STOP_TASK(task_trade);
+                    task_trade = null;
+                }
+            });
+
+        });
+
+        // 执行交易开始回调　不要修改函数名字
+        var onTradeStart = function () {
+            $('#operat button.start').attr('disabled', true);
+        }
+
+        // 执行交易结束回调　不要修改函数名字
+        var onTradeEnd = function () {
+            $('#operat button.start').attr('disabled', false);
+        }
+    </script>
+</body>
+
+</html>

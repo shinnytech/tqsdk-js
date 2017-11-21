@@ -1,5 +1,5 @@
 const DM = (function () {
-    
+
     function mergeObject(target, source) {
         for (let key in source) {
             let value = source[key];
@@ -43,7 +43,7 @@ const DM = (function () {
 
                     // 更新 path 对应的 first_id, last_id
                     if (!DM.paths.has(perfix)) {
-                        DM.paths.set(perfix,  { firstId: Infinity, lastId: -Infinity });
+                        DM.paths.set(perfix, { firstId: Infinity, lastId: -Infinity });
                     }
 
                     let { firstId, lastId } = DM.paths.get(perfix);
@@ -88,7 +88,7 @@ const DM = (function () {
 
     function clearData() {
         // 清空数据
-        for(var k in DM.datas){
+        for (var k in DM.datas) {
             delete DM.datas[k];
         }
         DM.paths.clear();
@@ -115,17 +115,29 @@ const DM = (function () {
         clear_data: clearData,
 
         // TODO: 怎么选择某个帐户
-        get_account: function(){
+        get_account: function () {
             return DM.datas.trade.SIM.accounts.CNY;
         },
-        get_positions: function(){
+        get_positions: function () {
             return DM.datas.trade.SIM.positions;
         },
-        get_session: function(){
+        get_session: function () {
             return DM.datas.trade.SIM.session;
         },
-        get_order: function(id){
+        get_order: function (id) {
             return DM.datas.trade.SIM.orders[id];
+        },
+        get_quote: function (id) {
+            // 订阅行情
+            var ins_list = DM.datas.ins_list;
+            if (ins_list && !ins_list.includes(id)) {
+                id = (ins_list.substr(-1, 1) === ',') ? id : (',' + id);
+                var s = ins_list + id;
+                WS.sendJson({
+                    ins_list: s
+                });
+            }
+            return DM.datas.quotes[id];
         }
     };
 }());
