@@ -18,11 +18,62 @@ input::-webkit-inner-spin-button {
     margin: 0;
 }
 
+@-webkit-keyframes twinkling{
+	0%{
+		opacity:0;
+    }
+    40%{
+        opacity:1;
+    }
+    60%{
+        opacity:1;
+    }
+	100%{
+		opacity:0;
+	}
+}
+
+hr.divider{
+    margin:20px 60px 20px 60px;
+    border-top: 1px solid #eee;
+}
+
+span.dot{
+    display: inline-block;
+    background-color: #aaa;
+    width: 10px;
+    height: 10px;
+    border: 1px solid #888;
+    border-radius: 5px ;
+}
+
+span.dot.running {
+    background-color: greenyellow;
+    border: 1px solid green;
+    animation: twinkling 2s infinite ease-in-out ;
+}
+
+.twinkle{
+    animation: twinkling 2s infinite ease-in-out ;
+    -webkit-animation: twinkling 2s infinite ease-in-out ;
+}
+
+.record {
+    color: red;
+}
+
+.record.paused {
+    color: rgb(248, 191, 66);
+}
+
+.record.running {
+    color: rgb(76, 216, 87);
+}
+
 /* ============================= */
 
 .main-container {
-    min-width: 300px;
-    height: 100%;
+    min-width: 480px;
     padding: 0px;
 }
 

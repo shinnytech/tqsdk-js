@@ -6,86 +6,198 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>天勤</title>
+    <title>天勤-交易</title>
     <!-- base ui && js -->
     <link href="/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="index.css">
 </head>
 
-<body style="overflow:scroll;overflow:hidden;">
+<body>
 
     <div class="container-fluid main-container">
-
-        <div class="row" id="contents">
-            <div class="col col-xs-9 no-padding">
-                <div class="input-group">
-                    <span class="input-group-addon" id="basic-addon1">合约1</span>
-                    <input type="text" id='instrument_1' class="form-control" placeholder="合约代码1" aria-describedby="basic-addon1">
-                </div>
-                <div class="input-group">
-                    <span class="input-group-addon" id="basic-addon2">合约2</span>
-                    <input type="text" id='instrument_2' class="form-control" placeholder="合约代码2" aria-describedby="basic-addon2">
-                </div>
-            </div>
-            <div class="col col-xs-3 ">
-                <div class="btn-group" role="group">
-                    <button type="button" id='INSPECT' class="btn btn-default">开始监视</button>
-                    <button type="button" id='STOP_INSPECT' class="btn btn-default">停止监视</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="row" id="contents">
+        <div class="row">
             <div class="col col-xs-6 no-padding">
-                买入价差:
-                <span id='spread_ask'>计算买入价差</span>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-addon" id="basic-addon1">合约A</span>
+                    <input type="text" id='instrument_1' class="form-control" placeholder="合约代码A" aria-describedby="basic-addon1">
+                    <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-question-sign"></span>
+                    </span>
+                </div>
             </div>
-            <div class="col col-xs-6">
-                卖出价差:
-                <span id='spread_bid'>计算卖出价差</span>
+            <div class="col col-xs-6 no-padding">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-addon" id="basic-addon2">合约B</span>
+                    <input type="text" id='instrument_2' class="form-control" placeholder="合约代码B" aria-describedby="basic-addon2">
+                    <span class="input-group-btn">
+                        <button type="button" class="btn btn-default">
+                            <span class="glyphicon glyphicon-question-sign"></span>
+                        </button>
+                    </span>
+                </div>
             </div>
         </div>
 
-        <div class="row" id="contents">
-            <div class="col col-xs-12 no-padding">
-                <div class="input-group">
+        <div class="row" style="padding-top: 8px;">
+            <div class="col col-xs-4">
+                <div style="padding-top: 4px;">
+                    <strong>
+                        买入价差:
+                        <span id='spread_ask'></span>
+                    </strong>
+                </div>
+            </div>
+            <div class="col col-xs-4">
+                <div style="padding-top: 4px;">
+                    <strong>
+                        卖出价差:
+                        <span id='spread_bid'></span>
+                    </strong>
+                </div>
+            </div>
+            <div class="col col-xs-4">
+                <div class="btn-group btn-group-sm">
+                    <button type="button" id='INSPECT' class="btn btn-default">
+                        <span class="glyphicon glyphicon-eye-open"></span>&nbsp;开始监视
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="row" id="INSPECT-STATE" style="padding-top: 8px;">
+            <div class="col col-xs-2">
+                <div class="record pull-right">
+                    <span class="glyphicon glyphicon-record"></span>
+                </div>
+            </div>
+            <div class="col col-xs-10">
+                <span class="comment"></span>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="row">
+            <div class="col col-xs-6 no-padding">
+                <div class="input-group input-group-sm">
                     <span class="input-group-addon">买开</span>
                     <input type="number" id='price_buy_open' class="form-control" placeholder="买开">
+                    <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-question-sign"></span>
+                    </span>
                 </div>
-                <div class="input-group">
-                    <span class="input-group-addon">买平</span>
-                    <input type="number" id='price_sell_close' class="form-control" placeholder="买开">
-                </div>
-                <div class="input-group">
-                    <span class="input-group-addon">卖开</span>
-                    <input type="number" id='price_sell_open' class="form-control" placeholder="买开">
-                </div>
-                <div class="input-group">
+            </div>
+            <div class="col col-xs-6 no-padding">
+                <div class="input-group input-group-sm">
+
                     <span class="input-group-addon">卖平</span>
-                    <input type="number" id='price_buy_close' class="form-control" placeholder="买开">
+                    <input type="number" id='price_sell_close' class="form-control" placeholder="卖平">
+                    <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-question-sign"></span>
+                    </span>
                 </div>
-                <div class="input-group">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col col-xs-6 no-padding">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-addon">卖开</span>
+                    <input type="number" id='price_sell_open' class="form-control" placeholder="卖开">
+                    <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-question-sign"></span>
+                    </span>
+                </div>
+            </div>
+            <div class="col col-xs-6 no-padding">
+                <div class="input-group input-group-sm">
+
+                    <span class="input-group-addon">买平</span>
+                    <input type="number" id='price_buy_close' class="form-control" placeholder="买平">
+                    <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-question-sign"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col col-xs-6 no-padding">
+                <div class="input-group input-group-sm">
                     <span class="input-group-addon">手数</span>
                     <input type="number" id='volume' class="form-control" placeholder="手数">
+                    <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-question-sign"></span>
+                    </span>
+                </div>
+            </div>
+            <div class="col col-xs-6 no-padding">
+            </div>
+        </div>
+
+        <div class="row" id="TRADER-STATE" style="padding-top: 8px;">
+            <div class="col col-xs-2">
+                <div class="record pull-right">
+                    <span class="glyphicon glyphicon-record"></span>
+                </div>
+            </div>
+            <div class="col col-xs-5">
+                <span class="comment"></span>
+            </div>
+            <div class="col col-xs-5">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" id='START' class="btn btn-default" data-state="START">
+                        <span class="glyphicon glyphicon-play"></span>&nbsp;开始
+                    </button>
+                    <button type="button" id='STOP' class="btn btn-default">
+                        <span class="glyphicon glyphicon-stop"></span>&nbsp;停止
+                    </button>
                 </div>
             </div>
         </div>
 
-        <div class="row" id="buttons">
-            <div class="col col-xs-12 no-padding">
-                <div class="btn-toolbar" role="toolbar" id='operat'>
-                    <div class="btn-group" role="group">
-                        <button type="button" id='START' class="btn btn-default start">开始</button>
-                        <button type="button" id='PAUSE' class="btn btn-default start">暂停</button>
-                        <button type="button" id='RESUME' class="btn btn-default start">恢复</button>
-                        <button type="button" id='STOP' class="btn btn-default start">停止</button>
+        <hr class="divider">
+
+        <div class="row">
+            <div class="col col-xs-12">
+                <div class="btn-toolbar  pull-right" role="toolbar">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-default" type="button" data-toggle="collapse" data-target="#collapseCode" aria-expanded="false" aria-controls="collapseCode">
+                            <span class="glyphicon glyphicon-hdd"></span>&nbsp;查看源代码
+                        </button>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-default" type="button" data-toggle="collapse" data-target="#collapseHelp" aria-expanded="false" aria-controls="collapseHelp">
+                            <span class="glyphicon glyphicon-question-sign"></span>&nbsp;查看帮助
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
+
+        <div class="row">
+            <div class="col col-xs-12">
+                <div class="collapse" id="collapseHelp">
+                    <div class="well">
+                        ...
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col col-xs-12">
+                <div class="collapse" id="collapseCode">
+                    <div class="well">
+                        ...
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
+
+
     <script type="text/javascript" src="/assets/jquery.min.js"></script>
     <script type="text/javascript" src="/assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/assets/jquery.autocomplete.min.js"></script>
+
     <script type="text/javascript" src="/assets/ace-min/ace.js"></script>
     <script type="text/javascript" src="/assets/ace-min/ext-language_tools.js"></script>
     <script type="text/javascript" src="/assets/ace-min/ext-linking.js"></script>
@@ -94,7 +206,7 @@
     <script type="text/javascript" src="/js/worker/datamanager.js"></script>
     <script type="text/javascript" src="/js/worker/websocket.js"></script>
     <script type="text/javascript" src="trader_sdk.js"></script>
-    <script>
+    <script id='TRADE-CODE'>
 
         var task_quote = null;
         var task_trade = null;
@@ -104,9 +216,8 @@
             var insid_b = $('#instrument_2').val();
             var quote_a = C.GET_QUOTE(insid_a);
             var quote_b = C.GET_QUOTE(insid_b);
-            var datetime_a = C.GET_QUOTE(insid_a).datetime;
-            var datetime_b = C.GET_QUOTE(insid_b).datetime;
 
+            // 显示当前价差
             var spread_ask = quote_a.ask_price1 - quote_b.bid_price1;
             var spread_bid = quote_a.bid_price1 - quote_b.ask_price1;
             $('#spread_ask').text(spread_ask);
@@ -115,16 +226,13 @@
             while (true) {
 
                 var result = yield {
-                    'CHANGED_A': function () { return quote_a.datetime > datetime_a; },
-                    'CHANGED_B': function () { return quote_a.datetime > datetime_b; },
-                    'TIMEOUT': 20000
+                    CHANGED: function(){return C.QUOTE_CHANGED(quote_a) || C.QUOTE_CHANGED(quote_b)},
+                    TIMEOUT: 20000
                 };
 
-                if (result) {
-                    var spread_bid = quote_a.bid_price1 - quote_b.ask_price1;
-                    var spread_ask = quote_a.ask_price1 - quote_b.bid_price1;
-                    $('#spread_bid').text(spread_bid);
-                    $('#spread_ask').text(spread_ask);
+                if (result.CHANGED) {
+                    $('#spread_bid').text(quote_a.bid_price1 - quote_b.ask_price1);
+                    $('#spread_ask').text(quote_a.ask_price1 - quote_b.bid_price1);
                 }
             }
         }
@@ -149,14 +257,14 @@
 
             while (true) {
                 var result = yield {
-                    "OPEN_BUY": function () { return quote_a.ask_price1 - quote_b.bid_price1 <= price_buy_open && long_volume == 0; },
-                    "CLOSE_SELL": function () { return quote_a.bid_price1 - quote_b.ask_price1 >= price_sell_close && long_volume > 0; },
-                    "OPEN_SELL": function () { return quote_a.bid_price1 - quote_b.ask_price1 >= price_sell_open && short_volume == 0; },
-                    "CLOSE_BUY ": function () { return quote_a.ask_price1 - quote_b.bid_price1 <= price_buy_close && short_volume > 0; },
-                    "TIMEOUT": 5000
+                    OPEN_BUY: function () { return quote_a.ask_price1 - quote_b.bid_price1 <= price_buy_open && long_volume == 0; },
+                    CLOSE_SELL: function () { return quote_a.bid_price1 - quote_b.ask_price1 >= price_sell_close && long_volume > 0; },
+                    OPEN_SELL: function () { return quote_a.bid_price1 - quote_b.ask_price1 >= price_sell_open && short_volume == 0; },
+                    CLOSE_BUY: function () { return quote_a.ask_price1 - quote_b.bid_price1 <= price_buy_close && short_volume > 0; },
+                    TIMEOUT: 5000
                 };
                 console.log(result);
-                if (result["OPEN_BUY"]) {
+                if (result.OPEN_BUY) {
                     //买开
                     var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, {
                         exchange_id: exchange_id_a,
@@ -182,7 +290,7 @@
                         long_volume = volume;
                     }
                 }
-                if (result["CLOSE_SELL"]) {
+                if (result.CLOSE_SELL) {
                     //卖平
                     var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, {
                         exchange_id: exchange_id_a,
@@ -208,7 +316,7 @@
                         long_volume = volume;
                     }
                 }
-                if (result["OPEN_SELL"]) {
+                if (result.OPEN_SELL) {
                     //卖开
                     task_a = START_TASK(MakeSingleOrderByCompetitorPrice, {
                         exchange_id: exchange_id_a,
@@ -235,7 +343,7 @@
                         short_volume = volume;
                     }
                 }
-                if (result["CLOSE_BUY"]) {
+                if (result.CLOSE_BUY) {
                     //卖平
                     var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, {
                         exchange_id: exchange_id_a,
@@ -272,13 +380,13 @@
             // 整个函数是一个循环, 直至委托单完全成交才退出循环
             while (params.volume > 0) {
                 // 价格设定为对手价
-                if(params.direction === 'SELL'){
-                    params.limit_price = quote.ask_price1;
-                }
-                if(params.direction === 'BUY'){
+                if (params.direction === 'SELL') {
                     params.limit_price = quote.bid_price1;
                 }
-                
+                if (params.direction === 'BUY') {
+                    params.limit_price = quote.ask_price1;
+                }
+
                 var order = C.INSERT_ORDER(params);
                 //等待直到委托单状态不再是unknown为止, 或者超过2000毫秒仍然为超时状态
                 var result = yield {
@@ -301,6 +409,7 @@
 
 
         $(function () {
+            // TODO: 初始化选择合约输入框
 
             // 默认参数
             $('#instrument_1').val('SHFE.rb1801');
@@ -311,57 +420,95 @@
             $('#price_sell_open').val(166);
             $('#price_buy_close').val(160);
 
+            $('#volume').val(2);
 
-            $('#volume').val(1);
-
-            // 开始监视
+            // 监视按钮
             $('#INSPECT').on('click', function () {
                 if (task_quote === null) {
                     // 初始化监视任务
                     task_quote = START_TASK(TaskQuote);
+                    flag_stop_inspect = false;
+                    updateUI_InspectState('START');
+                } else {
+                    STOP_TASK(task_quote);
+                    flag_stop_inspect = true;
+                    task_quote = null;
+                    updateUI_InspectState('STOP');
                 }
-                flag_stop_inspect = false;
             });
 
-            // 停止监视
-            $('#STOP_INSPECT').on('click', function () {
-                if (task_quote) STOP_TASK(task_quote);
-                flag_stop_inspect = true;
-                task_quote = null;
-            });
-
-            // 开始交易
+            // 开始交易按钮
             $('#START').on('click', function () {
-                if (task_trade === null) {
-                    task_trade = START_TASK(TaskSpread);
+                var cmd = $('button#START').attr('data-state');
+                updateUI_TradeState(cmd);
+                switch (cmd){
+                    case 'START':
+                        if (task_trade === null) task_trade = START_TASK(TaskSpread);
+                        break;
+                    case 'PAUSE':
+                        PAUSE_TASK(task_trade);
+                        break;
+                    case 'RESUME':
+                        RESUME_TASK(task_trade);
+                        break;
                 }
             });
-
-            $('#PAUSE').on('click', function () {
-                PAUSE_TASK(task_trade);
-            });
-
-            $('#RESUME').on('click', function () {
-                RESUME_TASK(task_trade);
-            });
-
+            
+            // 停止交易按钮
             $('#STOP').on('click', function () {
                 if (task_trade) {
+                    updateUI_TradeState('STOP');
                     STOP_TASK(task_trade);
                     task_trade = null;
                 }
             });
 
         });
-
-        // 执行交易开始回调　不要修改函数名字
-        var onTradeStart = function () {
-            $('#operat button.start').attr('disabled', true);
+    </script>
+    <script>
+        function updateUI_InspectState(cmd) {
+            if (cmd === 'START') {
+                $('#INSPECT-STATE .record').addClass('running twinkle');
+                $('#INSPECT-STATE .comment').text('正在监视'); 
+                $('button#INSPECT').html('<span class="glyphicon glyphicon-eye-close"></span>&nbsp;停止监视');
+                $('#instrument_1').attr('readonly', true);
+                $('#instrument_2').attr('readonly', true);
+            } else if (cmd === 'STOP') {
+                $('#INSPECT-STATE .record').removeClass('running twinkle');
+                $('#INSPECT-STATE .comment').text('已停止监视');
+                $('button#INSPECT').html('<span class="glyphicon glyphicon-eye-open"></span>&nbsp;开始监视');
+                $('#instrument_1').attr('readonly', false);
+                $('#instrument_2').attr('readonly', false);
+            }
         }
+        
+        function updateUI_TradeState(cmd) {
+            
+            if (cmd === 'START') {
+                $('button#START').attr('data-state', 'PAUSE');
+                $('button#START').html('<span class="glyphicon glyphicon-pause"></span>&nbsp;暂停');
 
-        // 执行交易结束回调　不要修改函数名字
-        var onTradeEnd = function () {
-            $('#operat button.start').attr('disabled', false);
+                $('#TRADER-STATE .record').removeClass('paused').addClass('running twinkle');
+                $('#TRADER-STATE .comment').text('开始运行交易策略');
+            } else if (cmd === 'PAUSE') {
+                $('button#START').attr('data-state', 'RESUME');
+                $('button#START').html('<span class="glyphicon glyphicon-play"></span>&nbsp;恢复');
+
+                $('#TRADER-STATE .record').removeClass('running twinkle').addClass('paused');
+                $('#TRADER-STATE .comment').text('暂停运行交易策略');
+            } else if (cmd === 'RESUME') {
+                $('button#START').attr('data-state', 'PAUSE');
+                $('button#START').html('<span class="glyphicon glyphicon-pause"></span>&nbsp;暂停');
+
+                $('#TRADER-STATE .record').removeClass('paused').addClass('twinkle running');
+                $('#TRADER-STATE .comment').text('恢复运行交易策略');
+            } else if (cmd === 'STOP') {
+                $('button#START').attr('data-state', 'START');
+                $('button#START').html('<span class="glyphicon glyphicon-play"></span>&nbsp;开始');
+
+                $('#TRADER-STATE .record').removeClass('paused running twinkle');
+                $('#TRADER-STATE .comment').text('已停止运行交易策略');
+            }
         }
     </script>
 </body>

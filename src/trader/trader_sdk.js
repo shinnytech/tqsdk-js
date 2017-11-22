@@ -6,7 +6,7 @@ const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
                 DM.update_data(message.data[i]);
             }
             // TODO: 判断 waitConditions 是否成立
-            TaskManager.run();
+            TaskManager.run(message.data);
         }
     },
 
@@ -109,9 +109,28 @@ const trader_context = function () {
         }
     }
 
+    function quoteChange(quote){
+        var ins_id = '';
+        if(typeof quote === 'string'){
+            ins_id = quote;
+        }else if(quote.instrument_id){
+            ins_id = quote.instrument_id;
+        }else{
+            // TODO: 抛出错误
+            console.error('没有找到合约id');
+            return false;
+        }
+
+        for (let i = 0; i < TaskManager.tempDiff.length; i++) {
+            if(TaskManager.tempDiff[i].quotes && TaskManager.tempDiff[i].quotes[ins_id]) return true;
+        }
+        return false;
+    }
+
     return {
         INSERT_ORDER: insertOrder,
         CANCEL_ORDER: cancelOrder,
+        QUOTE_CHANGED: quoteChange,
         GET_ACCOUNT: DM.get_account,
         GET_POSITION: DM.get_positions,
         GET_SESSION: DM.get_session,
@@ -126,8 +145,8 @@ class Task {
         this.func = func;
         this.paused = false;
         this.waitConditions = waitConditions;
-        this.timeout = 0;
-        this.executeTime = 0;
+        this.timeout = 6000000;
+        this.endTime = 0;
         this.stopped = false;
     }
 
@@ -145,10 +164,17 @@ class Task {
 
 }
 
+
+
 const TaskManager = (function (task) {
     var aliveTasks = {};
-    // TODO: 修改成监听 onmessage 事件执行
-    var intervalTime = 100; // 任务执行循环间隔
+    
+    var intervalTime = 10; // 任务执行循环间隔
+    var taskDefaultTime = 10 * 60000; // 每个任务默认时间
+
+    function getEndTime(t){
+        return (new Date()).getTime() + t;
+    }
 
     function checkItem(node) {
         if (typeof node == 'function') {
@@ -177,8 +203,7 @@ const TaskManager = (function (task) {
             return false;
         }
     }
-
-
+    
     function checkTask(task) {
         var status = {};
         // 默认 timeout = 10000 ms
@@ -190,7 +215,7 @@ const TaskManager = (function (task) {
             else status[cond] = false;
         }
 
-        if (task.executeTime >= task.timeout) status['TIMEOUT'] = true;
+        if ((new Date()).getTime() >= task.endTime) status['TIMEOUT'] = true;
         else status['TIMEOUT'] = false;
 
         return status;
@@ -198,8 +223,6 @@ const TaskManager = (function (task) {
 
     function runTask(task) {
         var waitResult = checkTask(task);
-        // console.log(waitResult)
-
         /**
          * ret: { value, done }
          */
@@ -210,7 +233,7 @@ const TaskManager = (function (task) {
                 if (ret.done) {
                     remove(task);
                 } else {
-                    task.executeTime = 0;
+                    task.endTime = getEndTime(task.timeout);
                     task.waitConditions = ret.value;
                 }
                 break;
@@ -218,7 +241,8 @@ const TaskManager = (function (task) {
         }
     }
 
-    function run() {
+    function run(diffData) {
+        TaskManager.tempDiff = diffData ? diffData : null;
         for (var taskId in aliveTasks) {
             if (aliveTasks[taskId].paused) continue;
             runTask(aliveTasks[taskId]);
@@ -229,8 +253,16 @@ const TaskManager = (function (task) {
 
     setInterval(() => {
         for (var taskId in aliveTasks) {
-            if (aliveTasks[taskId].paused) continue;
-            aliveTasks[taskId].executeTime += intervalTime;
+            var task = aliveTasks[taskId];
+            if (task.paused) {
+                task.endTime += intervalTime;
+            } else {
+                var now = (new Date()).getTime();
+                // trigger timeout
+                if (task.endTime <= now){
+                    runTask(task);
+                }
+            }
         }
     }, intervalTime);
 
@@ -252,6 +284,7 @@ const TaskManager = (function (task) {
     }
 
     return {
+        tempDiff : null,
         add,
         remove,
         run,
