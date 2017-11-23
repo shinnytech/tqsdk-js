@@ -61,15 +61,22 @@ hr.divider{
 
 #code_container{
     height:500px;
-    border: 1px solid #cccccc;
-    border-radius: 3px;
 }
+
+.list-group-item{
+    padding: 6px 0px;
+}
+
+.panel {
+    margin-bottom: 5px;
+}
+
 
 /* ============================= */
 
 .main-container {
     min-width: 380px;
-    padding: 0px;
+    padding: 5px 10px;
 }
 
 .main-container .row {
