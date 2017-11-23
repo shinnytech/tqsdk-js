@@ -316,7 +316,6 @@ const START_TASK = function (func) {
 
 const STOP_TASK = function (task) {
     task.stop();
-    // TaskManager.remove(task);
 }
 
 const PAUSE_TASK = function (task) {

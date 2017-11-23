@@ -17,6 +17,14 @@ input::-webkit-inner-spin-button {
     -webkit-appearance: none !important;
     margin: 0;
 }
+hr.divider{
+    margin:20px 60px 20px 60px;
+    border-top: 1px solid #eee;
+}
+
+.row.state {
+    font-size: 12px;
+}
 
 @-webkit-keyframes twinkling{
 	0%{
@@ -33,25 +41,6 @@ input::-webkit-inner-spin-button {
 	}
 }
 
-hr.divider{
-    margin:20px 60px 20px 60px;
-    border-top: 1px solid #eee;
-}
-
-span.dot{
-    display: inline-block;
-    background-color: #aaa;
-    width: 10px;
-    height: 10px;
-    border: 1px solid #888;
-    border-radius: 5px ;
-}
-
-span.dot.running {
-    background-color: greenyellow;
-    border: 1px solid green;
-    animation: twinkling 2s infinite ease-in-out ;
-}
 
 .twinkle{
     animation: twinkling 2s infinite ease-in-out ;
@@ -70,10 +59,16 @@ span.dot.running {
     color: rgb(76, 216, 87);
 }
 
+#code_container{
+    height:500px;
+    border: 1px solid #cccccc;
+    border-radius: 3px;
+}
+
 /* ============================= */
 
 .main-container {
-    min-width: 480px;
+    min-width: 380px;
     padding: 0px;
 }
 
