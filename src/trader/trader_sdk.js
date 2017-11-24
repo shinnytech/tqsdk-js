@@ -145,7 +145,7 @@ class Task {
         this.func = func;
         this.paused = false;
         this.waitConditions = waitConditions;
-        this.timeout = 6000000;
+        this.timeout = 6000000; // 每个任务默认时间
         this.endTime = 0;
         this.stopped = false;
     }
@@ -170,7 +170,6 @@ const TaskManager = (function (task) {
     var aliveTasks = {};
     
     var intervalTime = 10; // 任务执行循环间隔
-    var taskDefaultTime = 10 * 60000; // 每个任务默认时间
 
     function getEndTime(t){
         return (new Date()).getTime() + t;
@@ -206,11 +205,12 @@ const TaskManager = (function (task) {
     
     function checkTask(task) {
         var status = {};
-        // 默认 timeout = 10000 ms
-        task.timeout = (task.waitConditions && task.waitConditions.TIMEOUT) ? task.waitConditions.TIMEOUT : 10000;
-
+        
         for (var cond in task.waitConditions) {
-            if (cond === 'TIMEOUT') continue;
+            if (cond.toUpperCase() === 'TIMEOUT'){
+                task.timeout = task.waitConditions[cond];
+                continue;
+            } 
             if (checkItem(task.waitConditions[cond])) status[cond] = true;
             else status[cond] = false;
         }
@@ -245,9 +245,11 @@ const TaskManager = (function (task) {
         TaskManager.tempDiff = diffData ? diffData : null;
         for (var taskId in aliveTasks) {
             if (aliveTasks[taskId].paused) continue;
+            if (aliveTasks[taskId] && aliveTasks[taskId].stopped){
+                remove(aliveTasks[taskId]);
+                continue;
+            }
             runTask(aliveTasks[taskId]);
-            if (aliveTasks[taskId] && aliveTasks[taskId].stopped) 
-                remove(aliveTasks[taskId]);;
         }
     }
 
@@ -259,9 +261,7 @@ const TaskManager = (function (task) {
             } else {
                 var now = (new Date()).getTime();
                 // trigger timeout
-                if (task.endTime <= now){
-                    runTask(task);
-                }
+                if (task.endTime <= now) runTask(task);
             }
         }
     }, intervalTime);

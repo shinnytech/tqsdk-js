@@ -71,6 +71,11 @@ hr.divider{
     margin-bottom: 5px;
 }
 
+.panel-title{
+    font-size: 14px;
+    font-weight: bold;
+}
+
 
 /* ============================= */
 

@@ -19,7 +19,10 @@
             <div class="panel-heading">
                 <h3 class="panel-title">
                     输入
-                    <span class="glyphicon glyphicon-question-sign pull-right"></span>
+                    <span class="glyphicon glyphicon-info-sign pull-right"
+                    data-toggle="popover" data-trigger="hover" data-placement="bottom" 
+                    data-title="说明"
+                    data-content="此板块用来输入执行交易需要的参数"></span>
                 </h3>
             </div>
             <ul class="list-group">
@@ -81,15 +84,18 @@
             
         <div class="panel panel-default">
             <div class="panel-heading">
-                <h3 class="panel-title">
+                <h5 class="panel-title">
                     <span class="state" id="INSPECT-STATE">
                         <span class="record">
                             <span class="glyphicon glyphicon-record"></span>
                         </span>
                     </span>
                     任务 —— 监视价差
-                    <span class="glyphicon glyphicon-question-sign pull-right"></span>
-                </h3>
+                    <span class="glyphicon glyphicon-info-sign pull-right"
+                    data-toggle="popover" data-trigger="hover" data-placement="bottom" 
+                    data-title="说明"
+                    data-content="执行查看合约价差的任务，任务标题前方的图标指示任务运行的状态。"></span>
+                </h5>
             </div>
             <div class="panel-body">
                 <div class="btn-group btn-group-sm">
@@ -124,7 +130,10 @@
                         </span>
                     </span>
                     任务 —— 套利下单
-                    <span class="glyphicon glyphicon-question-sign pull-right"></span>
+                    <span class="glyphicon glyphicon-info-sign pull-right"
+                    data-toggle="popover" data-trigger="hover" data-placement="bottom" 
+                    data-title="说明"
+                    data-content="执行交易任务，任务标题前方的图标指示任务运行的状态。"></span>
                 </h3>
             </div>
             <div class="panel-body">
@@ -189,16 +198,17 @@
     <script type="text/javascript" src="/js/worker/datamanager.js"></script>
     <script type="text/javascript" src="/js/worker/websocket.js"></script>
     <script type="text/javascript" src="trader_sdk.js"></script>
-    <script id='TRADE-CODE'>
-var task_quote = null;
-var task_trade = null;
+    <script type="text/javascript" id='TRADE-CODE'>
+// 全局变量
+var insid_a = 'DCE.jd1805'; // 默认合约A代码，读取用户填写的合约A代码
+var insid_b = 'DCE.jd1809'; // 默认合约B代码，读取用户填写的合约B代码
+var quote_a = null; // 合约A
+var quote_b = null; // 合约B
+
+var task_quote = null; // 监视合约价差任务
+var task_trade = null; // 执行交易任务
 
 function* TaskQuote(C) {
-    var insid_a = $('#instrument_1').val();
-    var insid_b = $('#instrument_2').val();
-    var quote_a = C.GET_QUOTE(insid_a);
-    var quote_b = C.GET_QUOTE(insid_b);
-
     // 显示当前价差
     var spread_ask = quote_a.ask_price1 - quote_b.bid_price1;
     var spread_bid = quote_a.bid_price1 - quote_b.ask_price1;
@@ -221,10 +231,6 @@ function* TaskQuote(C) {
 
 function* TaskSpread(C) {
     var short_volume = 0, long_volume = 0;
-    var insid_a = $('#instrument_1').val();
-    var insid_b = $('#instrument_2').val();
-    var quote_a = C.GET_QUOTE(insid_a);
-    var quote_b = C.GET_QUOTE(insid_b);
 
     var [exchange_id_a, instrument_id_a] = insid_a.split('.');
     var [exchange_id_b, instrument_id_b] = insid_b.split('.');
@@ -233,9 +239,14 @@ function* TaskSpread(C) {
     var price_sell_close = $('#price_sell_close').val();
     var price_sell_open = $('#price_sell_open').val();
     var price_buy_close = $('#price_buy_close').val();
-
     var volume = parseInt($('#volume').val());
 
+    var order_a = {exchange_id: exchange_id_a, instrument_id: instrument_id_a, volume: volume};
+    var order_b = {exchange_id: exchange_id_b, instrument_id: instrument_id_b, volume: volume};
+    var buy_open = {direction: 'BUY', offset: 'OPEN'};
+    var sell_open = {direction: 'SELL', offset: 'OPEN'};
+    var buy_close = {direction: 'BUY', offset: 'CLOSE'};
+    var sell_close = {direction: 'SELL', offset: 'CLOSE'};
 
     while (true) {
         var result = yield {
@@ -245,109 +256,61 @@ function* TaskSpread(C) {
             CLOSE_BUY: function () { return quote_a.ask_price1 - quote_b.bid_price1 <= price_buy_close && short_volume > 0; },
             TIMEOUT: 5000
         };
-        console.log(result);
+        
         if (result.OPEN_BUY) {
             //买开
-            var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, {
-                exchange_id: exchange_id_a,
-                instrument_id: instrument_id_a,
-                direction: 'BUY',
-                offset: 'OPEN',
-                volume: volume
-            });
-            var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, {
-                exchange_id: exchange_id_b,
-                instrument_id: instrument_id_b,
-                direction: 'SELL',
-                offset: 'OPEN',
-                volume: volume
-            });
+            var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_a, buy_open));
+            var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_b, sell_open));
             var result = yield {
-                "STATUS.FINISHED": [task_a, task_b],
-                "TIMEOUT": 1000000
+                FINISHED: [task_a, task_b],
+                TIMEOUT: 1000000
             }
             STOP_TASK(task_a);
             STOP_TASK(task_b);
-            if (result["STATUS.FINISHED"]) {
+            if (result.FINISHED) {
                 long_volume = volume;
             }
         }
         if (result.CLOSE_SELL) {
             //卖平
-            var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, {
-                exchange_id: exchange_id_a,
-                instrument_id: instrument_id_a,
-                direction: 'SELL',
-                offset: 'CLOSE',
-                volume: volume
-            });
-            var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, {
-                exchange_id: exchange_id_b,
-                instrument_id: instrument_id_b,
-                direction: 'BUY',
-                offset: 'CLOSE',
-                volume: volume
-            });
+            var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_a, sell_close));
+            var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_b, buy_close));
             var result = yield {
-                "STATUS.FINISHED": [task_a, task_b],
-                "TIMEOUT": 1000000
+                FINISHED: [task_a, task_b],
+                TIMEOUT: 1000000
             }
             STOP_TASK(task_a);
             STOP_TASK(task_b);
-            if (result["STATUS.FINISHED"]) {
+            if (result.FINISHED) {
                 long_volume = volume;
             }
         }
         if (result.OPEN_SELL) {
             //卖开
-            task_a = START_TASK(MakeSingleOrderByCompetitorPrice, {
-                exchange_id: exchange_id_a,
-                instrument_id: instrument_id_a,
-                direction: 'SELL',
-                offset: 'OPEN',
-                volume: volume
-            });
-            task_b = START_TASK(MakeSingleOrderByCompetitorPrice, {
-                exchange_id: exchange_id_b,
-                instrument_id: instrument_id_b,
-                direction: 'BUY',
-                offset: 'OPEN',
-                volume: volume
-            });
+            var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_a, sell_open));
+            var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_b, buy_open));
             var result = yield {
-                "STATUS.FINISHED": [task_a, task_b],
-                "TIMEOUT": 1000000
+                FINISHED: [task_a, task_b],
+                TIMEOUT: 1000000
             }
             STOP_TASK(task_a);
             STOP_TASK(task_b);
             console.log(result)
-            if (result["STATUS.FINISHED"]) {
+            if (result.FINISHED) {
                 short_volume = volume;
             }
         }
         if (result.CLOSE_BUY) {
             //卖平
-            var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, {
-                exchange_id: exchange_id_a,
-                instrument_id: instrument_id_a,
-                direction: 'BUY',
-                offset: 'CLOSE',
-                volume: volume,
-            });
-            var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, {
-                exchange_id: exchange_id_b,
-                instrument_id: instrument_id_b,
-                direction: 'SELL',
-                offset: 'CLOSE',
-                volume: volume,
-            });
+            var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_a, buy_close));
+            var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_b, sell_close));
             var result = yield {
-                "STATUS.FINISHED": [task_a, task_b],
-                "TIMEOUT": 1000000
+                FINISHED: [task_a, task_b],
+                TIMEOUT: 1000000
             }
             STOP_TASK(task_a);
             STOP_TASK(task_b);
-            if (result["STATUS.FINISHED"]) {
+            if (result.FINISHED) {
                 short_volume = volume;
             }
         }
@@ -372,11 +335,11 @@ function* MakeSingleOrderByCompetitorPrice(C, params) {
         var order = C.INSERT_ORDER(params);
         //等待直到委托单状态不再是unknown为止, 或者超过2000毫秒仍然为超时状态
         var result = yield {
-            "STATUS.FINISHED": function () { return order.status === "FINISHED" },
-            "TIMEOUT": 5000
+            STATUS_FINISHED: function () { return order.status === "FINISHED" },
+            TIMEOUT: 5000
         };
         //如果委托单完全成交了则退出循环
-        if (result.status === 'STATUS.FINISHED') {
+        if (result.STATUS_FINISHED) {
             return;
         }
         if (order.status === "ALIVE") {
@@ -393,11 +356,9 @@ function* MakeSingleOrderByCompetitorPrice(C, params) {
 $(function () {
     // TODO: 初始化选择合约输入框
 
-    
-
-    // 默认参数
-    $('#instrument_1').val('SHFE.rb1801');
-    $('#instrument_2').val('SHFE.rb1805');
+    // 设置默认参数
+    $('#instrument_1').val(insid_a);
+    $('#instrument_2').val(insid_b);
 
     $('#price_buy_open').val(160);
     $('#price_sell_close').val(165);
@@ -409,6 +370,12 @@ $(function () {
     // 监视按钮
     $('#INSPECT').on('click', function () {
         if (task_quote === null) {
+            // 更新全局参数
+            insid_a = $('#instrument_1').val();
+            insid_b = $('#instrument_2').val();
+            quote_a = DM.get_quote(insid_a);
+            quote_b = DM.get_quote(insid_b);
+            // 开始任务之前，先更新参数
             // 初始化监视任务
             task_quote = START_TASK(TaskQuote);
             flag_stop_inspect = false;
@@ -424,9 +391,14 @@ $(function () {
     // 开始交易按钮
     $('#START').on('click', function () {
         var cmd = $('button#START').attr('data-state');
-        updateUI_TradeState(cmd);
         switch (cmd) {
             case 'START':
+                // 更新全局参数
+                insid_a = $('#instrument_1').val();
+                insid_b = $('#instrument_2').val();
+                quote_a = DM.get_quote(insid_a);
+                quote_b = DM.get_quote(insid_b);
+                // 开始任务之前，先更新参数
                 if (task_trade === null) task_trade = START_TASK(TaskSpread);
                 break;
             case 'PAUSE':
@@ -436,6 +408,7 @@ $(function () {
                 RESUME_TASK(task_trade);
                 break;
         }
+        updateUI_TradeState(cmd);
     });
 
     // 停止交易按钮
@@ -450,14 +423,14 @@ $(function () {
     // 初始化UI
     $('[data-toggle="tooltip"]').tooltip();
     $('[data-toggle="popover"]').popover()
-    updateUI_CodeContainer();
+    initUI_Code();
 });
     </script>
     <script>
         // 关于更新 ui 的代码
-        function updateUI_CodeContainer() {
+        function initUI_Code() {
             var html = hljs.highlightAuto($('#TRADE-CODE').text());
-            $('#code_container code').html(html.value)
+            $('#code_container code').html(html.value);
         }
 
         function updateUI_InspectState(cmd) {
@@ -478,7 +451,6 @@ $(function () {
         }
 
         function updateUI_TradeState(cmd) {
-
             if (cmd === 'START') {
                 $('button#START').attr('data-state', 'PAUSE');
                 $('button#START').html('<span class="glyphicon glyphicon-pause"></span>&nbsp;暂停');
