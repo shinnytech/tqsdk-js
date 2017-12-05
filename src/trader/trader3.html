@@ -99,7 +99,7 @@
             </div>
             <div class="panel-body">
                 <div class="btn-group btn-group-sm">
-                    <button type="button" id='INSPECT' class="btn btn-default">
+                    <button type="button" class="btn btn-default INSPECT">
                         <span class="glyphicon glyphicon-play"></span>&nbsp;开始监视
                     </button>
                 </div>
@@ -107,20 +107,19 @@
                     <div class="col col-xs-6 col-sm-3">
                         <strong>
                             买入价差:
-                            <span id='spread_ask'></span>
+                            <span class='spread_ask'></span>
                         </strong>
                     </div>
                     <div class="col col-xs-6 col-sm-3">
                         <strong>
                             卖出价差:
-                            <span id='spread_bid'></span>
+                            <span class='spread_bid'></span>
                         </strong>
                     </div>
                 </div>
             </div>
         </div>
 
-        
         <div class="panel panel-default" style="margin-bottom:15px;">
             <div class="panel-heading">
                 <h3 class="panel-title">
@@ -138,14 +137,96 @@
             </div>
             <div class="panel-body">
                 <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" id='START' class="btn btn-default" data-state="START">
+                    <button type="button" class="btn btn-default START" data-state="START">
                         <span class="glyphicon glyphicon-play"></span>&nbsp;开始
                     </button>
-                    <button type="button" id='STOP' class="btn btn-default">
+                    <button type="button" class="btn btn-default STOP">
                         <span class="glyphicon glyphicon-stop"></span>&nbsp;停止
                     </button>
                 </div>
             </div>
+        </div>
+        
+        <div class="panel panel-default tasks" style="margin-bottom:15px;font-size:12px;">
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                    任务
+                    <span class="glyphicon glyphicon-info-sign pull-right"
+                    data-toggle="popover" data-trigger="hover" data-placement="bottom" 
+                    data-title="说明"
+                    data-content="任务列表，显示了任务名称和运行状态等信息。"></span>
+                </h3>
+            </div>
+            <ul class="list-group">
+                <li class="list-group-item">
+                    <div class="row">
+                        <div class="col col-xs-2"><b>标识</b></div>
+                        <div class="col col-xs-2"><b>状态</b></div>
+                        <div class="col col-xs-3"><b>操作</b></div>
+                        <div class="col col-xs-5"><b>结果</b></div>
+                    </div>
+                
+                </li>
+                <li class="list-group-item">
+
+                    <div class="row INSPECT TASK">
+                        <div class="col col-xs-2">监视价差</div>
+                        <div class="col col-xs-2 STATE">
+                            <span class="label label-danger">停止</span>
+                        </div>
+                        <div class="col col-xs-3">
+                            <div class="btn-group btn-group-xs"
+                            data-toggle="tooltip" data-trigger="hover" data-placement="bottom" title="开始监视">
+                                <button type="button" class="btn btn-default INSPECT">
+                                    <span class="glyphicon glyphicon-play"></span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col col-xs-5">
+                            <div class="row">
+                                <div class="col col-xs-6 col-sm-3 no-padding">
+                                    <strong>
+                                        买入价差:
+                                        <span class='spread_ask'></span>
+                                    </strong>
+                                </div>
+                                <div class="col col-xs-6 col-sm-3 no-padding">
+                                    <strong>
+                                        卖出价差:
+                                        <span class='spread_bid'></span>
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                <li class="list-group-item">
+
+                    <div class="row TRADER TASK">
+                        <div class="col col-xs-2">套利下单</div>
+                        <div class="col col-xs-2 STATE">
+                            <span class="label label-danger">停止</span>
+                        </div>
+                        <div class="col col-xs-4">
+                            <div class="btn-toolbar" role="toolbar">
+                                <div class="btn-group btn-group-xs" role="group"
+                                data-toggle="tooltip" data-trigger="hover" data-placement="bottom" title="开始">
+                                    <button type="button" class="btn btn-default START" data-state="START">
+                                        <span class="glyphicon glyphicon-play"></span>
+                                    </button>
+                                </div>
+                                <div class="btn-group btn-group-xs" role="group"
+                                data-toggle="tooltip" data-trigger="hover" data-placement="bottom" title="结束" >
+                                    <button type="button" class="btn btn-default STOP" >
+                                        <span class="glyphicon glyphicon-stop"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            </ul>
         </div>
 
         <div class="row" style="padding-bottom:5px;">
@@ -212,8 +293,8 @@ function* TaskQuote(C) {
     // 显示当前价差
     var spread_ask = quote_a.ask_price1 - quote_b.bid_price1;
     var spread_bid = quote_a.bid_price1 - quote_b.ask_price1;
-    $('#spread_ask').text(spread_ask);
-    $('#spread_bid').text(spread_bid);
+    $('.spread_ask').text(spread_ask);
+    $('.spread_bid').text(spread_bid);
 
     while (true) {
 
@@ -223,8 +304,8 @@ function* TaskQuote(C) {
         };
 
         if (result.CHANGED) {
-            $('#spread_bid').text(quote_a.bid_price1 - quote_b.ask_price1);
-            $('#spread_ask').text(quote_a.ask_price1 - quote_b.bid_price1);
+            $('.spread_bid').text(quote_a.bid_price1 - quote_b.ask_price1);
+            $('.spread_ask').text(quote_a.ask_price1 - quote_b.bid_price1);
         }
     }
 }
@@ -368,7 +449,7 @@ $(function () {
     $('#volume').val(2);
 
     // 监视按钮
-    $('#INSPECT').on('click', function () {
+    $('button.INSPECT').on('click', function () {
         if (task_quote === null) {
             // 更新全局参数
             insid_a = $('#instrument_1').val();
@@ -389,8 +470,8 @@ $(function () {
     });
 
     // 开始交易按钮
-    $('#START').on('click', function () {
-        var cmd = $('button#START').attr('data-state');
+    $('button.START').on('click', function () {
+        var cmd = $('button.START').attr('data-state');
         switch (cmd) {
             case 'START':
                 // 更新全局参数
@@ -412,7 +493,7 @@ $(function () {
     });
 
     // 停止交易按钮
-    $('#STOP').on('click', function () {
+    $('button.STOP').on('click', function () {
         if (task_trade) {
             updateUI_TradeState('STOP');
             STOP_TASK(task_trade);
@@ -437,13 +518,25 @@ $(function () {
             if (cmd === 'START') {
                 $('#INSPECT-STATE .record').addClass('running twinkle');
                 $('#INSPECT-STATE .comment').text('正在监视');
-                $('button#INSPECT').html('<span class="glyphicon glyphicon-stop"></span>&nbsp;停止监视');
+
+                $('button.INSPECT').parent('[data-toggle="tooltip"]').attr('title',"停止监视").tooltip('fixTitle');
+
+                $('button.INSPECT')[0].innerHTML = '<span class="glyphicon glyphicon-stop"></span>&nbsp;停止监视';
+                $('button.INSPECT span')[1].className = "glyphicon glyphicon-stop";
+
+                $('div.INSPECT.TASK .STATE')[0].innerHTML = '<span class="label label-success">运行中</span>';
                 $('#QUOTE_TASK_INPUT input').attr('readonly', true);
             } else if (cmd === 'STOP') {
                 $('#INSPECT-STATE .record').removeClass('running twinkle');
                 $('#INSPECT-STATE .comment').text('已停止监视');
-                $('button#INSPECT').html('<span class="glyphicon glyphicon-play"></span>&nbsp;开始监视');
+
+                $('button.INSPECT').parent('[data-toggle="tooltip"]').attr('title',"开始监视").tooltip('fixTitle');
+
+                $('button.INSPECT')[0].innerHTML = '<span class="glyphicon glyphicon-play"></span>&nbsp;开始监视';
+                $('button.INSPECT span')[1].className = "glyphicon glyphicon-play";
                 
+                $('div.INSPECT.TASK .STATE')[0].innerHTML = '<span class="label label-danger">停止</span>';
+
                 if(task_trade === null){
                     $('#QUOTE_TASK_INPUT input').attr('readonly', false);
                 }
@@ -452,31 +545,43 @@ $(function () {
 
         function updateUI_TradeState(cmd) {
             if (cmd === 'START') {
-                $('button#START').attr('data-state', 'PAUSE');
-                $('button#START').html('<span class="glyphicon glyphicon-pause"></span>&nbsp;暂停');
-
+                $('button.START').attr('data-state', 'PAUSE');
+                $('button.START').parent('[data-toggle="tooltip"]').attr('title',"暂停").tooltip('fixTitle');
+                $('button.START')[0].innerHTML = '<span class="glyphicon glyphicon-pause"></span>&nbsp;暂停';
+                $('button.START span')[1].className = "glyphicon glyphicon-pause";
+                
                 $('#TRADER-STATE .record').removeClass('paused').addClass('running twinkle');
-                $('#TRADER-STATE .comment').text('开始运行交易策略');
+
+                $('div.TRADER.TASK .STATE')[0].innerHTML = '<span class="label label-success">运行中</span>';
+
                 $('#QUOTE_TASK_INPUT input').attr('readonly', true);
                 $('#TRADER_TASK_INPUT input').attr('readonly', true);
             } else if (cmd === 'PAUSE') {
-                $('button#START').attr('data-state', 'RESUME');
-                $('button#START').html('<span class="glyphicon glyphicon-play"></span>&nbsp;恢复');
+                $('button.START').attr('data-state', 'RESUME');
+                $('button.START').parent('[data-toggle="tooltip"]').attr('title',"恢复").tooltip('fixTitle');
+                $('button.START')[0].innerHTML = '<span class="glyphicon glyphicon-play"></span>&nbsp;恢复';
+
+                $('button.START span')[1].className = "glyphicon glyphicon-play";
 
                 $('#TRADER-STATE .record').removeClass('running twinkle').addClass('paused');
-                $('#TRADER-STATE .comment').text('暂停运行交易策略');
+                $('div.TRADER.TASK .STATE')[0].innerHTML = '<span class="label label-warning">暂停</span>';
             } else if (cmd === 'RESUME') {
-                $('button#START').attr('data-state', 'PAUSE');
-                $('button#START').html('<span class="glyphicon glyphicon-pause"></span>&nbsp;暂停');
+                $('button.START').attr('data-state', 'PAUSE');
+                $('button.START').parent('[data-toggle="tooltip"]').attr('title',"暂停").tooltip('fixTitle');
+                $('button.START')[0].innerHTML = '<span class="glyphicon glyphicon-pause"></span>&nbsp;暂停';
+                $('button.START span')[1].className = "glyphicon glyphicon-pause";
 
                 $('#TRADER-STATE .record').removeClass('paused').addClass('twinkle running');
-                $('#TRADER-STATE .comment').text('恢复运行交易策略');
+                $('div.TRADER.TASK .STATE')[0].innerHTML = '<span class="label label-success">运行中</span>';
             } else if (cmd === 'STOP') {
-                $('button#START').attr('data-state', 'START');
-                $('button#START').html('<span class="glyphicon glyphicon-play"></span>&nbsp;开始');
+                $('button.START').attr('data-state', 'START');
+                $('button.START').parent('[data-toggle="tooltip"]').attr('title',"开始").tooltip('fixTitle');
+                $('button.START')[0].innerHTML = '<span class="glyphicon glyphicon-play"></span>&nbsp;开始';
+                $('button.START span')[1].className = "glyphicon glyphicon-play";
 
                 $('#TRADER-STATE .record').removeClass('paused running twinkle');
-                $('#TRADER-STATE .comment').text('已停止运行交易策略');
+                $('div.TRADER.TASK .STATE')[0].innerHTML = '<span class="label label-danger">停止</span>';
+                
                 if(task_quote === null){
                     $('#QUOTE_TASK_INPUT input').attr('readonly', false);
                 }

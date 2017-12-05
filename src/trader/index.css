@@ -76,6 +76,18 @@ hr.divider{
     font-weight: bold;
 }
 
+.tasks .list-group{
+    font-size: 12px;
+}
+.tasks .list-group>.list-group-item{
+    padding: 6px 3px;
+}
+
+.tasks .list-group>.list-group-item>.row>.col{
+    padding-left: 1px;
+    padding-right: 1px;
+}
+
 
 /* ============================= */
 
