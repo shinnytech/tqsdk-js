@@ -29,12 +29,12 @@ const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
 WS.init();
 
 // 按顺序生成 key 记录, 每次都连着上一次的
-const GenerateKeyLocal = function (name) {
-    var k = localStorage.getItem(name);
-    if (k) k = (parseInt(k, 36) + 1).toString(36);
-    else k = '1';
-    localStorage.setItem(name, k);
-    return k;
+const GenerateKeyLocal = function (name, key) {
+    var str = localStorage.getItem(name);
+    var obj = str ? JSON.parse(str) : {};
+    obj[key] = obj[key] ? (parseInt(obj[key], 36) + 1).toString(36) : 0;
+    localStorage.setItem(name, JSON.stringify(obj));
+    return obj[key];
 }
 
 // 按顺序生成 key 记录，每次都重新开始
@@ -47,13 +47,12 @@ function* GenerateKey() {
 }
 const GenTaskId = GenerateKey();
 
-
 /************** 以上是通用方法 **************/
-
 
 const trader_context = function () {
     function insertOrder(ord) {
-        var order_id = GenerateKeyLocal('orderid');
+        var session_id = DM.get_session().session_id;
+        var order_id = GenerateKeyLocal('orderid', session_id);
         var send_obj = {
             "aid": "insert_order",
             "order_id": order_id,
@@ -67,7 +66,6 @@ const trader_context = function () {
             "limit_price": ord.limit_price
         };
         WS.sendJson(send_obj);
-        var session_id = DM.get_session().session_id;
         var id = session_id + '|' + order_id;
         if (DM.get_order(id)) {
             return DM.get_order(id);
