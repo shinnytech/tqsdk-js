@@ -32,7 +32,7 @@ WS.init();
 const GenerateKeyLocal = function (name, key) {
     var str = localStorage.getItem(name);
     var obj = str ? JSON.parse(str) : {};
-    obj[key] = obj[key] ? (parseInt(obj[key], 36) + 1).toString(36) : 0;
+    obj[key] = obj[key] ? (parseInt(obj[key], 36) + 1).toString(36) : '0';
     localStorage.setItem(name, JSON.stringify(obj));
     return obj[key];
 }
@@ -107,20 +107,41 @@ const trader_context = function () {
         }
     }
 
-    function quoteChange(quote){
+    function quoteChange(quote) {
         var ins_id = '';
-        if(typeof quote === 'string'){
+        if (typeof quote === 'string') {
             ins_id = quote;
-        }else if(quote.instrument_id){
+        } else if (quote.instrument_id) {
             ins_id = quote.instrument_id;
-        }else{
+        } else {
             // TODO: 抛出错误
             console.error('没有找到合约id');
             return false;
         }
 
         for (let i = 0; i < TaskManager.tempDiff.length; i++) {
-            if(TaskManager.tempDiff[i].quotes && TaskManager.tempDiff[i].quotes[ins_id]) return true;
+            if (TaskManager.tempDiff[i].quotes && TaskManager.tempDiff[i].quotes[ins_id]) return true;
+        }
+        return false;
+    }
+
+    function orderChange(order) {
+        var order_id = '';
+        if (typeof order === 'string') {
+            order_id = order;
+        } else if (order.exchange_order_id) {
+            order_id = order.exchange_order_id;
+        } else {
+            // TODO: 抛出错误
+            console.error('没有找到委托单id');
+            return false;
+        }
+
+        for (let i = 0; i < TaskManager.tempDiff.length; i++) {
+            if (TaskManager.tempDiff[i].trade 
+                && TaskManager.tempDiff[i].trade['SIM']
+                && TaskManager.tempDiff[i].trade['SIM']['orders']
+                && TaskManager.tempDiff[i].trade['SIM']['orders'][order_id]) return true;
         }
         return false;
     }
@@ -129,6 +150,7 @@ const trader_context = function () {
         INSERT_ORDER: insertOrder,
         CANCEL_ORDER: cancelOrder,
         QUOTE_CHANGED: quoteChange,
+        ORDER_CHANGED: orderChange,
         GET_ACCOUNT: DM.get_account,
         GET_POSITION: DM.get_positions,
         GET_SESSION: DM.get_session,
@@ -166,10 +188,10 @@ class Task {
 
 const TaskManager = (function (task) {
     var aliveTasks = {};
-    
-    var intervalTime = 10; // 任务执行循环间隔
 
-    function getEndTime(t){
+    var intervalTime = 50; // 任务执行循环间隔
+
+    function getEndTime(t) {
         return (new Date()).getTime() + t;
     }
 
@@ -200,15 +222,15 @@ const TaskManager = (function (task) {
             return false;
         }
     }
-    
+
     function checkTask(task) {
         var status = {};
-        
+
         for (var cond in task.waitConditions) {
-            if (cond.toUpperCase() === 'TIMEOUT'){
+            if (cond.toUpperCase() === 'TIMEOUT') {
                 task.timeout = task.waitConditions[cond];
                 continue;
-            } 
+            }
             if (checkItem(task.waitConditions[cond])) status[cond] = true;
             else status[cond] = false;
         }
@@ -243,11 +265,11 @@ const TaskManager = (function (task) {
         TaskManager.tempDiff = diffData ? diffData : null;
         for (var taskId in aliveTasks) {
             if (aliveTasks[taskId].paused) continue;
-            if (aliveTasks[taskId] && aliveTasks[taskId].stopped){
+            runTask(aliveTasks[taskId]);
+            if (aliveTasks[taskId] && aliveTasks[taskId].stopped) {
                 remove(aliveTasks[taskId]);
                 continue;
             }
-            runTask(aliveTasks[taskId]);
         }
     }
 
@@ -258,7 +280,6 @@ const TaskManager = (function (task) {
                 task.endTime += intervalTime;
             } else {
                 var now = (new Date()).getTime();
-                // trigger timeout
                 if (task.endTime <= now) runTask(task);
             }
         }
@@ -269,9 +290,17 @@ const TaskManager = (function (task) {
         var task = new Task(id, func);
         aliveTasks[id] = task;
         var ret = task.func.next();
+        // console.log(ret.value)
         if (ret.done) {
             remove(task);
         } else {
+            for (var cond in ret.value) {
+                if (cond.toUpperCase() === 'TIMEOUT') {
+                    task.timeout = ret.value[cond];
+                    break;
+                }
+            }
+            task.endTime = getEndTime(task.timeout);
             task.waitConditions = ret.value;
         }
         return task;
@@ -282,11 +311,11 @@ const TaskManager = (function (task) {
     }
 
     return {
-        tempDiff : null,
+        tempDiff: null,
         add,
         remove,
         run,
-        getAll: function(){
+        getAll: function () {
             return aliveTasks;
         }
     }
@@ -315,13 +344,9 @@ const START_TASK = function (func) {
 const STOP_TASK = function (task) {
     task.stop();
 }
-
 const PAUSE_TASK = function (task) {
     task.pause();
 }
-
 const RESUME_TASK = function (task) {
     task.resume();
 }
-
-
