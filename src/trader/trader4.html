@@ -218,6 +218,7 @@
         var quote = null; // 合约
         var task_quote = null; // 显示合约最新价格
         var task_trade = null; // 执行交易任务
+        var orders = {};
 
         var pending_volume = 0; // 挂单手数
         var traded_infos = []; // 已成交的[总价格，总手数]
@@ -243,6 +244,7 @@
             // 初始化交易手数
             pending_volume = 0;
             traded_infos = [0, 0]; // 已成交的[总价格，总手数]
+            orders = {};
 
             var order = {
                 exchange_id: exchange_id,
@@ -268,6 +270,7 @@
         function* MakeSingleOrder(C, params) {
             var price_field = (direction.toUpperCase() === 'SELL') ? 'ask_price1' : 'bid_price1';
             var order = C.INSERT_ORDER(params);
+            orders[order.id] = order;
             pending_volume += params.volume;
             var last_volume_left = params.volume;
 
@@ -291,9 +294,10 @@
                     traded_infos[1] += this_traded;
                     updateTradedInfo();
                 }
-                 // 挂单状态为 'FINISHED'， 此任务结束
+                // 挂单状态为 'FINISHED'， 此任务结束
                 if (order.status === 'FINISHED') {
                     pending_volume -= order.volume_left;
+                    delete orders[order.id];
                     return;
                 }
                 // 挂盘价变化，撤销委托单
@@ -354,6 +358,8 @@
             // 停止交易按钮
             $('button.STOP').on('click', function () {
                 if (task_trade) {
+                    // 撤销全部 ALIVE 的挂单
+                    for (var id in orders) C.CANCEL_ORDER(orders[id]);
                     STOP_TASK(task_trade);
                     task_trade = null;
                 }
@@ -425,7 +431,7 @@
         function updateTradedInfo(sel, traded, htm) {
             if (!sel) sel = $('.traded_info');
             if (!traded) traded = traded_infos;
-            if (!htm) htm = '已成交 ' + traded[1] + ' 手，均价 ' + Math.round(traded[0]/traded[1]*100)/100  + ' 。';
+            if (!htm) htm = '已成交 ' + traded[1] + ' 手，均价 ' + Math.round(traded[0] / traded[1] * 100) / 100 + ' 。';
             sel.html(htm);
         }
     </script>
