@@ -129,11 +129,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col col-xs-8">
-
-                            已成交
-                            <span class='traded_volume'></span> 手，均价
-                            <span class='traded_avgprice'></span>。
+                        <div class="col col-xs-8 traded_info">
                         </div>
                     </div>
                 </li>
@@ -210,7 +206,7 @@
     <script type="text/javascript" src="/js/worker/websocket.js"></script>
     <script type="text/javascript" src="trader_sdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
-        // 全局变量
+        // 全局变量 默认值
         var insid = 'SHFE.rb1805'; // 默认合约代码，读取用户填写的合约代码
         var direction = 'buy';
         var offset = 'open';
@@ -224,24 +220,17 @@
         var task_trade = null; // 执行交易任务
 
         var pending_volume = 0; // 挂单手数
-        var traded_infos = []; // 有成交的[总价格，总手数]
+        var traded_infos = []; // 已成交的[总价格，总手数]
 
         function* TaskQuote(C) {
             // 显示当前价格
-            if (quote) {
-                var h = quote.instrument_id + ' : ' + '买价: <b>' + quote.bid_price1 + '</b>; 最新价: <b>' + quote.last_price + '</b>; 卖价: <b>' + quote.ask_price1 + '</b>';
-                $('.show_price').html(h);
-            }
-
+            if (quote) updateQuoteInfo();
             while (true) {
                 var result = yield {
                     CHANGED: function () { return C.QUOTE_CHANGED(quote) },
                     TIMEOUT: 200000
                 };
-                if (result.CHANGED && quote) {
-                    h = quote.instrument_id + ' : ' + '买价: <b>' + quote.bid_price1 + '</b>; 最新价: <b>' + quote.last_price + '</b>; 卖价: <b>' + quote.ask_price1 + '</b>';
-                    $('.show_price').html(h);
-                }
+                if (result.CHANGED && quote) updateQuoteInfo();
             }
         }
 
@@ -253,7 +242,7 @@
             var price_field = (direction.toUpperCase() === 'SELL') ? 'ask_price1' : 'bid_price1';
             // 初始化交易手数
             pending_volume = 0;
-            traded_infos = [0, 0];
+            traded_infos = [0, 0]; // 已成交的[总价格，总手数]
 
             var order = {
                 exchange_id: exchange_id,
@@ -268,47 +257,29 @@
                     TIMEOUT: 100000
                 }
                 if (result.IN_SCOPE) {
-                    if (parseInt(all_volume) - traded_infos[1] - parseInt(max_one_volume) >= 0) {
-                        order.volume = parseInt(max_one_volume) - pending_volume;
-                    } else {
-                        order.volume = parseInt(all_volume) - traded_infos[1];
-                    }
-                    order.limit_price = quote[price_field];
-
-                    if (order.volume > 0) {
-                        var subtask = START_TASK(MakeSingleOrder, Object.assign({}, order));
-                        var subtask_result = yield {
-                            FINISHED: subtask,
-                            TIMEOUT: 10000
-                        }
-                        if (subtask_result.FINISHED) console.log('subtask_result.FINISHED')
-                    }
+                    order.volume = Math.min(max_one_volume, all_volume - traded_infos[1]) - pending_volume; // 设置手数
+                    order.limit_price = quote[price_field]; // 设置价格
+                    if (order.volume > 0) START_TASK(MakeSingleOrder, Object.assign({}, order));
+                    if (all_volume === traded_infos[1]) $('button.STOP').click();
                 }
             }
         }
 
         function* MakeSingleOrder(C, params) {
-            // 合约的行情对象
-            var quote = C.GET_QUOTE(params.exchange_id + '.' + params.instrument_id);
             var price_field = (direction.toUpperCase() === 'SELL') ? 'ask_price1' : 'bid_price1';
-
             var order = C.INSERT_ORDER(params);
             pending_volume += params.volume;
             var last_volume_left = params.volume;
 
-            // 整个函数是一个循环, 直至委托单完全成交才退出循环
             while (true) {
                 var result = yield {
-                    STATUS_FINISHED: function () { return order.status === 'FINISHED' },
                     PRICE_CHANGED: function () { return quote[price_field] !== params.limit_price },
                     TIMEOUT: 10000
                 };
-
-                // 这个 order 全部已成交的手数和这次循环成交的手数
+                // 下单后未收到服务器返回信息的，直接跳过
                 if (order.status === 'UNDEFINED') continue;
 
-                console.log(order.status, last_volume_left, order.volume_left)
-
+                // 此 order 全部已成交的手数和这次循环成交的手数
                 var all_traded = order.volume_orign - order.volume_left;
                 var this_traded = last_volume_left - order.volume_left;
                 last_volume_left = order.volume_left;
@@ -316,21 +287,17 @@
                 if (this_traded > 0) {
                     // 全局未成交手数,全局挂单的手数
                     pending_volume -= this_traded;
-
                     traded_infos[0] += order.limit_price * this_traded;
                     traded_infos[1] += this_traded;
-                    $('.traded_volume').text(traded_infos[1]);
-                    $('.traded_avgprice').text(traded_infos[0] / traded_infos[1]);
+                    updateTradedInfo();
                 }
-
+                 // 挂单状态为 'FINISHED'， 此任务结束
                 if (order.status === 'FINISHED') {
                     pending_volume -= order.volume_left;
                     return;
                 }
-                if (result.PRICE_CHANGED && order.status === "ALIVE") {
-                    //撤销委托单
-                    C.CANCEL_ORDER(order);
-                }
+                // 挂盘价变化，撤销委托单
+                if (result.PRICE_CHANGED && order.status === "ALIVE") C.CANCEL_ORDER(order);
             }
         }
 
@@ -353,7 +320,6 @@
                     if (task_quote) STOP_TASK(task_quote);
                     task_quote = START_TASK(TaskQuote);
                 }
-
             });
 
             // 开始交易按钮
@@ -366,12 +332,12 @@
                         quote = DM.get_quote(insid);
                         direction = $('input[type="radio"][name="directionOptions"]:checked').val();
                         offset = $('input[type="radio"][name="offsetOptions"]:checked').val();
-                        all_volume = $('#all_volume').val();
-                        max_one_volume = $('#max_one_volume').val();
+                        all_volume = parseInt($('#all_volume').val());
+                        max_one_volume = parseInt($('#max_one_volume').val());
                         price_from = $('#price_from').val();
                         price_to = $('#price_to').val();
 
-                        // 开始任务之前，先更新参数
+                        // 开始任务
                         if (task_quote === null) task_quote = START_TASK(TaskQuote);
                         if (task_trade === null) task_trade = START_TASK(TaskSplit);
                         break;
@@ -449,6 +415,19 @@
             }
         }
 
+        function updateQuoteInfo(sel, quo, htm) {
+            if (!sel) sel = $('.show_price');
+            if (!quo) quo = quote;
+            if (!htm) htm = quote.instrument_id + ' : ' + '买价: <b>' + quote.bid_price1 + '</b>; 最新价: <b>' + quote.last_price + '</b>; 卖价: <b>' + quote.ask_price1 + '</b>';
+            sel.html(htm);
+        }
+
+        function updateTradedInfo(sel, traded, htm) {
+            if (!sel) sel = $('.traded_info');
+            if (!traded) traded = traded_infos;
+            if (!htm) htm = '已成交 ' + traded[1] + ' 手，均价 ' + Math.round(traded[0]/traded[1]*100)/100  + ' 。';
+            sel.html(htm);
+        }
     </script>
 </body>
 
