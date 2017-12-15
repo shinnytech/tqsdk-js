@@ -1,3 +1,6 @@
+/**
+ * 通用
+ */
 const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
     onmessage: function (message) {
         if (message.aid === 'rtn_data') {
@@ -47,7 +50,9 @@ function* GenerateKey() {
 }
 const GenTaskId = GenerateKey();
 
-/************** 以上是通用方法 **************/
+/**
+ * trade task
+ */
 
 const trader_context = function () {
     function insertOrder(ord) {
@@ -109,6 +114,10 @@ const trader_context = function () {
 
     function quoteChange(quote) {
         var ins_id = '';
+        if (!quote){
+            console.error('quote 不存在');
+            return false;
+        }
         if (typeof quote === 'string') {
             ins_id = quote;
         } else if (quote.instrument_id) {
@@ -138,7 +147,7 @@ const trader_context = function () {
         }
 
         for (let i = 0; i < TaskManager.tempDiff.length; i++) {
-            if (TaskManager.tempDiff[i].trade 
+            if (TaskManager.tempDiff[i].trade
                 && TaskManager.tempDiff[i].trade['SIM']
                 && TaskManager.tempDiff[i].trade['SIM']['orders']
                 && TaskManager.tempDiff[i].trade['SIM']['orders'][order_id]) return true;
@@ -349,4 +358,59 @@ const PAUSE_TASK = function (task) {
 }
 const RESUME_TASK = function (task) {
     task.resume();
+}
+
+
+/**
+ * 读取、更新 UI
+ */
+ // 关于更新 ui 的代码
+ function initUI() {
+    // init tooltip && popover
+    $('[data-toggle="tooltip"]').tooltip();
+    $('[data-toggle="popover"]').popover()
+    // init code
+    var lines = $('#TRADE-CODE').text().split('\n');
+    lines.forEach((el, i, arr) => lines[i] = el.replace(/\s{8}/, ''));
+    var html = hljs.highlightAuto(lines.join('\n'));
+    $('#code_container code').html(html.value);
+    // $('#collapse')
+    $('#collapse').on('hide.bs.collapse', () => $('#collapse_arrow').removeClass('glyphicon-menu-up').addClass('glyphicon-menu-down'));
+    $('#collapse').on('show.bs.collapse', () => $('#collapse_arrow').removeClass('glyphicon-menu-down').addClass('glyphicon-menu-up'));
+}
+
+function updateDatas(params) {
+    var domList = $('input.tq-inputs');
+    if (params && (typeof params === 'object')) { // write
+        for (var k in params) {
+            var dom = $('input.tq-inputs#' + k);
+            if (dom.length >= 1) {// text or number
+                dom.val(params[k])
+            } else { // radio
+                dom = $('input.tq-inputs[type="radio"][name=' + k + '][value="' + params[k] + '"]');
+                dom.attr('checked', true);
+            }
+        }
+    } else { // read
+        params = {};
+        for (var i in domList) {
+            var d = domList[i];
+            switch (d.type) {
+                case 'text':
+                    params[d.id] = d.value;
+                    break;
+                case 'number':
+                    params[d.id] = Number(d.value);
+                    break;
+                case 'radio':
+                    d.checked ? params[d.name] = d.value : null;
+                    break;
+            }
+        }
+    }
+    return params;
+}
+
+function enableInputs(isAble){
+    $('input.tq-inputs').attr('disabled', !!isAble);
 }
