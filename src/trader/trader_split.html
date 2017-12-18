@@ -211,8 +211,8 @@
             instrument: 'SHFE.rb1805',
             direction: 'BUY',
             offset: 'OPEN',
-            all_volume: 1000,
-            max_one_volume: 200,
+            all_volume: 50,
+            max_one_volume: 20,
             price_from: 4000,
             price_to: 2000
         }
@@ -250,35 +250,30 @@
             var traded_sum = 0; // 已成交的总金额
             var traded_volume = 0; // 已成交的总手数
             var orders = {};
-
-            while (traded_volume < all_volume) {
+            while (traded_volume < params.all_volume) {
                 var result = yield {
                     IN_SCOPE: function () { return quote[price_field] <= max_price && quote[price_field] >= min_price }
                 }
                 if (!result.IN_SCOPE) continue;
-
                 order_params.volume = Math.min(params.max_one_volume, params.all_volume - traded_volume) - pending_volume; // 设置手数
                 order_params.limit_price = quote[price_field]; // 设置价格
-
                 if (order_params.volume > 0) {
                     var order = C.INSERT_ORDER(order_params);
-                    orders[order.id] = order;
+                    orders[order.order_id] = order;
                 }
-
                 var result = yield {
                     ORDER_CHANGED: function () { for (var id in orders) { if (C.ORDER_CHANGED(orders[id])) return true; } },
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
                     TIMEOUT: 100000
                 };
-
                 if (result.ORDER_CHANGED) {
                     pending_volume = traded_sum = traded_volume = 0;
-                    for (var id in orders) {
-                        var ord = orders[id];
+                    for (var order_id in orders) {
+                        var ord = orders[order_id];
                         if (ord.status === 'UNDEFINED') continue;
                         var vol = ord.volume_orign - ord.volume_left
                         if (ord.status === 'FINISHED' && vol === 0) {
-                            delete orders[id];
+                            delete orders[order_id];
                             continue;
                         }
                         traded_volume += vol;
