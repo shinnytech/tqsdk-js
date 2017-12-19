@@ -216,14 +216,13 @@
     <script type="text/javascript" id='TRADE-CODE'>
         var task_quote = null; // 显示合约最新价格
         var task_trade = null; // 执行交易任务
-        var orders = {};
+        var runningFlag = false;
 
         function* TaskQuote(C) {
             var params = updateDatas();
             var quote = C.GET_QUOTE(params.instrument);
             while (true) {
                 if (quote) updateDatas(quote);
-                print(C.QUOTE_CHANGED(quote))
                 var result = yield {
                     CHANGED: function () { return C.QUOTE_CHANGED(quote) }
                 };
@@ -231,6 +230,10 @@
         }
 
         function* TaskSplit(C) {
+            runningFlag = true;
+            $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
+            enableInputs(true);
+
             var params = updateDatas();
             var quote = C.GET_QUOTE(params.instrument);
             var [exchange_id, instrument_id] = params.instrument.split('.');
@@ -253,7 +256,8 @@
             while (traded_volume < params.all_volume) {
                 var result = yield {
                     ORDER_CHANGED: function () { for (var id in orders) { if (C.ORDER_CHANGED(orders[id])) return true; } },
-                    PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price }
+                    PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
+                    USER_CLICK_STOP: function () { return runningFlag === false }
                 }
                 if (quote[price_field] <= max_price && quote[price_field] >= min_price) {
                     order_params.volume = Math.min(params.max_one_volume, params.all_volume - traded_volume) - pending_volume; // 设置手数
@@ -282,13 +286,16 @@
                     traded_avgprice = traded_volume == 0 ? 0 : Math.round(traded_sum / traded_volume * 100) / 100;
                     var all_volume = params.all_volume - traded_volume;
                     updateDatas({ traded_volume, traded_avgprice, all_volume });
-                } else if (result.PRICE_CHANGED) {
+                } else if (result.PRICE_CHANGED || result.USER_CLICK_STOP) {
                     for (var id in orders)
                         if (orders[id].status === "ALIVE") C.CANCEL_ORDER(orders[id]);
+                    if (result.USER_CLICK_STOP) break;
                 }
             }
             // 任务结束
-            $('button.STOP').click();
+            $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
+            enableInputs(false);
+            return;
         }
 
         $(function () {
@@ -305,14 +312,10 @@
             $('button.START').on('click', function () {
                 if (task_quote === null) task_quote = START_TASK(TaskQuote);
                 if (task_trade === null) task_trade = START_TASK(TaskSplit);
-                $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
-                enableInputs(true);
             });
             // 停止交易按钮
             $('button.STOP').on('click', function () {
-                task_trade = STOP_TASK(task_trade);
-                $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
-                enableInputs(false);
+                runningFlag = false;
             });
 
         });
