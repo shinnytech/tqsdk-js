@@ -114,7 +114,7 @@ const trader_context = function () {
 
     function quoteChange(quote) {
         var ins_id = '';
-        if (!quote){
+        if (!quote) {
             console.error('quote 不存在');
             return false;
         }
@@ -351,8 +351,11 @@ const START_TASK = function (func) {
 }
 
 const STOP_TASK = function (task) {
-    task.stop();
+    // todo: 任务结束前撤掉所有发出的单
+    if (task) task.stop();
+    return null;
 }
+
 const PAUSE_TASK = function (task) {
     task.pause();
 }
@@ -364,8 +367,8 @@ const RESUME_TASK = function (task) {
 /**
  * 读取、更新 UI
  */
- // 关于更新 ui 的代码
- function initUI() {
+// 关于更新 ui 的代码
+function initUI() {
     // init tooltip && popover
     $('[data-toggle="tooltip"]').tooltip();
     $('[data-toggle="popover"]').popover()
@@ -380,21 +383,24 @@ const RESUME_TASK = function (task) {
 }
 
 function updateDatas(params) {
-    var domList = $('input.tq-inputs');
     if (params && (typeof params === 'object')) { // write
         for (var k in params) {
-            var dom = $('input.tq-inputs#' + k);
-            if (dom.length >= 1) {// text or number
-                dom.val(params[k])
+            var inputDom = $('input.tq-datas#' + k);
+            var spanDom = $('span.tq-datas#' + k);
+            if (inputDom.length >= 1) {// text or number
+                inputDom.val(params[k])
+            } else if (spanDom.length >= 1) {
+                spanDom.text(params[k])
             } else { // radio
-                dom = $('input.tq-inputs[type="radio"][name=' + k + '][value="' + params[k] + '"]');
-                dom.attr('checked', true);
+                dom = $('input.tq-datas[type="radio"][name=' + k + '][value="' + params[k] + '"]');
+                if (dom.length >= 0) dom.attr('checked', true);
             }
         }
     } else { // read
         params = {};
-        for (var i in domList) {
-            var d = domList[i];
+        var inputList = $('input.tq-datas');
+        for (var i in inputList) {
+            var d = inputList[i];
             switch (d.type) {
                 case 'text':
                     params[d.id] = d.value;
@@ -411,6 +417,6 @@ function updateDatas(params) {
     return params;
 }
 
-function enableInputs(isAble){
-    $('input.tq-inputs').attr('disabled', !!isAble);
+function enableInputs(isAble) {
+    $('input.tq-datas').attr('disabled', !!isAble);
 }

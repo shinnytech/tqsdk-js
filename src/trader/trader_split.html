@@ -33,7 +33,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control tq-inputs input-sm" id="instrument" placeholder="合约代码">
+                            <input type="text" class="form-control tq-datas input-sm" id="instrument" placeholder="合约代码" value='SHFE.rb1801'>
                         </div>
                     </div>
                     <div class="row">
@@ -44,10 +44,10 @@
                         </div>
                         <div class="col col-xs-9">
                             <label class="radio-inline">
-                                <input type="radio" class="tq-inputs" name="direction" value="BUY"> 买
+                                <input type="radio" class="tq-datas" name="direction" value="BUY" checked> 买
                             </label>
                             <label class="radio-inline">
-                                <input type="radio" class="tq-inputs" name="direction" value="SELL"> 卖
+                                <input type="radio" class="tq-datas" name="direction" value="SELL"> 卖
                             </label>
                         </div>
                     </div>
@@ -59,10 +59,10 @@
                         </div>
                         <div class="col col-xs-9">
                             <label class="radio-inline">
-                                <input type="radio" class="tq-inputs" name="offset" value="OPEN"> 开
+                                <input type="radio" class="tq-datas" name="offset" value="OPEN" checked> 开
                             </label>
                             <label class="radio-inline">
-                                <input type="radio" class="tq-inputs" name="offset" value="CLOSE"> 平
+                                <input type="radio" class="tq-datas" name="offset" value="CLOSE"> 平
                             </label>
                         </div>
                     </div>
@@ -73,7 +73,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" id='all_volume' class="form-control tq-inputs input-sm" placeholder="总下单手数">
+                            <input type="number" id='all_volume' class="form-control tq-datas input-sm" value="60">
                         </div>
                     </div>
                     <div class="row">
@@ -83,7 +83,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" id='max_one_volume' class="form-control tq-inputs input-sm" placeholder="最大单笔手数">
+                            <input type="number" id='max_one_volume' class="form-control tq-datas input-sm" value="20">
                         </div>
                     </div>
                     <div class="row">
@@ -93,7 +93,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-4">
-                            <input type="number" id='price_from' class="form-control tq-inputs input-sm" placeholder="">
+                            <input type="number" id='price_from' class="form-control tq-datas input-sm" value="2000">
                         </div>
                         <div class="col col-xs-1">
                             <span class="pull-right">
@@ -101,7 +101,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-4">
-                            <input type="number" id='price_to' class="form-control tq-inputs input-sm" placeholder="">
+                            <input type="number" id='price_to' class="form-control tq-datas input-sm" value="4000">
                         </div>
                     </div>
                     <div class="row">
@@ -111,7 +111,12 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <span class='show_price'></span>
+                            <span class="tq-datas" id='instrument_id'></span>&nbsp;&nbsp;&nbsp;&nbsp;买价:
+                            <span class="tq-datas" id='bid_price1'></span>
+                            最新价:
+                            <span class="tq-datas" id='last_price'></span>
+                            卖价:
+                            <span class="tq-datas" id='ask_price1'></span>
                         </div>
                     </div>
                 </li>
@@ -129,7 +134,10 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col col-xs-8 traded_info">
+                        <div class="col col-xs-8">
+                            已成交
+                            <span class="tq-datas" id='traded_volume'></span> 手，均价
+                            <span class="tq-datas" id='traded_avgprice'></span> 。
                         </div>
                     </div>
                 </li>
@@ -206,33 +214,25 @@
     <script type="text/javascript" src="/js/worker/websocket.js"></script>
     <script type="text/javascript" src="trader_sdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
-        // 全局变量 默认值
-        var params = {
-            instrument: 'SHFE.rb1805',
-            direction: 'BUY',
-            offset: 'OPEN',
-            all_volume: 50,
-            max_one_volume: 20,
-            price_from: 4000,
-            price_to: 2000
-        }
-
-        var quote = null; // 合约
         var task_quote = null; // 显示合约最新价格
         var task_trade = null; // 执行交易任务
+        var orders = {};
 
         function* TaskQuote(C) {
-            if (quote) updateQuoteInfo();
+            var params = updateDatas();
+            var quote = C.GET_QUOTE(params.instrument);
             while (true) {
+                if (quote) updateDatas(quote);
+                print(C.QUOTE_CHANGED(quote))
                 var result = yield {
-                    CHANGED: function () { return C.QUOTE_CHANGED(quote) },
-                    TIMEOUT: 200000
+                    CHANGED: function () { return C.QUOTE_CHANGED(quote) }
                 };
-                if (result.CHANGED && quote) updateQuoteInfo();
             }
         }
 
         function* TaskSplit(C) {
+            var params = updateDatas();
+            var quote = C.GET_QUOTE(params.instrument);
             var [exchange_id, instrument_id] = params.instrument.split('.');
             var max_price = Math.max(params.price_from, params.price_to);
             var min_price = Math.min(params.price_from, params.price_to);
@@ -249,23 +249,21 @@
             var pending_volume = 0; // 挂单手数
             var traded_sum = 0; // 已成交的总金额
             var traded_volume = 0; // 已成交的总手数
-            var orders = {};
+
             while (traded_volume < params.all_volume) {
                 var result = yield {
-                    IN_SCOPE: function () { return quote[price_field] <= max_price && quote[price_field] >= min_price }
-                }
-                if (!result.IN_SCOPE) continue;
-                order_params.volume = Math.min(params.max_one_volume, params.all_volume - traded_volume) - pending_volume; // 设置手数
-                order_params.limit_price = quote[price_field]; // 设置价格
-                if (order_params.volume > 0) {
-                    var order = C.INSERT_ORDER(order_params);
-                    orders[order.order_id] = order;
-                }
-                var result = yield {
                     ORDER_CHANGED: function () { for (var id in orders) { if (C.ORDER_CHANGED(orders[id])) return true; } },
-                    PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
-                    TIMEOUT: 100000
-                };
+                    PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price }
+                }
+                if (quote[price_field] <= max_price && quote[price_field] >= min_price) {
+                    order_params.volume = Math.min(params.max_one_volume, params.all_volume - traded_volume) - pending_volume; // 设置手数
+                    order_params.limit_price = quote[price_field]; // 设置价格
+                    if (order_params.volume > 0) {
+                        var order = C.INSERT_ORDER(order_params);
+                        orders[order.order_id] = order;
+                    }
+                }
+
                 if (result.ORDER_CHANGED) {
                     pending_volume = traded_sum = traded_volume = 0;
                     for (var order_id in orders) {
@@ -280,7 +278,10 @@
                         traded_sum += ord.limit_price * vol;
                         pending_volume += ord.volume_left;
                     }
-                    updateTradedInfo([traded_sum, traded_volume])
+                    // 成交均价
+                    traded_avgprice = traded_volume == 0 ? 0 : Math.round(traded_sum / traded_volume * 100) / 100;
+                    var all_volume = params.all_volume - traded_volume;
+                    updateDatas({ traded_volume, traded_avgprice, all_volume });
                 } else if (result.PRICE_CHANGED) {
                     for (var id in orders)
                         if (orders[id].status === "ALIVE") C.CANCEL_ORDER(orders[id]);
@@ -294,73 +295,27 @@
             // TODO: 初始化选择合约输入框
             // 初始化UI
             initUI();
-            // 设置默认参数
-            updateDatas(params);
 
             $('#instrument').on('change', function () {
-                params = updateDatas();
-                quote = DM.get_quote(params.instrument);
-                if (task_quote) STOP_TASK(task_quote);
+                task_quote = STOP_TASK(task_quote);
                 task_quote = START_TASK(TaskQuote);
             });
 
-            function operate(cmd) {
-                switch (cmd) {
-                    case 'START':
-                        params = updateDatas();
-                        quote = DM.get_quote(params.instrument);
-                        // 开始任务
-                        if (task_quote === null) task_quote = START_TASK(TaskQuote);
-                        if (task_trade === null) task_trade = START_TASK(TaskSplit);
-                        break;
-                    case 'PAUSE':
-                        PAUSE_TASK(task_trade);
-                        break;
-                    case 'RESUME':
-                        RESUME_TASK(task_trade);
-                        break;
-                    case 'STOP':
-                        if (task_trade) {
-                            STOP_TASK(task_trade);
-                            task_trade = null;
-                        }
-                        break;
-                }
-                updateUI_State(cmd);
-            }
-
             // 开始交易按钮
-            $('button.START').on('click', () => operate($('button.START').attr('data-state')));
+            $('button.START').on('click', function () {
+                if (task_quote === null) task_quote = START_TASK(TaskQuote);
+                if (task_trade === null) task_trade = START_TASK(TaskSplit);
+                $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
+                enableInputs(true);
+            });
             // 停止交易按钮
-            $('button.STOP').on('click', () => operate('STOP'));
+            $('button.STOP').on('click', function () {
+                task_trade = STOP_TASK(task_trade);
+                $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
+                enableInputs(false);
+            });
 
         });
-    </script>
-    <script type="text/javascript">
-        function updateUI_State(cmd) {
-            cmd = cmd.toUpperCase();
-            var states = {
-                // nextState, label, labelText, glyphicon, btnText
-                START: ['PAUSE', 'success', '运行中', 'play', '开始'],
-                PAUSE: ['RESUME', 'warning', '暂停', 'pause', '暂停'],
-                RESUME: ['PAUSE', 'success', '运行中', 'play', '恢复'],
-                STOP: ['START', 'danger', '停止', 'stop', '停止']
-            };
-            var nextState = states[cmd][0];
-            $('.panel-title .STATE').html('<span class="label label-' + states[cmd][1] + '">' + states[cmd][2] + '</span>');
-            $('button.START').attr('data-state', nextState);
-            $('button.START')[0].innerHTML = '<span class="glyphicon glyphicon-' + states[nextState][3] + '"></span>&nbsp;' + states[nextState][4] + '';
-            if (cmd === 'START') enableInputs(true);
-            if (cmd === 'STOP') enableInputs(false);
-        }
-        function updateQuoteInfo() {
-            var htm = quote.instrument_id + ' : ' + '买价: <b>' + quote.bid_price1 + '</b>; 最新价: <b>' + quote.last_price + '</b>; 卖价: <b>' + quote.ask_price1 + '</b>';
-            $('.show_price').html(htm);
-        }
-        function updateTradedInfo(traded) {
-            var htm = '已成交 ' + traded[1] + ' 手，均价 ' + Math.round(traded[0] / traded[1] * 100) / 100 + ' 。';
-            $('.traded_info').html(htm);
-        }
     </script>
 </body>
 
