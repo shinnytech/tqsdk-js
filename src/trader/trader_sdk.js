@@ -81,6 +81,8 @@ const trader_context = function () {
                 session_id: session_id,
                 exchange_order_id: id,
                 status: "UNDEFINED",
+                volume_orign: ord.volume, 
+                volume_left: ord.volume
             }
             DM.update_data({
                 "trade": {
@@ -260,7 +262,8 @@ const TaskManager = (function (task) {
                 // waitConditions 中某个条件为真才执行 next
                 var ret = task.func.next(waitResult);
                 if (ret.done) {
-                    remove(task);
+                    task.stopped = true;
+                    // remove(task);
                 } else {
                     task.endTime = getEndTime(task.timeout);
                     task.waitConditions = ret.value;
@@ -301,7 +304,8 @@ const TaskManager = (function (task) {
         var ret = task.func.next();
         // console.log(ret.value)
         if (ret.done) {
-            remove(task);
+            task.stopped = true;
+            // remove(task);
         } else {
             for (var cond in ret.value) {
                 if (cond.toUpperCase() === 'TIMEOUT') {
@@ -351,7 +355,6 @@ const START_TASK = function (func) {
 }
 
 const STOP_TASK = function (task) {
-    // todo: 任务结束前撤掉所有发出的单
     if (task) task.stop();
     return null;
 }
@@ -419,4 +422,5 @@ function updateDatas(params) {
 
 function enableInputs(isAble) {
     $('input.tq-datas').attr('disabled', !!isAble);
+    $('button.tq-datas').attr('disabled', !!isAble);
 }

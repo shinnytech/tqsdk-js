@@ -125,7 +125,7 @@
                         <div class="col col-xs-4">
                             <div class="btn-toolbar" role="toolbar">
                                 <div class="btn-group btn-group-xs">
-                                    <button type="button" class="btn btn-default START" data-state="START">
+                                    <button type="button" class="btn btn-default tq-datas START" data-state="START">
                                         <span class="glyphicon glyphicon-play"></span>&nbsp;开始
                                     </button>
                                     <button type="button" class="btn btn-default STOP">
@@ -252,13 +252,29 @@
             var pending_volume = 0; // 挂单手数
             var traded_sum = 0; // 已成交的总金额
             var traded_volume = 0; // 已成交的总手数
+            var orders = {};
 
             while (traded_volume < params.all_volume) {
-                var result = yield {
-                    ORDER_CHANGED: function () { for (var id in orders) { if (C.ORDER_CHANGED(orders[id])) return true; } },
-                    PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
-                    USER_CLICK_STOP: function () { return runningFlag === false }
+
+                pending_volume = traded_sum = traded_volume = 0;
+                for (var order_id in orders) {
+                    var ord = orders[order_id];
+                    if (ord.status === 'UNDEFINED') continue;
+                    var vol = ord.volume_orign - ord.volume_left;
+                    if (ord.status === 'FINISHED' && vol === 0) {
+                        // 已经撤掉的挂单，删除
+                        delete orders[order_id];
+                        continue;
+                    }
+                    traded_volume += vol;
+                    pending_volume += ord.volume_left;
+                    traded_sum += ord.limit_price * vol;
                 }
+                // 成交均价
+                traded_avgprice = traded_volume == 0 ? 0 : Math.round(traded_sum / traded_volume * 100) / 100;
+                var all_volume = params.all_volume - traded_volume; // 剩余全部手数
+                updateDatas({ traded_volume, traded_avgprice, all_volume }); // 更新显示已成交手数、已成交均价，剩余全部手数
+
                 if (quote[price_field] <= max_price && quote[price_field] >= min_price) {
                     order_params.volume = Math.min(params.max_one_volume, params.all_volume - traded_volume) - pending_volume; // 设置手数
                     order_params.limit_price = quote[price_field]; // 设置价格
@@ -268,25 +284,13 @@
                     }
                 }
 
-                if (result.ORDER_CHANGED) {
-                    pending_volume = traded_sum = traded_volume = 0;
-                    for (var order_id in orders) {
-                        var ord = orders[order_id];
-                        if (ord.status === 'UNDEFINED') continue;
-                        var vol = ord.volume_orign - ord.volume_left
-                        if (ord.status === 'FINISHED' && vol === 0) {
-                            delete orders[order_id];
-                            continue;
-                        }
-                        traded_volume += vol;
-                        traded_sum += ord.limit_price * vol;
-                        pending_volume += ord.volume_left;
-                    }
-                    // 成交均价
-                    traded_avgprice = traded_volume == 0 ? 0 : Math.round(traded_sum / traded_volume * 100) / 100;
-                    var all_volume = params.all_volume - traded_volume;
-                    updateDatas({ traded_volume, traded_avgprice, all_volume });
-                } else if (result.PRICE_CHANGED || result.USER_CLICK_STOP) {
+                var result = yield {
+                    QUOTE_CHANGED: function () { return C.QUOTE_CHANGED(quote) },
+                    PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
+                    USER_CLICK_STOP: function () { return runningFlag === false }
+                }
+
+                if (result.PRICE_CHANGED || result.USER_CLICK_STOP) {
                     for (var id in orders)
                         if (orders[id].status === "ALIVE") C.CANCEL_ORDER(orders[id]);
                     if (result.USER_CLICK_STOP) break;
@@ -311,7 +315,7 @@
             // 开始交易按钮
             $('button.START').on('click', function () {
                 if (task_quote === null) task_quote = START_TASK(TaskQuote);
-                if (task_trade === null) task_trade = START_TASK(TaskSplit);
+                if (task_trade === null || task_trade.stopped) task_trade = START_TASK(TaskSplit);
             });
             // 停止交易按钮
             $('button.STOP').on('click', function () {
