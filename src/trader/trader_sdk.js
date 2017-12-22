@@ -8,8 +8,12 @@ const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
             for (let i = 0; i < message.data.length; i++) {
                 DM.update_data(message.data[i]);
             }
-            // TODO: 判断 waitConditions 是否成立
             TaskManager.run(message.data);
+        }else if (message.aid === 'update_custom_combine') {
+            // 用户自定义组合
+            let combines = {};
+            combines[message.symbol] = message.weights;
+            DM.update_data({combines});
         }
     },
 
@@ -162,11 +166,13 @@ const trader_context = function () {
         CANCEL_ORDER: cancelOrder,
         QUOTE_CHANGED: quoteChange,
         ORDER_CHANGED: orderChange,
+        
         GET_ACCOUNT: DM.get_account,
         GET_POSITION: DM.get_positions,
         GET_SESSION: DM.get_session,
         GET_QUOTE: DM.get_quote,
         GET_ORDER: DM.get_order,
+        GET_COMBINE: DM.get_combine
     }
 }();
 
