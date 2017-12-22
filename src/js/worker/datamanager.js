@@ -139,6 +139,9 @@ const DM = (function () {
                 });
             }
             return DM.datas.quotes[id];
+        },
+        get_combine: function(name){
+            return DM.datas.combines['USER.' + name];
         }
     };
 }());
