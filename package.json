@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "tianqin indicator editor",
   "scripts": {
+    "start": "jsdoc ./src/trader/trader_sdk.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm install && gulp",
     "server": "gulp && sudo http-server ./dist -a 0.0.0.0 -p 80",
@@ -28,10 +29,12 @@
     "gulp-rename": "^1.2.2",
     "gulp-uglify": "^3.0.0",
     "gulp-util": "^3.0.8",
+    "jsdoc": "^3.5.5",
     "uglify-es": "^3.1.2"
   },
   "devDependencies": {
     "gulp-connect": "^5.0.0",
+    "gulp-jsdoc3": "^1.0.1",
     "gulp-replace": "^0.6.1",
     "gulp-watch": "^4.3.11"
   }

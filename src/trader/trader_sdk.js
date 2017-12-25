@@ -121,7 +121,7 @@ const trader_context = function () {
     function quoteChange(quote) {
         var ins_id = '';
         if (!quote) {
-            console.error('quote 不存在');
+            console.error(quote, ' 不存在');
             return false;
         }
         if (typeof quote === 'string') {
@@ -348,7 +348,6 @@ const START_TASK = function (func) {
             while (len < arguments.length)
                 args.push(arguments[len++]);
         }
-
         var f = func.apply(null, args);
         if (f.next && (typeof f.next === 'function')) {
             return TaskManager.add(f);

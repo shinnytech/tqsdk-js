@@ -33,7 +33,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control tq-datas input-sm" id="instrument" placeholder="合约代码" value='SHFE.rb1801'>
+                            <input type="text" class="form-control tq-datas input-sm" id="instrument" placeholder="合约代码" value='rr'>
                         </div>
                     </div>
                     <div class="row">
@@ -179,18 +179,21 @@
 
             var params = updateDatas(); // 读取页面参数
             var weights = C.GET_COMBINE(params.instrument); // 根据组合代码查找对应的成分乘数表
+
             var order_aids = {}; // 执行交易要完成目标
             var quotes = {}; // 合约
             var completed = false; // 完成标识
             var orders = {}; // 下单记录
 
             for (var ins_id in weights) { // 对成分乘数表中的每一个合约
+                if (!ins_id) continue;
                 quotes[ins_id] = C.GET_QUOTE(ins_id); // 合约对象
                 var [exchange_id, instrument_id] = ins_id.split('.'); // 交易所代码，合约代码
-                var direction = weights[ins_id] > 0 ? params.direction : params.direction === 'SELL' ? 'BUY' : 'SELL'; // 交易方向
+                var direction = weights[ins_id] > 0 ? params.direction : (params.direction === 'SELL' ? 'BUY' : 'SELL'); // 交易方向
                 var offset = params.offset; // 交易开平
-                var volume = Math.round(params.volume * weights[ins_id]); // 手数(四舍五入至整数)
+                var volume = Math.abs(Math.round(params.volume * weights[ins_id])); // 手数(四舍五入至整数)
                 var price_field = direction === 'SELL' ? 'bid_price1' : 'ask_price1'; // 价格字段(选择对手价的字段)
+                
                 if (volume > 0)
                     order_aids[ins_id] = {
                         exchange_id, instrument_id, direction, volume, offset,
@@ -201,7 +204,7 @@
             while (!completed) {
                 for (var ins_id in order_aids) { // 下单
                     var param = order_aids[ins_id];
-                    param.volume = param.orgin - param.pending; // 下单之前计算手数
+                    param.volume = param.origin - param.pending; // 下单之前计算手数
                     if (param.volume > 0) {
                         var quo = quotes[ins_id];
                         param.limit_price = quo[param.price_field]; // 下单之前设定价格
@@ -211,19 +214,22 @@
                 }
                 var result = yield {
                     ORDER_CHANGED: function () { for (var id in orders) return C.ORDER_CHANGED(id) },
-                    QUOTE_CHANGED: function () { for (var id in quotes) return C.QUOTE_CHANGED(id) }
+                    QUOTE_CHANGED: function () { return C.QUOTE_CHANGED('USER.'+params.instrument) }
                 }
                 if (result.QUOTE_CHANGED)
                     for (var ord_id in orders) {
                         var ord = orders[ord_id];
-                        var ins_id = ord.exchange_id + '.' + ord.instrument_id;
-                        if (ord.limit_price !== quotes[ins_id][order_aids[ins_id].price_field] && ord.status === "ALIVE") {
+                        var param = order_aids[ord.exchange_id + '.' + ord.instrument_id];
+                        console.log(JSON.stringify(param))
+                        if (ord.limit_price !== quotes[ins_id][param.price_field] && ord.status === "ALIVE") {
                             C.CANCEL_ORDER(ord_id);
                         }
                     }
 
                 Object.entries(order_aids).map(([id, aid]) => order_aids[id].pending = order_aids[id].traded = 0); // 归零
-                Object.entries(orders).map(([order_id, order]) => {
+
+                for (var order_id in orders) {
+                    var order = orders[order_id];
                     if (order.status === 'UNDEFINED') continue;
                     var vol = order.volume_orign - order.volume_left;
                     if (order.status === 'FINISHED' && vol === 0) {
@@ -234,9 +240,9 @@
                     var ins = order.exchange_id + '.' + order.instrument_id;
                     order_aids[ins].traded += vol;
                     order_aids[ins].pending += order.volume_left;
-                }); 
+                }
 
-                completed = Object.entries(order_aids).map(([id, aid]) => aid.orgin === aid.traded).reduce((a, b) => a && b);
+                completed = Object.entries(order_aids).map(([id, aid]) => aid.origin === aid.traded).reduce((a, b) => a && b);
                 if (completed) break; // 完成所有目标就退出循环
             }
             // 任务结束

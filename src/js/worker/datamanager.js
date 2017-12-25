@@ -140,8 +140,10 @@ const DM = (function () {
             }
             return DM.datas.quotes[id];
         },
-        get_combine: function(name){
-            return DM.datas.combines['USER.' + name];
+        get_combine: function (name) {
+            if (DM.datas.combines && DM.datas.combines['USER.' + name])
+                return DM.datas.combines['USER.' + name];
+            return undefined;
         }
     };
 }());
