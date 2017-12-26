@@ -9,11 +9,12 @@ const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
                 DM.update_data(message.data[i]);
             }
             TaskManager.run(message.data);
-        }else if (message.aid === 'update_custom_combine') {
+        } else if (message.aid === 'update_custom_combine') {
             // 用户自定义组合
             let combines = {};
             combines[message.symbol] = message.weights;
-            DM.update_data({combines});
+            DM.update_data({ combines });
+            TaskManager.run(message.symbol);
         }
     },
 
@@ -85,8 +86,10 @@ const trader_context = function () {
                 session_id: session_id,
                 exchange_order_id: id,
                 status: "UNDEFINED",
-                volume_orign: ord.volume, 
-                volume_left: ord.volume
+                volume_orign: ord.volume,
+                volume_left: ord.volume,
+                exchange_id: ord.exchange_id,
+                instrument_id: ord.instrument_id
             }
             DM.update_data({
                 "trade": {
@@ -161,12 +164,17 @@ const trader_context = function () {
         return false;
     }
 
+    function combineChanged(name) {
+        return TaskManager.tempDiff === 'USER.' + name;
+    }
+
     return {
         INSERT_ORDER: insertOrder,
         CANCEL_ORDER: cancelOrder,
         QUOTE_CHANGED: quoteChange,
         ORDER_CHANGED: orderChange,
-        
+        COMBINE_CHANGED: combineChanged,
+
         GET_ACCOUNT: DM.get_account,
         GET_POSITION: DM.get_positions,
         GET_SESSION: DM.get_session,
