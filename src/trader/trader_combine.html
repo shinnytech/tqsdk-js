@@ -220,7 +220,7 @@
                         var quo = quotes[ins_id];
                         param.limit_price = quo[param.price_field]; // 下单之前设定价格
                         var ord = C.INSERT_ORDER(param);
-                        orders[ord.order_id] = ord;
+                        orders[ord.exchange_order_id] = ord;
                     }
                 }
 
