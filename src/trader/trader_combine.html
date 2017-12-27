@@ -246,7 +246,6 @@
 
                 for (var order_id in orders) {
                     var order = orders[order_id];
-                    if (order.status === 'UNDEFINED') continue;
                     var vol = order.volume_orign - order.volume_left;
                     if (order.status === 'FINISHED' && vol === 0) {
                         delete orders[order_id]; // 已经撤掉且未成交过的挂单，删除
@@ -266,7 +265,6 @@
         }
 
         $(function () {
-            // TODO: 初始化选择合约输入框
             // 初始化UI
             initUI();
             // 开始交易按钮
