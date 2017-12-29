@@ -110,7 +110,7 @@ const trader_context = function () {
                 "order_id": order.order_id,             //必填, 委托单的order_id
                 "exchange_id": order.exchange_id,         //必填, 交易所
                 "instrument_id": order.instrument_id,      //必填, 合约代码
-                //"action_id": "0001",            //当指令发送给飞马后台时需填此字段, 
+                //"action_id": "0001",            //当指令发送给飞马后台时需填此字段,
                 "user_id": DM.get_session().user_id,             //可选, 与登录用户名一致, 当只登录了一个用户的情况下,此字段可省略
             }
             WS.sendJson(send_obj);
@@ -384,18 +384,67 @@ const RESUME_TASK = function (task) {
  * 读取、更新 UI
  */
 // 关于更新 ui 的代码
-function initUI() {
+function initUI(uiList) {
     // init tooltip && popover
     $('[data-toggle="tooltip"]').tooltip();
     $('[data-toggle="popover"]').popover()
+
     // init code
     var lines = $('#TRADE-CODE').text().split('\n');
     lines.forEach((el, i, arr) => lines[i] = el.replace(/\s{8}/, ''));
     var html = hljs.highlightAuto(lines.join('\n'));
     $('#code_container code').html(html.value);
-    // $('#collapse')
+
     $('#collapse').on('hide.bs.collapse', () => $('#collapse_arrow').removeClass('glyphicon-menu-up').addClass('glyphicon-menu-down'));
     $('#collapse').on('show.bs.collapse', () => $('#collapse_arrow').removeClass('glyphicon-menu-down').addClass('glyphicon-menu-up'));
+
+    // init html
+    if(!uiList) return;
+    var uiObj = {};
+
+    for(var i=0; i<uiList.length; i++){
+        var o = uiList[i];
+        if(uiList[o.id])
+            return {
+                success: false,
+                msg: 'id 重复'
+            };
+        uiObj[o.id] = $('<div class="row"></div>');
+        uiObj[o.id].append($('<div class="col col-xs-3"><span class="pull-right">' + o.name + '</span></div>'));
+        var inputContainer = $('<div class="col col-xs-9"></div>');
+
+        if(o.type == 'text' || o.type == 'number'){
+            var input = $('<input type="'+o.type+'" class="form-control tq-datas input-sm" placeholder="'+o.name+'" value="'+o.default+'" id="'+o.id+'"/>');
+            inputContainer.append(input);
+        } else if(o.type == 'radio'){
+            var items = o.content;
+            for(var j=0; j<items.length; j++){
+                var label = $('<label class="radio-inline"></label>');
+                var input = $('<input type="'+o.type+'" class="tq-datas" name="'+o.id+'" value="'+items[j].value+'"/>');
+                if(o.default == items[j].value ){
+                    input.attr("checked", true);
+                }
+                label.append(input).append(items[j].name);
+                inputContainer.append(label);
+            }
+        } else if(o.type == 'message'){
+            var items = o.content;
+            for(var j=0; j<items.length; j++){
+                var span = $('<span>' + items[j].name +'： </span><span class="tq-datas" id="'+items[j].id+'"></span><span>；</span>');
+                inputContainer.append(span);
+
+            }
+        } else {
+            return {
+                success: false,
+                msg: 'type错误：' + o.id + ' ==> ' + o.type
+            }
+        }
+        $('.tq-container').append(uiObj[o.id].append(inputContainer)) ;
+    }
+    return {
+        success: true
+    };
 }
 
 function updateDatas(params) {
@@ -406,7 +455,12 @@ function updateDatas(params) {
             if (inputDom.length >= 1) {// text or number
                 inputDom.val(params[k])
             } else if (spanDom.length >= 1) {
-                spanDom.text(params[k])
+                if(typeof params[k] == 'number'){
+                    var num = Math.round(params[k] * 10000) / 10000;
+                    spanDom.text(num);
+                }else{
+                    spanDom.text(params[k]);
+                }
             } else { // radio
                 dom = $('input.tq-datas[type="radio"][name=' + k + '][value="' + params[k] + '"]');
                 if (dom.length >= 0) dom.attr('checked', true);

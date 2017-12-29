@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>天勤-交易</title>
+    <!-- base ui && js -->
+    <link href="/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/highlight/styles/atom-one-light.css">
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+    <div class="container-fluid main-container">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                    指定价格下单示例
+                    <span class="pull-right STATE">
+                        <span class="label label-danger">停止</span>
+                    </span>
+                </h3>
+            </div>
+            <ul class="list-group inputs" style="font-size:12px;">
+                <li class="list-group-item tq-container" >
+
+                </li>
+                <li class="list-group-item">
+                    <div class="row">
+                        <div class="col col-xs-12">
+                            <div class="btn-toolbar" role="toolbar">
+                                <div class="btn-group btn-group-xs">
+                                    <button type="button" class="btn btn-default tq-datas START" data-state="START">
+                                        <span class="glyphicon glyphicon-play"></span>&nbsp;执行
+                                    </button>
+
+                                    <button type="button" class="btn btn-default STOP">
+                                        <span class="glyphicon glyphicon-stop"></span>&nbsp;停止
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+
+        <div class="panel panel-default">
+            <div class="panel-heading" role="tab" id="headingOne">
+                <h4 class="panel-title">
+                    <a role="button" data-toggle="collapse" href="#collapse" aria-expanded="true" aria-controls="collapse">
+                        说明：本下单策略适用于自定义组合下单
+                        <span id='collapse_arrow' class="glyphicon glyphicon-menu-down pull-right"></span>
+                    </a>
+                </h4>
+            </div>
+            <div id="collapse" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne">
+                <ul class="list-group" style="font-size:12px;">
+                    <li class="list-group-item">
+                        <div class="row">
+                            <div class="col col-xs-12">
+                                <b>详细说明：</b>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-xs-3">
+                                <p class="pull-right">
+                                    下单
+                                </p>
+                            </div>
+                            <div class="col col-xs-9">
+                                <p>合约系数为正数，表示与下单方向相同；</p>
+                                <p>合约系数为负数，表示与下单方向相反。</p>
+                                <p>用对手价下单，超时未成交继续追平。</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-xs-3">
+                                <span class="pull-right">
+                                    挂单
+                                </span>
+                            </div>
+                            <div class="col col-xs-9">
+                                <p>挂单后若不成交且对手价已变动，则立即撤单，重新下单</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="row">
+                            <div class="col col-xs-12">
+                                <b>源代码：</b>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-xs-12" id="code_container">
+                                <pre><code class="javascript"></code></pre>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="/assets/jquery.min.js"></script>
+    <script type="text/javascript" src="/assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/assets/jquery.autocomplete.min.js"></script>
+
+    <script type="text/javascript" src="/assets/highlight/highlight.pack.js"></script>
+    <script type="text/javascript" src="/assets/noty.js"></script>
+
+    <script type="text/javascript" src="/js/worker/datamanager.js"></script>
+    <script type="text/javascript" src="/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="trader_sdk.js"></script>
+    <script type="text/javascript" id='TRADE-CODE'>
+        var task_trade = null; // 执行交易任务
+        var runningFlag = true;
+
+        function* TaskOrder(C) {
+            runningFlag = true;
+            $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
+            enableInputs(true);
+
+            var params = updateDatas(); // 读取页面参数
+            var quote = C.GET_QUOTE(params.instrument);
+
+            var [exchange_id, instrument_id] = params.instrument.split('.');
+            Object.assign(params, {exchange_id, instrument_id});
+
+            var completed = false;
+            var order = C.INSERT_ORDER(params);
+
+            while (!completed){
+                var result = yield {
+                    FINISHED: function () { return order.status === "FINISHED" },
+                    USER_CLICK_STOP: function () { return runningFlag === false }
+                };
+                if (order.status === "FINISHED") completed = true;
+                if (result.USER_CLICK_STOP) C.CANCEL_ORDER(order);
+            }
+            // 任务结束
+            $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
+            enableInputs(false);
+            return;
+        }
+
+        $(function () {
+            // 初始化UI
+            var uiList = [{
+                id: 'instrument',
+                name: '合约代码',
+                type: 'text',
+                default: 'CFFEX.TF1803'
+            }, {
+                id: 'volume',
+                name: '手数',
+                type: 'number',
+                default: 3
+
+            }, {
+                id: 'limit_price',
+                name: '价格',
+                type: 'number',
+                default: 4000
+
+            },{
+                 id: 'direction',
+                     name: '方向',
+                     type: 'radio',
+                    default: 'BUY',
+                     content: [{
+                     name: '买',
+                     value: 'BUY'
+                 },{
+                     name: '卖',
+                     value: 'SELL'
+                 }]
+
+             },{
+                id: 'offset',
+                name: '开平',
+                type: 'radio',
+                default: 'OPEN',
+                content: [{
+                    name: '开',
+                    value: 'OPEN'
+                },{
+                    name: '平',
+                    value: 'CLOSE'
+                },{
+                    name: '平今',
+                    value: 'CLOSETODAY'
+                }]
+            }];
+
+            var result = initUI(uiList);
+            if(!result.success){
+                console.log(result);
+            }
+
+            initUI();
+
+            $('button.START').on('click', function () {
+                if (task_trade === null || task_trade.stopped) task_trade = START_TASK(TaskOrder);
+            });
+
+            $('button.STOP').on('click', function () {
+                runningFlag = false;
+            });
+        });
+    </script>
+</body>
+
+</html>

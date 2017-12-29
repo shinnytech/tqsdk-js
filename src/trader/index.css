@@ -84,6 +84,7 @@ hr.divider{
 
 .panel {
     margin-bottom: 5px;
+    border-radius: 0px;
 }
 
 .panel-title{
@@ -107,8 +108,8 @@ hr.divider{
 /* ============================= */
 
 .main-container {
-    min-width: 380px;
-    padding: 5px 10px;
+    min-width: 240px;
+    padding: 0px;
 }
 
 .main-container .row {

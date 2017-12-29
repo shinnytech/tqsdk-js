@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>天勤-交易</title>
+    <!-- base ui && js -->
+    <link href="/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/highlight/styles/atom-one-light.css">
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+    <div class="container-fluid main-container">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                    价差策略
+                    <span class="pull-right STATE">
+                        <span class="label label-danger">停止</span>
+                    </span>
+                </h3>
+            </div>
+            <ul class="list-group inputs" style="font-size:12px;">
+                <li class="list-group-item tq-container" >
+
+                </li>
+                <li class="list-group-item">
+                    <div class="row">
+                        <div class="col col-xs-12">
+                            <div class="btn-toolbar" role="toolbar">
+                                <div class="btn-group btn-group-xs">
+                                    <button type="button" class="btn btn-default tq-datas START" data-state="START">
+                                        <span class="glyphicon glyphicon-play"></span>&nbsp;开始
+                                    </button>
+                                    <button type="button" class="btn btn-default STOP">
+                                        <span class="glyphicon glyphicon-stop"></span>&nbsp;停止
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+
+        <div class="panel panel-default">
+            <div class="panel-heading" role="tab" id="headingOne">
+                <h4 class="panel-title">
+                    <a role="button" data-toggle="collapse" href="#collapse" aria-expanded="true" aria-controls="collapse">
+                        说明：本下单策略适用于跟随市场波动
+                        <span id='collapse_arrow' class="glyphicon glyphicon-menu-down pull-right"></span>
+                    </a>
+                </h4>
+            </div>
+            <div id="collapse" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne">
+                <ul class="list-group" style="font-size:12px;">
+                    <li class="list-group-item">
+                        <div class="row">
+                            <div class="col col-xs-12">
+                                <b>详细说明：</b>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-xs-3">
+                                <p class="pull-right">
+                                    下单
+                                </p>
+                            </div>
+                            <div class="col col-xs-9">
+                                <p>买入的报单价总是在买 1 价。</p>
+                                <p>卖出的报单价总是在卖 1 价。</p>
+                                <p>下单手数为最大单笔手数，最后剩余手数小于最大单笔手数时，下单手数为最后剩余的手数。</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-xs-3">
+                                <span class="pull-right">
+                                    挂单
+                                </span>
+                            </div>
+                            <div class="col col-xs-9">
+                                <p>挂单后若不成交且挂盘价已变动，则立即撤单。</p>
+                                <p>挂单若成交，则补平挂单手数至最大单笔手数，最后剩余手数小于最大单笔手数时，下单手数为最后剩余的手数。</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="row">
+                            <div class="col col-xs-12">
+                                <b>源代码：</b>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-xs-12" id="code_container">
+                                <pre><code class="javascript"></code></pre>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="/assets/jquery.min.js"></script>
+    <script type="text/javascript" src="/assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/assets/jquery.autocomplete.min.js"></script>
+
+    <script type="text/javascript" src="/assets/highlight/highlight.pack.js"></script>
+    <script type="text/javascript" src="/assets/noty.js"></script>
+
+    <script type="text/javascript" src="/js/worker/datamanager.js"></script>
+    <script type="text/javascript" src="/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="trader_sdk.js"></script>
+    <script type="text/javascript" id='TRADE-CODE'>
+        var task_quote = null; // 显示合约最新价格
+        var task_trade = null; // 执行交易任务
+        var runningFlag = false;
+
+        function* TaskQuote(C) {
+            var params = updateDatas();
+            var quoteA = C.GET_QUOTE(params.insA);
+            var quoteB = C.GET_QUOTE(params.insB);
+            while (true) {
+                if(quoteA && quoteB){
+                    var spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
+                    var spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
+                    updateDatas({spread_ask, spread_bid});
+                }
+                var result = yield {
+                    CHANGED: function () { return C.QUOTE_CHANGED(quoteA) || C.QUOTE_CHANGED(quoteB); }
+                };
+            }
+        }
+
+        function* TaskSpread(C) {
+            runningFlag = true;
+            $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
+            enableInputs(true);
+
+            var params = updateDatas();
+            var quoteA = C.GET_QUOTE(params.insA);
+            var quoteB = C.GET_QUOTE(params.insB);
+            var short_volume = 0, long_volume = 0;
+            var [exchange_id_a, instrument_id_a] = params.insA.split('.');
+            var [exchange_id_b, instrument_id_b] = params.insB.split('.');
+            var volume = parseInt(params.volume);
+
+            var order_a = {exchange_id: exchange_id_a, instrument_id: instrument_id_a, volume: volume};
+            var order_b = {exchange_id: exchange_id_b, instrument_id: instrument_id_b, volume: volume};
+            var buy_open = {direction: 'BUY', offset: 'OPEN'};
+            var sell_open = {direction: 'SELL', offset: 'OPEN'};
+            var buy_close = {direction: 'BUY', offset: 'CLOSE'};
+            var sell_close = {direction: 'SELL', offset: 'CLOSE'};
+
+            while (true) {
+                var result = yield {
+                    OPEN_BUY: function () { return quoteA.ask_price1 - quoteB.bid_price1 <= params.price_buy_open && long_volume == 0; },
+                    CLOSE_SELL: function () { return quoteA.bid_price1 - quoteB.ask_price1 >= params.price_sell_close && long_volume > 0; },
+                    OPEN_SELL: function () { return quoteA.bid_price1 - quoteB.ask_price1 >= params.price_sell_open && short_volume == 0; },
+                    CLOSE_BUY: function () { return quoteA.ask_price1 - quoteB.bid_price1 <= params.price_buy_close && short_volume > 0; },
+                    TIMEOUT: 5000
+                };
+
+                if (result.OPEN_BUY) {
+                    //买开
+                    var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_a, buy_open));
+                    var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_b, sell_open));
+                    var result = yield {
+                        FINISHED: [task_a, task_b],
+                        TIMEOUT: 1000000
+                    }
+                    STOP_TASK(task_a);
+                    STOP_TASK(task_b);
+                    if (result.FINISHED) {
+                        long_volume = volume;
+                    }
+                }
+                if (result.CLOSE_SELL) {
+                    //卖平
+                    var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_a, sell_close));
+                    var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_b, buy_close));
+                    var result = yield {
+                        FINISHED: [task_a, task_b],
+                        TIMEOUT: 1000000
+                    }
+                    STOP_TASK(task_a);
+                    STOP_TASK(task_b);
+                    if (result.FINISHED) {
+                        long_volume = volume;
+                    }
+                }
+                if (result.OPEN_SELL) {
+                    //卖开
+                    var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_a, sell_open));
+                    var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_b, buy_open));
+                    var result = yield {
+                        FINISHED: [task_a, task_b],
+                        TIMEOUT: 1000000
+                    }
+                    STOP_TASK(task_a);
+                    STOP_TASK(task_b);
+                    console.log(result)
+                    if (result.FINISHED) {
+                        short_volume = volume;
+                    }
+                }
+                if (result.CLOSE_BUY) {
+                    //卖平
+                    var task_a = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_a, buy_close));
+                    var task_b = START_TASK(MakeSingleOrderByCompetitorPrice, Object.assign({}, order_b, sell_close));
+                    var result = yield {
+                        FINISHED: [task_a, task_b],
+                        TIMEOUT: 1000000
+                    }
+                    STOP_TASK(task_a);
+                    STOP_TASK(task_b);
+                    if (result.FINISHED) {
+                        short_volume = volume;
+                    }
+                }
+            }
+            // 任务结束
+            $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
+            enableInputs(false);
+            return;
+        }
+
+        // 按照给定参数的对手价下单
+        function* MakeSingleOrderByCompetitorPrice(C, params) {
+            // 合约的行情对象
+            var quote = C.GET_QUOTE(params.exchange_id + '.' + params.instrument_id);
+
+            // 整个函数是一个循环, 直至委托单完全成交才退出循环
+            while (params.volume > 0) {
+                // 价格设定为对手价
+                if (params.direction === 'SELL') {
+                    params.limit_price = quote.bid_price1;
+                }
+                if (params.direction === 'BUY') {
+                    params.limit_price = quote.ask_price1;
+                }
+
+                var order = C.INSERT_ORDER(params);
+                //等待直到委托单状态不再是unknown为止, 或者超过2000毫秒仍然为超时状态
+                var result = yield {
+                    STATUS_FINISHED: function () { return order.status === "FINISHED" },
+                    TIMEOUT: 5000
+                };
+                //如果委托单完全成交了则退出循环
+                if (result.STATUS_FINISHED) {
+                    return;
+                }
+                if (order.status === "ALIVE") {
+                    //撤销委托单
+                    C.CANCEL_ORDER(order);
+                }
+
+                //在总手数总扣减当前委托单的已成交手数, 回到循环头部按剩余手数重新下单
+                params.volume -= (order.volume_orign - order.volume_left);
+            }
+        }
+
+
+        $(function () {
+            // TODO: 初始化选择合约输入框
+            // 初始化UI
+            var uiList = [{
+                id: 'insA',
+                name: '合约代码A',
+                type: 'text',
+                default: 'CFFEX.TF1803'
+            },{
+                id: 'insB',
+                name: '合约代码B',
+                type: 'text',
+                default: 'CFFEX.TF1806'
+            },{
+                id: 'price_buy_open',
+                name: '买开',
+                type: 'number',
+                default: 3
+            },{
+                id: 'price_sell_close',
+                name: '卖平',
+                type: 'number',
+                default: 3
+            },{
+                id: 'price_sell_open',
+                name: '卖开',
+                type: 'number',
+                default: 3
+            },{
+                id: 'price_buy_close',
+                name: '买平',
+                type: 'number',
+                default: 3
+            }, {
+                id: 'volume',
+                name: '手数',
+                type: 'number',
+                default: 3
+
+            }, {
+                id: 'current',
+                name: '当前价格',
+                type: 'message',
+                content: [{
+                        id: 'spread_ask',
+                        name: '买入价差',
+                    }, {
+                        id: 'spread_bid',
+                        name: '卖出价差',
+                    }]
+            }];
+
+            var result = initUI(uiList);
+            if(!result.success){
+                console.log(result);
+            }
+
+            $('#insA').on('change', function () {
+                task_quote = STOP_TASK(task_quote);
+                task_quote = START_TASK(TaskQuote);
+            });
+
+            $('#insB').on('change', function () {
+                task_quote = STOP_TASK(task_quote);
+                task_quote = START_TASK(TaskQuote);
+            });
+
+            // 开始交易按钮
+            $('button.START').on('click', function () {
+                if (task_quote === null) task_quote = START_TASK(TaskQuote);
+                if (task_trade === null || task_trade.stopped) task_trade = START_TASK(TaskSpread);
+            });
+            // 停止交易按钮
+            $('button.STOP').on('click', function () {
+                runningFlag = false;
+            });
+
+        });
+    </script>
+</body>
+
+</html>
