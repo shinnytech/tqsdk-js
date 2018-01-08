@@ -3,49 +3,18 @@
 设置界面
 =======================================
 
-设置界面
+本项目使用了 JQuery，所有的 JQuery 方法 都可以使用。
 
-Example
---------------------------------------------------
+初始化界面，调用全局方法 ``INIT_UI()``，点击说明栏处，可以展开看到下单策略详细说明和源代码。
+
+INIT_UI() 必须在 $() 中调用。
+
 .. code-block:: javascript
 
-    s1[i] = MA(i, s, n1, s1);
+    $(function () {
+        INIT_UI();
+    });
 
+这时候软件中应该能够显示以下界面：
 
-Syntax
---------------------------------------------------
-.. c:function:: MA(i, serial, n, [cache])
-
-   求序列serial中i前n项(包含第i项, 即第i项, 第i-1项, ..., 第i-n+1项)的算术平均值
-
-   :param int i: 必填，指定序列位置
-   :param Array serial: 必填，需要求值的序列
-   :param int n: 必填，求值范围为从i开始往左的n项(包含第i项)
-   :param Array cache: 可选, 将输出结果序列填在此处可以优化性能
-   :type options: object or undefined
-   :return: 计算出的均值
-   :rtype: float
-
-
-Remarks
---------------------------------------------------
-
-
-Source
---------------------------------------------------
-.. code-block:: javascript
-
-    function MA(i, serial, n, cache) {
-        if (cache.length == 0 || isNaN(cache[i - 1]))
-            return _sum(serial, n, i) / n;
-        return cache[i - 1] - serial[i - n] / n + serial[i] / n;
-    }
-
-    function _sum(serial, n, p) {
-        var s = 0;
-        for (var i = p - n + 1; i <= p; i++) {
-            s += serial[i];
-        }
-        return s;
-    }
-
+.. image:: ../images/example_ui_expand_client.png

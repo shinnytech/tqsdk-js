@@ -100,7 +100,7 @@ html_theme = 'bizstyle'
 html_static_path = ['_static']
 html_copy_source = False
 html_show_sourcelink = False
-html_add_permalinks = None
+html_add_permalinks = ''
 html_show_copyright = False
 html_show_sphinx = False
 
