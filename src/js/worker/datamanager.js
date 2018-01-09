@@ -103,6 +103,20 @@ const DM = (function () {
         return res;
     }
 
+    function getData(path, separator) {
+        try {
+            var d = DM.datas;
+            var pathList = null;
+            if (path instanceof Array) pathList = path;
+            else if (typeof path === 'string') pathList = path.split(separator ? separator : ' ');
+            else return undefined;
+            for (var i = 0; i < pathList.length; i++) d = d[pathList[i]];
+            return d;
+        } catch (e) {
+            return undefined;
+        }
+    }
+
     return {
         datas: {},
         paths: new Map(),
@@ -113,37 +127,6 @@ const DM = (function () {
         update_data: updateData,
         // 清空全部数据
         clear_data: clearData,
-
-        // TODO: 怎么选择某个帐户
-        get_account: function () {
-            return DM.datas.trade.SIM.accounts.CNY;
-        },
-        get_positions: function () {
-            return DM.datas.trade.SIM.positions;
-        },
-        get_session: function () {
-            return DM.datas.trade.SIM.session;
-        },
-        get_order: function (id) {
-            return DM.datas.trade.SIM.orders[id];
-        },
-        get_quote: function (id) {
-            // 订阅行情
-            var ins_list = DM.datas.ins_list;
-            if (ins_list && !ins_list.includes(id)) {
-                id = (ins_list.substr(-1, 1) === ',') ? id : (',' + id);
-                var s = ins_list + id;
-                WS.sendJson({
-                    aid: "subscribe_quote",
-                    ins_list: s
-                });
-            }
-            return DM.datas.quotes[id];
-        },
-        get_combine: function (name) {
-            if (DM.datas.combines && DM.datas.combines['USER.' + name])
-                return DM.datas.combines['USER.' + name];
-            return undefined;
-        }
+        get_data: getData,
     };
 }());

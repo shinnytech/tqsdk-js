@@ -175,9 +175,9 @@
         function* TaskCombime(C) {
             runningFlag = true;
             $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
-            enableInputs(true);
+            ENABLE_INPUTS(true);
 
-            var params = updateDatas(); // 读取页面参数
+            var params = UI_DATAS(); // 读取页面参数
             var weights = C.GET_COMBINE(params.instrument);
 
             var order_aids = {}; // 执行交易要完成目标
@@ -260,13 +260,13 @@
             }
             // 任务结束
             $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
-            enableInputs(false);
+            ENABLE_INPUTS(false);
             return;
         }
 
         $(function () {
             // 初始化UI
-            initUI();
+            INIT_UI();
             // 开始交易按钮
             $('button.START').on('click', function () {
                 if (task_trade === null || task_trade.stopped) task_trade = START_TASK(TaskCombime);

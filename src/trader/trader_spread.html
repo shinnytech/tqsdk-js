@@ -25,8 +25,79 @@
                 </h3>
             </div>
             <ul class="list-group inputs" style="font-size:12px;">
-                <li class="list-group-item tq-container" >
+                <li class="list-group-item tq-container">
 
+                    <div class="row">
+                        <div class="col col-xs-3">
+                            <span class="pull-right">合约代码A</span>
+                        </div>
+                        <div class="col col-xs-9">
+                            <input type="text" class="form-control tq-datas input-sm" placeholder="合约代码A" value="CFFEX.TF1803"
+                                id="insA">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col col-xs-3">
+                            <span class="pull-right">合约代码B</span>
+                        </div>
+                        <div class="col col-xs-9">
+                            <input type="text" class="form-control tq-datas input-sm" placeholder="合约代码B" value="CFFEX.TF1806"
+                                id="insB">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col col-xs-3">
+                            <span class="pull-right">买开</span>
+                        </div>
+                        <div class="col col-xs-9">
+                            <input type="number" class="form-control tq-datas input-sm" placeholder="买开" value="3" id="price_buy_open">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col col-xs-3">
+                            <span class="pull-right">卖平</span>
+                        </div>
+                        <div class="col col-xs-9">
+                            <input type="number" class="form-control tq-datas input-sm" placeholder="卖平" value="3" id="price_sell_close">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col col-xs-3">
+                            <span class="pull-right">卖开</span>
+                        </div>
+                        <div class="col col-xs-9">
+                            <input type="number" class="form-control tq-datas input-sm" placeholder="卖开" value="3" id="price_sell_open">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col col-xs-3">
+                            <span class="pull-right">买平</span>
+                        </div>
+                        <div class="col col-xs-9">
+                            <input type="number" class="form-control tq-datas input-sm" placeholder="买平" value="3" id="price_buy_close">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col col-xs-3">
+                            <span class="pull-right">手数</span>
+                        </div>
+                        <div class="col col-xs-9">
+                            <input type="number" class="form-control tq-datas input-sm" placeholder="手数" value="3" id="volume">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col col-xs-3">
+                            <span class="pull-right">当前价格</span>
+                        </div>
+                        <div class="col col-xs-9">
+                            <span>买入价差： </span>
+                            <span class="tq-datas" id="spread_ask"></span>
+                            <span>；</span>
+                            <span>卖出价差： </span>
+                            <span class="tq-datas" id="spread_bid"></span>
+                            <span>；</span>
+                        </div>
+                    </div>
                 </li>
                 <li class="list-group-item">
                     <div class="row">
@@ -46,7 +117,6 @@
                 </li>
             </ul>
         </div>
-
 
         <div class="panel panel-default">
             <div class="panel-heading" role="tab" id="headingOne">
@@ -122,14 +192,12 @@
         var runningFlag = false;
 
         function* TaskQuote(C) {
-            var params = updateDatas();
-            var quoteA = C.GET_QUOTE(params.insA);
-            var quoteB = C.GET_QUOTE(params.insB);
+            var quoteA = C.GET_QUOTE(UI_DATAS.insA);
+            var quoteB = C.GET_QUOTE(UI_DATAS.insB);
             while (true) {
-                if(quoteA && quoteB){
-                    var spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
-                    var spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
-                    updateDatas({spread_ask, spread_bid});
+                if (quoteA && quoteB) {
+                    UI_DATAS.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
+                    UI_DATAS.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
                 }
                 var result = yield {
                     CHANGED: function () { return C.QUOTE_CHANGED(quoteA) || C.QUOTE_CHANGED(quoteB); }
@@ -140,29 +208,28 @@
         function* TaskSpread(C) {
             runningFlag = true;
             $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
-            enableInputs(true);
+            ENABLE_INPUTS(true);
 
-            var params = updateDatas();
-            var quoteA = C.GET_QUOTE(params.insA);
-            var quoteB = C.GET_QUOTE(params.insB);
+            var quoteA = C.GET_QUOTE(UI_DATAS.insA);
+            var quoteB = C.GET_QUOTE(UI_DATAS.insB);
             var short_volume = 0, long_volume = 0;
-            var [exchange_id_a, instrument_id_a] = params.insA.split('.');
-            var [exchange_id_b, instrument_id_b] = params.insB.split('.');
-            var volume = parseInt(params.volume);
+            var [exchange_id_a, instrument_id_a] = UI_DATAS.insA.split('.');
+            var [exchange_id_b, instrument_id_b] = UI_DATAS.insB.split('.');
+            var volume = parseInt(UI_DATAS.volume);
 
-            var order_a = {exchange_id: exchange_id_a, instrument_id: instrument_id_a, volume: volume};
-            var order_b = {exchange_id: exchange_id_b, instrument_id: instrument_id_b, volume: volume};
-            var buy_open = {direction: 'BUY', offset: 'OPEN'};
-            var sell_open = {direction: 'SELL', offset: 'OPEN'};
-            var buy_close = {direction: 'BUY', offset: 'CLOSE'};
-            var sell_close = {direction: 'SELL', offset: 'CLOSE'};
+            var order_a = { exchange_id: exchange_id_a, instrument_id: instrument_id_a, volume: volume };
+            var order_b = { exchange_id: exchange_id_b, instrument_id: instrument_id_b, volume: volume };
+            var buy_open = { direction: 'BUY', offset: 'OPEN' };
+            var sell_open = { direction: 'SELL', offset: 'OPEN' };
+            var buy_close = { direction: 'BUY', offset: 'CLOSE' };
+            var sell_close = { direction: 'SELL', offset: 'CLOSE' };
 
             while (true) {
                 var result = yield {
-                    OPEN_BUY: function () { return quoteA.ask_price1 - quoteB.bid_price1 <= params.price_buy_open && long_volume == 0; },
-                    CLOSE_SELL: function () { return quoteA.bid_price1 - quoteB.ask_price1 >= params.price_sell_close && long_volume > 0; },
-                    OPEN_SELL: function () { return quoteA.bid_price1 - quoteB.ask_price1 >= params.price_sell_open && short_volume == 0; },
-                    CLOSE_BUY: function () { return quoteA.ask_price1 - quoteB.bid_price1 <= params.price_buy_close && short_volume > 0; },
+                    OPEN_BUY: function () { return quoteA.ask_price1 - quoteB.bid_price1 <= UI_DATAS.price_buy_open && long_volume == 0; },
+                    CLOSE_SELL: function () { return quoteA.bid_price1 - quoteB.ask_price1 >= UI_DATAS.price_sell_close && long_volume > 0; },
+                    OPEN_SELL: function () { return quoteA.bid_price1 - quoteB.ask_price1 >= UI_DATAS.price_sell_open && short_volume == 0; },
+                    CLOSE_BUY: function () { return quoteA.ask_price1 - quoteB.bid_price1 <= UI_DATAS.price_buy_close && short_volume > 0; },
                     TIMEOUT: 5000
                 };
 
@@ -204,7 +271,6 @@
                     }
                     STOP_TASK(task_a);
                     STOP_TASK(task_b);
-                    console.log(result)
                     if (result.FINISHED) {
                         short_volume = volume;
                     }
@@ -226,7 +292,7 @@
             }
             // 任务结束
             $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
-            enableInputs(false);
+            ENABLE_INPUTS(false);
             return;
         }
 
@@ -268,60 +334,7 @@
 
         $(function () {
             // TODO: 初始化选择合约输入框
-            // 初始化UI
-            var uiList = [{
-                id: 'insA',
-                name: '合约代码A',
-                type: 'text',
-                default: 'CFFEX.TF1803'
-            },{
-                id: 'insB',
-                name: '合约代码B',
-                type: 'text',
-                default: 'CFFEX.TF1806'
-            },{
-                id: 'price_buy_open',
-                name: '买开',
-                type: 'number',
-                default: 3
-            },{
-                id: 'price_sell_close',
-                name: '卖平',
-                type: 'number',
-                default: 3
-            },{
-                id: 'price_sell_open',
-                name: '卖开',
-                type: 'number',
-                default: 3
-            },{
-                id: 'price_buy_close',
-                name: '买平',
-                type: 'number',
-                default: 3
-            }, {
-                id: 'volume',
-                name: '手数',
-                type: 'number',
-                default: 3
-
-            }, {
-                id: 'current',
-                name: '当前价格',
-                type: 'message',
-                content: [{
-                        id: 'spread_ask',
-                        name: '买入价差',
-                    }, {
-                        id: 'spread_bid',
-                        name: '卖出价差',
-                    }]
-            }];
-
-            var result = initUI(uiList);
-            if(!result.success){
-                console.log(result);
-            }
+            INIT_UI();
 
             $('#insA').on('change', function () {
                 task_quote = STOP_TASK(task_quote);

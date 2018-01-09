@@ -219,10 +219,10 @@
         var runningFlag = false;
 
         function* TaskQuote(C) {
-            var params = updateDatas();
+            var params = UI_DATAS();
             var quote = C.GET_QUOTE(params.instrument);
             while (true) {
-                if (quote) updateDatas(quote);
+                if (quote) UI_DATAS(quote);
                 var result = yield {
                     CHANGED: function () { return C.QUOTE_CHANGED(quote) }
                 };
@@ -232,9 +232,9 @@
         function* TaskSplit(C) {
             runningFlag = true;
             $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
-            enableInputs(true);
+            ENABLE_INPUTS(true);
 
-            var params = updateDatas();
+            var params = UI_DATAS();
             var quote = C.GET_QUOTE(params.instrument);
             var [exchange_id, instrument_id] = params.instrument.split('.');
             var max_price = Math.max(params.price_from, params.price_to);
@@ -273,7 +273,7 @@
                 // 成交均价
                 traded_avgprice = traded_volume == 0 ? 0 : Math.round(traded_sum / traded_volume * 100) / 100;
                 var all_volume = params.all_volume - traded_volume; // 剩余全部手数
-                updateDatas({ traded_volume, traded_avgprice, all_volume }); // 更新显示已成交手数、已成交均价，剩余全部手数
+                UI_DATAS({ traded_volume, traded_avgprice, all_volume }); // 更新显示已成交手数、已成交均价，剩余全部手数
 
                 if (quote[price_field] <= max_price && quote[price_field] >= min_price) {
                     order_params.volume = Math.min(params.max_one_volume, params.all_volume - traded_volume) - pending_volume; // 设置手数
@@ -298,15 +298,12 @@
             }
             // 任务结束
             $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
-            enableInputs(false);
+            ENABLE_INPUTS(false);
             return;
         }
 
         $(function () {
             // TODO: 初始化选择合约输入框
-            // 初始化UI
-            initUI();
-
             $('#instrument').on('change', function () {
                 task_quote = STOP_TASK(task_quote);
                 task_quote = START_TASK(TaskQuote);

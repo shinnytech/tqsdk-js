@@ -17,7 +17,7 @@
     <div class="container-fluid main-container">
         <div class="panel panel-default">
             <div class="panel-heading">
-                <h3 class="panel-title">指定价格下单示例
+                <h3 class="panel-title">标题
                     <span class="pull-right STATE">
                         <span class="label label-danger">停止</span>
                     </span>
@@ -27,7 +27,7 @@
                 <li class="list-group-item tq-container">
                     <div class="row">
                         <div class="col col-xs-3">
-                            <span class="pull-right">合约代码</span>
+                            <span class="pull-right">参数1</span>
                         </div>
                         <div class="col col-xs-9">
                             <input type="text" class="form-control tq-datas input-sm" placeholder="合约代码" value="CFFEX.TF1803" id="instrument">
@@ -132,7 +132,7 @@
             $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
             ENABLE_INPUTS(true);
 
-            var params = UI_DATAS(); // 读取页面参数
+            var params = UI(); // 读取页面参数
             params.direction = direction;
             params.offset = offset;
 
@@ -148,6 +148,7 @@
                     USER_CLICK_STOP: function () { return runningFlag === false },
                     TIMEOUT: 200
                 };
+                console.log(result.USER_CLICK_STOP, order.status)
                 if (order.status === "FINISHED") completed = true;
                 if (result.USER_CLICK_STOP) {
                     C.CANCEL_ORDER(order);
@@ -161,7 +162,6 @@
         }
 
         $(function () {
-            INIT_UI();
             $('button.START').on('click', function (e) {
                 var direction = e.target.dataset.direction;
                 var offset = e.target.dataset.offset;

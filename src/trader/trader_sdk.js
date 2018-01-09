@@ -31,7 +31,7 @@ const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
 
     onreconnect: function () {
 
-    },
+    }
 });
 
 WS.init();
@@ -171,6 +171,7 @@ const trader_context = function () {
     return {
         INSERT_ORDER: insertOrder,
         CANCEL_ORDER: cancelOrder,
+
         QUOTE_CHANGED: quoteChange,
         ORDER_CHANGED: orderChange,
         COMBINE_CHANGED: combineChanged,
@@ -183,6 +184,68 @@ const trader_context = function () {
         GET_COMBINE: DM.get_combine
     }
 }();
+
+// var s = 'trade,SIM,accounts,CNY';
+// GET = function (filed, id, returnFun) {
+//     filed = filed.trim().toUpperCase();
+//     dataStructure = 
+//     var queryPath = [];
+//     var separator = ',';
+//     switch (filed){
+//         case 'account':
+//             queryPath = ['trade','SIM','accounts','CNY']
+
+//     }
+
+//     return function (){
+//         DM.get_data(queryPath);
+//     }
+// }
+
+
+// DM.get_data();
+
+
+
+
+// TODO: 怎么选择某个帐户
+// get_account: function () {
+//     return DM.datas.trade.SIM.accounts.CNY;
+// },
+// get_positions: function () {
+//     return DM.datas.trade.SIM.positions;
+// },
+// get_session: function () {
+//     return DM.datas.trade.SIM.session;
+// },
+// get_order: function (id) {
+//     return DM.datas.trade.SIM.orders[id];
+// },
+// get_quote: function (id) {
+//     // 订阅行情
+//     var ins_list = DM.datas.ins_list;
+//     if (ins_list && !ins_list.includes(id)) {
+//         id = (ins_list.substr(-1, 1) === ',') ? id : (',' + id);
+//         var s = ins_list + id;
+//         WS.sendJson({
+//             aid: "subscribe_quote",
+//             ins_list: s
+//         });
+//     }
+//     return DM.datas.quotes[id];
+// },
+// get_combine: function (name) {
+//     if (DM.datas.combines && DM.datas.combines['USER.' + name])
+//         return DM.datas.combines['USER.' + name];
+//     return undefined;
+// }
+
+class TQ {
+
+}
+
+Object.assign(TQ.prototype, trader_context);
+
 
 class Task {
     constructor(id, func, waitConditions = null) {
@@ -381,14 +444,80 @@ const RESUME_TASK = function (task) {
 
 
 /**
- * 读取、更新 UI
+ * 返回指定变量的数据类型
+ * @param  {Any} data
+ * @return {String}
  */
-// 关于更新 ui 的代码
-function initUI(uiList) {
-    // init tooltip && popover
-    $('[data-toggle="tooltip"]').tooltip();
-    $('[data-toggle="popover"]').popover()
+const type = (d) => Object.prototype.toString.call(d).slice(8, -1);
 
+/************************************************************
+ * UI 部分
+ *************************************************************/
+
+UiUtils = {};
+
+UiUtils.readNodeBySelector = function (sel) {
+    let nodeList = document.querySelectorAll(sel);
+    let params = {};
+    nodeList.forEach((node, index, array) => {
+        Object.assign(params, UiUtils.readNode(node));
+    });
+    return params;
+}
+
+UiUtils.readNode = function (node) {
+    switch (node.type) {
+        case 'number': return { [node.id]: node.valueAsNumber };
+        case 'text': return { [node.id]: node.value };
+        case 'radio': return node.checked ? { [node.name]: node.value } : {};
+        default: return { [node.id]: undefined };
+    }
+}
+
+UiUtils.writeNode = function (key, value) {
+    function _writeBySelector(sel) {
+        let nodeList = document.querySelectorAll(sel);
+        let success = false;
+        nodeList.forEach((node, index, array) => {
+            if (node.nodeName === 'SPAN' || node.nodeName === 'DIV') {
+                node.innerText = value;
+                success = true;
+            } else if (node.nodeName === 'INPUT') {
+                if (node.type === 'text' || node.type === 'number') {
+                    node.value = value;
+                    success = true;
+                } else if (node.type === 'radio' && node.value === value) {
+                    node.checked = true;
+                    success = true;
+                }
+            }
+        });
+        return success;
+    }
+    if (!_writeBySelector('.tq-datas#' + key)) _writeBySelector('input.tq-datas[type="radio"][name=' + key + ']');
+}
+
+const UI_DATAS = new Proxy(() => null, {
+    get: function (target, key, receiver) {
+        let nodeList = document.querySelectorAll('input.tq-datas#' + key);
+        if (nodeList.length > 0) return UiUtils.readNode(nodeList[0]);
+        else { // radio 
+            let res = UiUtils.readNodeBySelector('input.tq-datas[name="' + key + '"]');
+            return res[key] ? res[key] : undefined;
+        }
+    },
+    set: function (target, key, value, receiver) {
+        UiUtils.writeNode(key, value);
+    },
+    apply: function (target, ctx, args) {
+        let params = args[0];
+        if (params) for (let key in params) UiUtils.writeNode(key, params[key]);
+        else return UiUtils.readNodeBySelector('input.tq-datas');
+        return args[0];
+    }
+});
+
+function INIT_UI() {
     // init code
     var lines = $('#TRADE-CODE').text().split('\n');
     lines.forEach((el, i, arr) => lines[i] = el.replace(/\s{8}/, ''));
@@ -397,97 +526,11 @@ function initUI(uiList) {
 
     $('#collapse').on('hide.bs.collapse', () => $('#collapse_arrow').removeClass('glyphicon-menu-up').addClass('glyphicon-menu-down'));
     $('#collapse').on('show.bs.collapse', () => $('#collapse_arrow').removeClass('glyphicon-menu-down').addClass('glyphicon-menu-up'));
-
-    // init html
-    if(!uiList) return;
-    var uiObj = {};
-
-    for(var i=0; i<uiList.length; i++){
-        var o = uiList[i];
-        if(uiList[o.id])
-            return {
-                success: false,
-                msg: 'id 重复'
-            };
-        uiObj[o.id] = $('<div class="row"></div>');
-        uiObj[o.id].append($('<div class="col col-xs-3"><span class="pull-right">' + o.name + '</span></div>'));
-        var inputContainer = $('<div class="col col-xs-9"></div>');
-
-        if(o.type == 'text' || o.type == 'number'){
-            var input = $('<input type="'+o.type+'" class="form-control tq-datas input-sm" placeholder="'+o.name+'" value="'+o.default+'" id="'+o.id+'"/>');
-            inputContainer.append(input);
-        } else if(o.type == 'radio'){
-            var items = o.content;
-            for(var j=0; j<items.length; j++){
-                var label = $('<label class="radio-inline"></label>');
-                var input = $('<input type="'+o.type+'" class="tq-datas" name="'+o.id+'" value="'+items[j].value+'"/>');
-                if(o.default == items[j].value ){
-                    input.attr("checked", true);
-                }
-                label.append(input).append(items[j].name);
-                inputContainer.append(label);
-            }
-        } else if(o.type == 'message'){
-            var items = o.content;
-            for(var j=0; j<items.length; j++){
-                var span = $('<span>' + items[j].name +'： </span><span class="tq-datas" id="'+items[j].id+'"></span><span>；</span>');
-                inputContainer.append(span);
-
-            }
-        } else {
-            return {
-                success: false,
-                msg: 'type错误：' + o.id + ' ==> ' + o.type
-            }
-        }
-        $('.tq-container').append(uiObj[o.id].append(inputContainer)) ;
-    }
-    return {
-        success: true
-    };
 }
 
-function updateDatas(params) {
-    if (params && (typeof params === 'object')) { // write
-        for (var k in params) {
-            var inputDom = $('input.tq-datas#' + k);
-            var spanDom = $('span.tq-datas#' + k);
-            if (inputDom.length >= 1) {// text or number
-                inputDom.val(params[k])
-            } else if (spanDom.length >= 1) {
-                if(typeof params[k] == 'number'){
-                    var num = Math.round(params[k] * 10000) / 10000;
-                    spanDom.text(num);
-                }else{
-                    spanDom.text(params[k]);
-                }
-            } else { // radio
-                dom = $('input.tq-datas[type="radio"][name=' + k + '][value="' + params[k] + '"]');
-                if (dom.length >= 0) dom.attr('checked', true);
-            }
-        }
-    } else { // read
-        params = {};
-        var inputList = $('input.tq-datas');
-        for (var i in inputList) {
-            var d = inputList[i];
-            switch (d.type) {
-                case 'text':
-                    params[d.id] = d.value;
-                    break;
-                case 'number':
-                    params[d.id] = Number(d.value);
-                    break;
-                case 'radio':
-                    d.checked ? params[d.name] = d.value : null;
-                    break;
-            }
-        }
-    }
-    return params;
-}
-
-function enableInputs(isAble) {
+function ENABLE_INPUTS(isAble) {
     $('input.tq-datas').attr('disabled', !!isAble);
     $('button.tq-datas').attr('disabled', !!isAble);
 }
+
+$(() => INIT_UI());
