@@ -1,5 +1,5 @@
 /**
- * 通用
+ * 通用连接客户端应用
  */
 const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
     onmessage: function (message) {
@@ -184,67 +184,6 @@ const trader_context = function () {
         GET_COMBINE: DM.get_combine
     }
 }();
-
-// var s = 'trade,SIM,accounts,CNY';
-// GET = function (filed, id, returnFun) {
-//     filed = filed.trim().toUpperCase();
-//     dataStructure = 
-//     var queryPath = [];
-//     var separator = ',';
-//     switch (filed){
-//         case 'account':
-//             queryPath = ['trade','SIM','accounts','CNY']
-
-//     }
-
-//     return function (){
-//         DM.get_data(queryPath);
-//     }
-// }
-
-
-// DM.get_data();
-
-
-
-
-// TODO: 怎么选择某个帐户
-// get_account: function () {
-//     return DM.datas.trade.SIM.accounts.CNY;
-// },
-// get_positions: function () {
-//     return DM.datas.trade.SIM.positions;
-// },
-// get_session: function () {
-//     return DM.datas.trade.SIM.session;
-// },
-// get_order: function (id) {
-//     return DM.datas.trade.SIM.orders[id];
-// },
-// get_quote: function (id) {
-//     // 订阅行情
-//     var ins_list = DM.datas.ins_list;
-//     if (ins_list && !ins_list.includes(id)) {
-//         id = (ins_list.substr(-1, 1) === ',') ? id : (',' + id);
-//         var s = ins_list + id;
-//         WS.sendJson({
-//             aid: "subscribe_quote",
-//             ins_list: s
-//         });
-//     }
-//     return DM.datas.quotes[id];
-// },
-// get_combine: function (name) {
-//     if (DM.datas.combines && DM.datas.combines['USER.' + name])
-//         return DM.datas.combines['USER.' + name];
-//     return undefined;
-// }
-
-class TQ {
-
-}
-
-Object.assign(TQ.prototype, trader_context);
 
 
 class Task {

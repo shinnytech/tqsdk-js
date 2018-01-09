@@ -470,20 +470,7 @@ CMenu.editIndicator = function (e) {
 
     let name = $('#indicator-name').val();
     let type = CMenu.$editModal.find("input[name='indicator-type']:checked").val();
-    console.log(type)
-    switch (type){
-        case '0':
-            type = 'custom';
-            break;
-        case '1':
-            type = 'custom_wh';
-            break;
-        case '2':
-            type = 'trader';
-            break;
-    }
-    console.log(type)
-    
+    type = type === '0' ? 'custom' : 'custom_wh';
     if (!CMenuUtils.validVariableName(name)) {
         Notify.error('指标名称应符合 JavaScript 变量名命名规则。\n 第一个字符必须是字母、下划线（_）或美元符号（$）\n' +
             '余下的字符可以是下划线（_）、美元符号（$）或任何字母或数字字符。 \n 长度限制为20。');
@@ -647,7 +634,7 @@ CMenu.saveDraftIndicator = function (e) {
         params: wenhua.params,
     }).then(function (result) {
         CMenu.editing = result;
-        worker.postMessage({ cmd: 'trader', content: result });
+        worker.postMessage({ cmd: 'indicator', content: result });
     }, function (e) {
 
         Notify.error(e);
@@ -726,7 +713,6 @@ CMenu.update = function (fun) {
 
 CMenu.updateUI = function (indicator) {
     for (let i = 0; i < CMenu.datas.length; i++) {
-        if (CMenu.datas[i].type === 'trader') continue;
         if (indicator && CMenu.datas[i].key === indicator.key) {
             CMenu.datas[i] = indicator;
             CMenu.editing = indicator;
@@ -851,10 +837,6 @@ CMenuUtils = (function () {
             timeout: {
                 label_name: 'danger',
                 label_text: '错误',
-            },
-            trader: {
-                label_name: 'warning',
-                label_text: '交易',
             }
         };
         let $d = $('<span></span>');

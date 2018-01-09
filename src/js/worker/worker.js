@@ -86,13 +86,6 @@ self.addEventListener('message', function (event) {
         case 'indicator':
             TM.sendIndicatorClass(content);
             break;
-        case 'trader':
-            TD.execTrader(content);
-            break;
-        case 'trader_end':
-            TD.endTrader();
-            break;
-
         case 'error_class_name':
             G_ERRORS = content;
             break;

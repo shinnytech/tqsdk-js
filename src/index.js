@@ -7,7 +7,6 @@ const sendIndicatorList = function () {
     let lists = ['sys_datas', 'datas'];
     for (let i = 0; i < lists.length; i++) {
         for (let j = 0; j < CMenu[lists[i]].length; j++) {
-            if(CMenu[lists[i]][j].type === 'trader') continue;
             let funcName = CMenu[lists[i]][j].name;
             content[funcName] = CMenu[lists[i]][j];
         }
@@ -128,7 +127,6 @@ $(function () {
     });
 
     $('#btn_tarder_run').on('click', function (e) {
-        if(CMenu.editing.type !== 'trader') return null;
         let funcName = CMenu.editing.name;
         let code = CMenu.editor.getSession().getValue();
         code = code.trim();
