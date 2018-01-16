@@ -622,6 +622,7 @@ CMenu.saveDraftIndicator = function (e) {
     let wenhua = { prop: null, params: null };
     if (CMenu.editing.type === 'custom_wh') {
         wenhua = CMenu.getIndicatorWH_Prop_Params();
+        console.log(wenhua)
     }
 
     IStore.saveDraft({
@@ -656,7 +657,8 @@ CMenu.saveFinalIndicator = function (e) {
         prop: wenhua.prop,
         params: wenhua.params,
     }).then(function (result) {
-        CMenu.updateUI(result);
+        CMenu.update()
+        // CMenu.updateUI(result);
     }, function (e) {
 
         Notify.error(e);

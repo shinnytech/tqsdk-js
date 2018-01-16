@@ -1,19 +1,25 @@
+
 const DM = (function () {
 
     function mergeObject(target, source) {
+        let result = [];
         for (let key in source) {
             let value = source[key];
             switch (typeof value) {
                 case 'object':
+                    var tempRes = [];
                     if (value === null) {
                         target[key] = value;
+                        tempRes = [target[key]]
                     } else if (Array.isArray(value)) {
                         target[key] = target[key] ? target[key] : [];
-                        mergeObject(target[key], value);
+                        tempRes = mergeObject(target[key], value);
                     } else {
                         target[key] = target[key] ? target[key] : {};
-                        mergeObject(target[key], value);
+                        tempRes = mergeObject(target[key], value);
                     }
+                    result.push(target[key])
+                    result = result.concat(tempRes);
                     break;
 
                 case 'string':
@@ -33,6 +39,7 @@ const DM = (function () {
                     break;
             }
         }
+        return result;
     }
 
     function setInvalid(diff) {
@@ -61,11 +68,12 @@ const DM = (function () {
 
     function updateData(diff) {
         // 将 diff 中所有数据更新到 datas 中
-        mergeObject(DM.datas, diff);
+        var changeObjList = mergeObject(DM.datas, diff);
 
         // 将 diff 中所有数据涉及的 instance 设置 invalid 标志
         // 只检查了 klines[ins_id][dur_id] 里的数据
         setInvalid(diff);
+        return changeObjList; // 返回 diff 中所有对象组成的列表
     }
 
     function getTdataObj(insId, instanceId) {
@@ -88,19 +96,35 @@ const DM = (function () {
 
     function clearData() {
         // 清空数据
-        for (var k in DM.datas) {
-            delete DM.datas[k];
-        }
+        for (var k in DM.datas) delete DM.datas[k];
         DM.paths.clear();
     }
 
     function getDataRange(path) {
         var res = { firstId: Infinity, lastId: -Infinity };
-        if (DM.paths.has(path)) {
-            res = DM.paths.get(path);
-        }
-
+        if (DM.paths.has(path)) res = DM.paths.get(path);
         return res;
+    }
+
+    function getAccountId() {
+        if (DM.datas.trade) {
+            var keys = Object.keys(DM.datas.trade);
+            // todo： 只取唯一一个key
+            // return keys.length > 0 ? keys[0] : undefined;
+            /************ 临时方案 过滤掉 0 */
+            for (var k in keys){
+                if (keys[k] == 0) continue;
+                return keys[k];
+            }
+            /************ */
+        }
+        return undefined;
+    }
+
+    function getDataFromTrade(path){
+        var accountId = getAccountId();
+        if (accountId) return getData('trade.' + accountId + '.' + path, '.');
+        return undefined;
     }
 
     function getData(path, separator) {
@@ -118,6 +142,7 @@ const DM = (function () {
     }
 
     return {
+        account_id: undefined,
         datas: {},
         paths: new Map(),
         get_tdata_obj: getTdataObj,
@@ -130,17 +155,18 @@ const DM = (function () {
         get_data: getData,
 
         // TODO: 怎么选择某个帐户
+        get_account_id: getAccountId ,
         get_account: function () {
-            return DM.datas.trade.SIM.accounts.CNY;
+            return getDataFromTrade('accounts.CNY');
         },
         get_positions: function () {
-            return DM.datas.trade.SIM.positions;
+            return getDataFromTrade('positions');
         },
         get_session: function () {
-            return DM.datas.trade.SIM.session;
+            return getDataFromTrade('session');
         },
         get_order: function (id) {
-            return DM.datas.trade.SIM.orders[id];
+            return getDataFromTrade('orders.' + id);
         },
         get_quote: function (id) {
             // 订阅行情
