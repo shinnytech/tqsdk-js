@@ -2,6 +2,10 @@
 node_modules/
 dist/
 .DS_Store
-buglist.md
 doc/_build/
 extensions/
+
+
+nohup.out
+buglist.md
+doc/make.log
