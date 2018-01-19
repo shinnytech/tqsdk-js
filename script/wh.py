@@ -22,9 +22,10 @@ class TranslateException(Exception):
 #转换支持环境
 
 def reset():
-    global input_serials, input_params, serials, output_serials, body_lines, function_serials, scount, current_line, temp_serials, line_start_map, current_output_serial
+    global input_serials, input_params, serials, output_serials, body_lines, function_serials, scount, current_line, temp_serials, line_start_map, current_output_serial, output_axis_list
     input_serials = []  # 所有输入序列
     output_serials = []
+    output_axis_list = []
     temp_serials = []
     function_serials = []
     serials = []
@@ -75,21 +76,34 @@ def define_input_serial(serial_name):
 def define_output(serial_name):
     define_serial(serial_name, False)
     global current_output_serial
-    current_output_serial["name"] = serial_name
-    output_serials.append(current_output_serial)
     current_output_serial = {
+        "name": serial_name,
         "color": get_auto_color(),
-        "type":"LINE"
+        "type": "LINE"
     }
+    output_serials.append(current_output_serial)
+
+def set_axis_option(**kwargs):
+    global output_axis_list
+    id = len(output_axis_list)
+    kwargs["id"] = id
+    output_axis_list.append(kwargs)
 
 def set_output_color(color):
     global current_output_serial
     c = color_map.get(color, color)
     current_output_serial["color"] = c
 
+
 def set_output_type(t):
     global current_output_serial
-    current_output_serial["type"] = t
+    if t == "COLORSTICK":
+        current_output_serial["type"] = "RGBAR"
+    elif t == "VOLUMESTICK" or t == "OPISTICK":
+        current_output_serial["type"] = "PCBAR"
+    else:
+        current_output_serial["type"] = t
+
 
 def define_function_serial(fname, fparam):
     nname = function_map.get(fname, fname)
@@ -107,12 +121,6 @@ def define_function_serial(fname, fparam):
     define_serial(id, True)
     return s["id"]
 
-def define_compare_serial(compare_expr):
-    id = auto_serial_name()
-    define_serial(id, True)
-    current_line.append("{id}[i]=({compare_expr});".format(id=id, compare_expr=compare_expr))
-    return id
-
 def as_value(s):
     return s+"[i]";
 
@@ -127,11 +135,11 @@ def finish_line(last):
 tokens = [
     "ID", 'NUMBER', "COMMENT",
     "VVALUE", "VSERIAL",
-    'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'EQUALS',
+    'PLUS', 'MINUS', 'TIMES', 'DIVIDE',
     'LPAREN','RPAREN',
     'COMMA', "SEMICOLON", "COLON", "COLON_EQUALS",
-    "LT", "LTE", "GT", "GTE",
-    "AND", "OR", "NOT",
+    "LT", "LTE", "GT", "GTE", 'EQUALS', 'NOT_EQUALS',
+    "AND", "OR",
     "SERIAL",
     "FUNCS", #函数，1个序列参数
     "FUNCSS", #函数，2个序列参数
@@ -142,7 +150,6 @@ tokens = [
     "COLOR",
     "OFUNC",
     "IFELSE",
-    "COUNT",
     "BACKGROUNDSTYLE",
     # 0 是保持本身坐标不变。
     # 1 是将坐标固定在0到100之间。
@@ -157,6 +164,7 @@ reserved = {
     "LOW": "SERIAL",
     "CLOSE": "SERIAL",
     "VOL": "SERIAL",
+    "OPI": "SERIAL",
     "O": "SERIAL",
     "H": "SERIAL",
     "L": "SERIAL",
@@ -171,6 +179,7 @@ reserved = {
     "HHV": "FUNCSV",
     "LLV": "FUNCSV",
     "SUM": "FUNCSV",
+    "COUNT": "FUNCSV",
     "SMA": "FUNCSVV",
     "MAX": "FUNCVV",
     "MIN": "FUNCVV",
@@ -190,9 +199,10 @@ reserved = {
     "COLORLIGHTBLUE": "COLOR",
     # 输出函数
     "COLORSTICK": "OFUNC",
+    "VOLUMESTICK": "OFUNC",
+    "OPISTICK": "OFUNC",
     # 特殊函数
     "IFELSE": "IFELSE",
-    "COUNT": "COUNT",
     "BACKGROUNDSTYLE": "BACKGROUNDSTYLE",
 }
 
@@ -209,6 +219,7 @@ inserial_selector_map = {
     "L": "LOW",
     "C": "CLOSE",
     "VOL": "VOLUME",
+    "OPI": "CLOSE_OI",
 }
 
 color_map = {
@@ -249,6 +260,7 @@ t_MINUS   = r'-'
 t_TIMES   = r'\*'
 t_DIVIDE  = r'/'
 t_EQUALS  = r'='
+t_NOT_EQUALS  = r'<>'
 t_COMMA  = r','
 t_SEMICOLON  = r';'
 t_COLON  = r':'
@@ -280,9 +292,13 @@ def t_error(t):
 
 precedence = (
     ('left', 'COLON'),
+    ('left', "EQUALS", "NOT_EQUALS"),
+    ('left', "AND", "OR"),
+    ('left', "LT", "LTE", "GT", "GTE"),
     ('left', 'PLUS', 'MINUS'),
     ('left', 'TIMES', 'DIVIDE'),
     )
+
 
 def p_lines_line(p):
     """
@@ -352,7 +368,10 @@ def p_line_background_style(p):
     line : BACKGROUNDSTYLE LPAREN NUMBER RPAREN SEMICOLON
     """
     logger.debug("p_line_background_style: %s", p[3])
-    #@todo
+    if p[3] == "1":
+        set_axis_option(min = 0, max=100)
+    elif p[3] == "2":
+        set_axis_option(mid = 0)
     p[0] = ""
 
 def p_expression_expressionv(p):
@@ -399,7 +418,16 @@ def p_expressionv_binop(t):
     '''expressions : expressionv PLUS expressionv
                   | expressionv MINUS expressionv
                   | expressionv TIMES expressionv
-                  | expressionv DIVIDE expressionv'''
+                  | expressionv DIVIDE expressionv
+                  | expressionv LT expressionv
+                  | expressionv LTE expressionv
+                  | expressionv GT expressionv
+                  | expressionv GTE expressionv
+                  | expressionv AND expressionv
+                  | expressionv OR expressionv
+                  | expressionv EQUALS expressionv
+                  | expressionv NOT_EQUALS expressionv
+    '''
     logger.debug("p_expressionv_binop: %s", t[1], t[2], t[3])
     id = auto_serial_name()
     define_serial(id, True)
@@ -463,18 +491,12 @@ def p_expressions_vserial(p):
                                  err_msg="无法识别的标识符: %s. 请检查拼写是否有误" % p[1])
 
 def p_function_ifelse(p):
-    """ function : IFELSE LPAREN compare_expression COMMA expressionv COMMA expressionv RPAREN"""
+    """ function : IFELSE LPAREN expressionv COMMA expressionv COMMA expressionv RPAREN"""
     logger.debug("p_function_ifelse: %s, %s, %s", p[3], p[5], p[7])
     id = auto_serial_name()
     define_serial(id, True)
     current_line.append("{id}[i]=IFELSE({cond}, {vtrue}, {vfalse});".format(id=id, cond=p[3], vtrue=p[5], vfalse=p[7]))
     p[0] = id
-
-def p_function_count(p):
-    """ function : COUNT LPAREN compare_expression COMMA expressionv RPAREN"""
-    logger.debug("p_function_count: %s, %s", p[3], p[5])
-    s_name = define_function_serial("COUNT", "%s,%s" % (p[3], p[5]))
-    p[0] = "%s" % s_name
 
 def p_function_s(p):
     """ function : FUNCS LPAREN expressions RPAREN"""
@@ -528,27 +550,6 @@ def p_function_unknown(p):
                              err_col=p.slice[1].lexpos - line_start_map.get(p.slice[1].lineno, 0) + 1,
                              err_msg="尚未支持此函数: %s." % p[1])
 
-def p_compare_expression(p):
-    """compare_expression : expressionv LT expressionv
-                          | expressionv LTE expressionv
-                          | expressionv GT expressionv
-                          | expressionv GTE expressionv
-                          | expressionv EQUALS expressionv
-    """
-    logger.debug("p_compare_expression: %s, %s, %s", p[1], p[2], p[3])
-    ce = "%s %s %s" %(p[1], p[2], p[3])
-    s_name = define_compare_serial(ce)
-    p[0] = "%s[i]" % s_name
-
-def p_compare_expression_expression(p):
-    """compare_expression : compare_expression AND compare_expression
-                          | compare_expression OR compare_expression
-    """
-    logger.debug("p_compare_expression_expression: %s, %s, %s", p[1], p[2], p[3])
-    ce = "%s %s %s" %(p[1], p[2], p[3])
-    s_name = define_compare_serial(ce)
-    p[0] = "%s[i]" % s_name
-
 def p_error(p):
     if p:
         raise TranslateException(err_line=p.lineno,
@@ -596,6 +597,9 @@ C.DEFINE({{
 type: "{type}",
 cname: "{cname}",
 state: "KLINE",
+yaxis: [
+{axis_lines}
+],
 }});
 //定义指标参数
 {param_lines}
@@ -614,6 +618,7 @@ let i = yield;
     """.format(indicator_id=indicator_id,
                type=req["type"],
                cname=req["cname"],
+               axis_lines="\n".join(str(p) for p in output_axis_list),
                param_lines="\n".join(['let %s = C.PARAM(%f, "%s", {"MIN": %f, "MAX":%f});' % (p[0], p[3], p[0], p[1], p[2]) for p in req["params"]]),
                input_serial_lines="\n".join(['let %s = C.SERIAL("%s");' % (p, p) for p in input_serials]),
                output_serial_lines="\n".join(['let {name} = C.OUTS("{type}", "{name}", {{color: {color}}});'.format(**p) for p in
@@ -625,24 +630,10 @@ let i = yield;
 
 #---------------------------------------------------------------------------------
 
-
-# MID := (HIGH+LOW+CLOSE)/3;//求最新价，最高价和最低价三者的简单平均
-# CR:SUM(MAX(0,HIGH-REF(MID,1)),N)/SUM(MAX(0,REF(MID,1)-LOW),N)*100;//取最高价减去一个周期前的MID的与0中的最大值，求和，取一个周期前的MID减去最低价与0中的最大值，求和，两个和的百分比
-# CRMA1:REF(MA(CR,M1),M1/2.5+1);//取(M1/2.5+1)个周期前的M1周期CR简单平均值
-
-# TR : MAX((HIGH-LOW),(CLOSE-OPEN));
-# TR : MAX((HIGH-LOW),ABS(REF(CLOSE,1)-HIGH));
-# TR : MAX(MAX((HIGH-LOW),ABS(REF(CLOSE,1)-HIGH)),ABS(REF(CLOSE,1)-LOW));//求最高价减去最低价，一个周期前的收盘价减去最高价的绝对值，一个周期前的收盘价减去最低价的绝对值，这三个值中的最大值
-# ATR : MA(TR,N),COLORYELLOW;//求N个周期内的TR的简单移动平均
-
-# {"id":"macdw","cname":"macdw","type":"SUB","params":[["N1",10,1,100]],"src":"MA1:ddd(CLOSE,N1);"}
-
-
-
 if __name__ == "__main__":
     def tryconvert(f):
         ret = wenhua_translate(f)
-        print ("""
+        print("""
         -INPUT--------------------------------
         %s
         -OUTPUT--------------------------------
@@ -650,5 +641,55 @@ if __name__ == "__main__":
         -EXPECTED--------------------------------
         """ % (f["src"], ret))
 
-    from cases.psy import case
+    from cases.dmi import case
     tryconvert(case)
+
+"""
+todo:
+    backgroundstyle
+    
+    输出时支持多个输出项并列
+
+
+BACKGROUNDSTYLE函数    设置背景的样式。
+
+用法：
+BACKGROUNDSTYLE(i)设置背景的样式。
+i = 0 或1或2。
+
+注：
+1.
+0 是保持本身坐标不变。
+1 是将坐标固定在0到100之间。
+2 是将坐标以0为中轴的坐标系。
+
+例1：
+MA5:MA(C,5);
+MA10:MA(C,10);
+BACKGROUNDSTYLE(0);
+例2：
+DIFF : EMA(CLOSE,12) - EMA(CLOSE,26);
+DEA  : EMA(DIFF,9);
+2*(DIFF-DEA),COLORSTICK;
+BACKGROUNDSTYLE(2)
+
+
+AVEDEV(X,N)：返回X在N周期内的平均绝对偏差。
+注：
+1、N包含当前k线。
+2、N为有效值，但当前的k线数不足N根，该函数返回空值；
+3、N为0时，该函数返回空值；
+4、N为空值，该函数返回空值；
+5、N不能为变量
+
+算法举例：计算AVEDEV(C,3);在最近一根K线上的值。
+
+用麦语言函数可以表示如下：
+(ABS(C-(C+REF(C,1)+REF(C,2))/3)+ABS(REF(C,1)-(C+REF(C,1)+REF(C,2))/3)+ABS(REF(C,2)-(C+REF(C,1)+REF(C,2))/3))/3;
+
+例：
+AVEDEV(C,5);//返回收盘价在5周期内的平均绝对偏差。
+//表示5个周期内每个周期的收盘价与5周期收盘价的平均值的差的绝对值的平均值，判断收盘价与其均值的偏离程度
+
+    
+"""

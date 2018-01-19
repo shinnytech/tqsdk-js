@@ -20,7 +20,7 @@ const TM = (function () {
             } else {
                 let req = covertWHRequest(indicator);
                 if (req === null) return;
-                fetch('http://tools.tq18.cn/convert/wh', {
+                fetch('http://127.0.0.1:8000/convert/wh', {
                     method: 'POST',
                     body: JSON.stringify(req),
                 })
@@ -171,6 +171,8 @@ const TM = (function () {
         C.OUTS = function (style, serialName, options) {
             if (style === 'KLINE')
                 return [null, null, null, null];
+            else if (style === 'COLOR_BAR')
+                return [null, null];
             else
                 return null;
         };

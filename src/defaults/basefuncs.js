@@ -12,6 +12,12 @@ function SUM(i, serial, n, cache) {
     return cache[i - 1] - serial[i - n] + serial[i];
 }
 
+function COUNT(i, serial, n, cache) {
+    if (cache === undefined || cache.length == 0 || isNaN(cache[i - 1]))
+        return _sum(serial, n, i);
+    return cache[i - 1] - serial[i - n] + serial[i];
+}
+
 function REF(i, serial, n) {
     return serial[i-n];
 }
@@ -26,6 +32,12 @@ function EMA(i, serial, n, cache) {
     if (cache.length == 0)
         return serial[i];
     return isNaN(cache[i - 1]) ? serial[i] : (2 * serial[i] / (n + 1) + (n - 1) * cache[i - 1] / (n + 1));
+}
+
+function DMA(i, serial, a, cache) {
+    if (cache.length == 0)
+        return serial[i];
+    return isNaN(cache[i - 1]) ? serial[i] : (cache[i - 1] * (1-a) + serial[i] * a);
 }
 
 function SMA(i, serial, n, m, cache) {

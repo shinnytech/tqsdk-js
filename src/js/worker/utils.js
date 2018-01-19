@@ -102,6 +102,10 @@ IndicatorInstance.prototype.update = function () {
             let s = [new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL()];
             this.out_datas[serialName] = s;
             return s;
+        } else if (style === 'COLOR_BAR') {
+            let s = [new VALUESERIAL(), new VALUESERIAL()];
+            this.out_datas[serialName] = s;
+            return s;
         } else {
             let s = new VALUESERIAL();
             this.out_datas[serialName] = [s];
