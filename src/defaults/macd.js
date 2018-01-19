@@ -15,9 +15,9 @@ function* macd(C) {
     //输入序列
     let sclose = C.SERIAL("CLOSE");
     //输出序列
-    let diff = C.OUTS("LINE", "diff", {color: RED});
-    let dea = C.OUTS("LINE", "dea", {color: BLUE, width: 2});
-    let bar = C.OUTS("BAR", "bar", {color: RED});
+    let diff = C.OUTS("LINE", "diff", {color: WHITE});
+    let dea = C.OUTS("LINE", "dea", {color: YELLOW, width: 1});
+    let bar = C.OUTS("RGBAR", "bar");
     //临时序列
     let eshort = [];
     let elong = [];

@@ -1,4 +1,4 @@
-function* voi(C){
+function* voi_copy(C){
     //指标定义
     C.DEFINE({
         type: "SUB",
@@ -13,7 +13,7 @@ function* voi(C){
     let s_vol = C.SERIAL("VOLUME");
     let s_oi = C.SERIAL("CLOSE_OI");
     //输出序列
-    let vol = C.OUTS("BAR", "vol", {color: RED, yaxis: 0});
+    let vol = C.OUTS("PCBAR", "vol", {yaxis: 0});
     let oi = C.OUTS("LINE", "oi", {color: YELLOW, yaxis: 1});
     //计算
     while(true) {
