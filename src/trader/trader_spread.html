@@ -32,8 +32,7 @@
                             <span class="pull-right">合约代码A</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control tq-datas input-sm" placeholder="合约代码A" value="CFFEX.TF1803"
-                                id="insA">
+                            <input type="text" class="form-control input-sm" placeholder="合约代码A" value="CFFEX.TF1803" id="insA">
                         </div>
                     </div>
                     <div class="row">
@@ -41,8 +40,7 @@
                             <span class="pull-right">合约代码B</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control tq-datas input-sm" placeholder="合约代码B" value="CFFEX.TF1806"
-                                id="insB">
+                            <input type="text" class="form-control input-sm" placeholder="合约代码B" value="CFFEX.TF1806" id="insB">
                         </div>
                     </div>
                     <div class="row">
@@ -50,7 +48,7 @@
                             <span class="pull-right">买开</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control tq-datas input-sm" placeholder="买开" value="3" id="price_buy_open">
+                            <input type="number" class="form-control input-sm" placeholder="买开" value="3" id="price_buy_open">
                         </div>
                     </div>
                     <div class="row">
@@ -58,7 +56,7 @@
                             <span class="pull-right">卖平</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control tq-datas input-sm" placeholder="卖平" value="3" id="price_sell_close">
+                            <input type="number" class="form-control input-sm" placeholder="卖平" value="3" id="price_sell_close">
                         </div>
                     </div>
                     <div class="row">
@@ -66,7 +64,7 @@
                             <span class="pull-right">卖开</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control tq-datas input-sm" placeholder="卖开" value="3" id="price_sell_open">
+                            <input type="number" class="form-control input-sm" placeholder="卖开" value="3" id="price_sell_open">
                         </div>
                     </div>
                     <div class="row">
@@ -74,7 +72,7 @@
                             <span class="pull-right">买平</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control tq-datas input-sm" placeholder="买平" value="3" id="price_buy_close">
+                            <input type="number" class="form-control input-sm" placeholder="买平" value="3" id="price_buy_close">
                         </div>
                     </div>
                     <div class="row">
@@ -82,7 +80,7 @@
                             <span class="pull-right">手数</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control tq-datas input-sm" placeholder="手数" value="3" id="volume">
+                            <input type="number" class="form-control input-sm" placeholder="手数" value="3" id="volume">
                         </div>
                     </div>
                     <div class="row">
@@ -91,10 +89,10 @@
                         </div>
                         <div class="col col-xs-9">
                             <span>买入价差： </span>
-                            <span class="tq-datas" id="spread_ask"></span>
+                            <span id="spread_ask"></span>
                             <span>；</span>
                             <span>卖出价差： </span>
-                            <span class="tq-datas" id="spread_bid"></span>
+                            <span id="spread_bid"></span>
                             <span>；</span>
                         </div>
                     </div>
@@ -104,7 +102,7 @@
                         <div class="col col-xs-12">
                             <div class="btn-toolbar" role="toolbar">
                                 <div class="btn-group btn-group-xs">
-                                    <button type="button" class="btn btn-default tq-datas START" data-state="START">
+                                    <button type="button" class="btn btn-default START" data-state="START">
                                         <span class="glyphicon glyphicon-play"></span>&nbsp;开始
                                     </button>
                                     <button type="button" class="btn btn-default STOP">
@@ -200,15 +198,14 @@
                     UI_DATAS.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
                 }
                 var result = yield {
-                    CHANGED: function () { return C.QUOTE_CHANGED(quoteA) || C.QUOTE_CHANGED(quoteB); }
+                    CHANGED: function () { return ON_CHANGED(quoteA) || ON_CHANGED(quoteB); }
                 };
             }
         }
 
         function* TaskSpread(C) {
             runningFlag = true;
-            $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
-            ENABLE_INPUTS(true);
+            SET_STATE('START');
 
             var quoteA = C.GET_QUOTE(UI_DATAS.insA);
             var quoteB = C.GET_QUOTE(UI_DATAS.insB);
@@ -291,8 +288,7 @@
                 }
             }
             // 任务结束
-            $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
-            ENABLE_INPUTS(false);
+            SET_STATE('END');
             return;
         }
 

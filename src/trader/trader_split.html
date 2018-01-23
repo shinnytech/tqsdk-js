@@ -33,7 +33,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control tq-datas input-sm" id="instrument" placeholder="合约代码" value='SHFE.rb1801'>
+                            <input type="text" class="form-control  input-sm" id="instrument" placeholder="合约代码" value='SHFE.rb1801'>
                         </div>
                     </div>
                     <div class="row">
@@ -44,10 +44,10 @@
                         </div>
                         <div class="col col-xs-9">
                             <label class="radio-inline">
-                                <input type="radio" class="tq-datas" name="direction" value="BUY" checked> 买
+                                <input type="radio" name="direction" value="BUY" checked> 买
                             </label>
                             <label class="radio-inline">
-                                <input type="radio" class="tq-datas" name="direction" value="SELL"> 卖
+                                <input type="radio" name="direction" value="SELL"> 卖
                             </label>
                         </div>
                     </div>
@@ -59,10 +59,10 @@
                         </div>
                         <div class="col col-xs-9">
                             <label class="radio-inline">
-                                <input type="radio" class="tq-datas" name="offset" value="OPEN" checked> 开
+                                <input type="radio" name="offset" value="OPEN" checked> 开
                             </label>
                             <label class="radio-inline">
-                                <input type="radio" class="tq-datas" name="offset" value="CLOSE"> 平
+                                <input type="radio" name="offset" value="CLOSE"> 平
                             </label>
                         </div>
                     </div>
@@ -73,7 +73,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" id='all_volume' class="form-control tq-datas input-sm" value="60">
+                            <input type="number" id='all_volume' class="form-control  input-sm" value="60">
                         </div>
                     </div>
                     <div class="row">
@@ -83,7 +83,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" id='max_one_volume' class="form-control tq-datas input-sm" value="20">
+                            <input type="number" id='max_one_volume' class="form-control  input-sm" value="20">
                         </div>
                     </div>
                     <div class="row">
@@ -93,7 +93,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-4">
-                            <input type="number" id='price_from' class="form-control tq-datas input-sm" value="2000">
+                            <input type="number" id='price_from' class="form-control  input-sm" value="2000">
                         </div>
                         <div class="col col-xs-1">
                             <span class="pull-right">
@@ -101,7 +101,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-4">
-                            <input type="number" id='price_to' class="form-control tq-datas input-sm" value="4000">
+                            <input type="number" id='price_to' class="form-control  input-sm" value="4000">
                         </div>
                     </div>
                     <div class="row">
@@ -111,12 +111,12 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <span class="tq-datas" id='instrument_id'></span>&nbsp;&nbsp;&nbsp;&nbsp;买价:
-                            <span class="tq-datas" id='bid_price1'></span>
+                            <span id='instrument_id'></span>&nbsp;&nbsp;&nbsp;&nbsp;买价:
+                            <span id='bid_price1'></span>
                             最新价:
-                            <span class="tq-datas" id='last_price'></span>
+                            <span id='last_price'></span>
                             卖价:
-                            <span class="tq-datas" id='ask_price1'></span>
+                            <span id='ask_price1'></span>
                         </div>
                     </div>
                 </li>
@@ -125,7 +125,7 @@
                         <div class="col col-xs-4">
                             <div class="btn-toolbar" role="toolbar">
                                 <div class="btn-group btn-group-xs">
-                                    <button type="button" class="btn btn-default tq-datas START" data-state="START">
+                                    <button type="button" class="btn btn-default  START" data-state="START">
                                         <span class="glyphicon glyphicon-play"></span>&nbsp;开始
                                     </button>
                                     <button type="button" class="btn btn-default STOP">
@@ -136,8 +136,8 @@
                         </div>
                         <div class="col col-xs-8">
                             已成交
-                            <span class="tq-datas" id='traded_volume'></span> 手，均价
-                            <span class="tq-datas" id='traded_avgprice'></span> 。
+                            <span id='traded_volume'></span> 手，均价
+                            <span id='traded_avgprice'></span> 。
                         </div>
                     </div>
                 </li>

@@ -5,16 +5,18 @@ const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
     onmessage: function (message) {
         if (message.aid === 'rtn_data') {
             //收到行情数据包，更新到数据存储区
+            var changedList = [];
             for (let i = 0; i < message.data.length; i++) {
-                DM.update_data(message.data[i]);
+                var list = DM.update_data(message.data[i]);
+                changedList = changedList.concat(list);
             }
-            TaskManager.run(message.data);
+            TaskManager.run({ changedList: changedList });
         } else if (message.aid === 'update_custom_combine') {
             // 用户自定义组合
             let combines = {};
             combines[message.symbol] = message.weights;
-            DM.update_data({ combines });
-            TaskManager.run(message.symbol);
+            var changedList = DM.update_data({ combines });
+            TaskManager.run({ changedList: changedList });
         }
     },
 
@@ -61,7 +63,15 @@ const GenTaskId = GenerateKey();
 
 const trader_context = function () {
     function insertOrder(ord) {
-        var session_id = DM.get_session().session_id;
+        var account_id = DM.get_account_id();
+        var session = DM.get_session();
+        if (!account_id || !session) {
+            Notify.error('未登录，请在软件中登录后重试。')
+            return false;
+        }
+
+        var session_id = session.session_id;
+
         var order_id = GenerateKeyLocal('orderid', session_id);
         var send_obj = {
             "aid": "insert_order",
@@ -93,7 +103,7 @@ const trader_context = function () {
             }
             DM.update_data({
                 "trade": {
-                    "SIM": {
+                    [account_id]: {
                         "orders": orders
                     }
                 }
@@ -105,13 +115,13 @@ const trader_context = function () {
     function cancelOrder(order) {
         if (order.exchange_order_id) {
             var send_obj = {
-                "aid": "cancel_order",          //必填, 撤单请求
-                "order_session_id": order.session_id,     //必填, 委托单的session_id
-                "order_id": order.order_id,             //必填, 委托单的order_id
-                "exchange_id": order.exchange_id,         //必填, 交易所
-                "instrument_id": order.instrument_id,      //必填, 合约代码
-                //"action_id": "0001",            //当指令发送给飞马后台时需填此字段,
-                "user_id": DM.get_session().user_id,             //可选, 与登录用户名一致, 当只登录了一个用户的情况下,此字段可省略
+                "aid": "cancel_order", //必填, 撤单请求
+                "order_session_id": order.session_id, //必填, 委托单的session_id
+                "order_id": order.order_id, //必填, 委托单的order_id
+                "exchange_id": order.exchange_id, //必填, 交易所
+                "instrument_id": order.instrument_id, //必填, 合约代码
+                //"action_id": "0001", //当指令发送给飞马后台时需填此字段,
+                "user_id": DM.get_session().user_id, //可选, 与登录用户名一致, 当只登录了一个用户的情况下,此字段可省略
             }
             WS.sendJson(send_obj);
             return order;
@@ -121,70 +131,34 @@ const trader_context = function () {
         }
     }
 
-    function quoteChange(quote) {
-        var ins_id = '';
-        if (!quote) {
-            console.error(quote, ' 不存在');
-            return false;
-        }
-        if (typeof quote === 'string') {
-            ins_id = quote;
-        } else if (quote.instrument_id) {
-            ins_id = quote.instrument_id;
-        } else {
-            // TODO: 抛出错误
-            console.error('没有找到合约id');
-            return false;
-        }
-
-        for (let i = 0; i < TaskManager.tempDiff.length; i++) {
-            if (TaskManager.tempDiff[i].quotes && TaskManager.tempDiff[i].quotes[ins_id]) return true;
-        }
-        return false;
-    }
-
-    function orderChange(order) {
-        var order_id = '';
-        if (typeof order === 'string') {
-            order_id = order;
-        } else if (order.exchange_order_id) {
-            order_id = order.exchange_order_id;
-        } else {
-            // TODO: 抛出错误
-            console.error('没有找到委托单id');
-            return false;
-        }
-
-        for (let i = 0; i < TaskManager.tempDiff.length; i++) {
-            if (TaskManager.tempDiff[i].trade
-                && TaskManager.tempDiff[i].trade['SIM']
-                && TaskManager.tempDiff[i].trade['SIM']['orders']
-                && TaskManager.tempDiff[i].trade['SIM']['orders'][order_id]) return true;
-        }
-        return false;
-    }
-
-    function combineChanged(name) {
-        return TaskManager.tempDiff === 'USER.' + name;
-    }
-
     return {
         INSERT_ORDER: insertOrder,
         CANCEL_ORDER: cancelOrder,
-
-        QUOTE_CHANGED: quoteChange,
-        ORDER_CHANGED: orderChange,
-        COMBINE_CHANGED: combineChanged,
 
         GET_ACCOUNT: DM.get_account,
         GET_POSITION: DM.get_positions,
         GET_SESSION: DM.get_session,
         GET_QUOTE: DM.get_quote,
         GET_ORDER: DM.get_order,
-        GET_COMBINE: DM.get_combine
+        GET_COMBINE: DM.get_combine,
+
+        ON_CHANGED: function (obj) {
+            // ON_CHANGED 判断制定数据对象是否更新
+            return () => {
+                if (obj == undefined) return true;
+                for (let i = 0; TaskManager.changedList && i < TaskManager.changedList.length; i++)
+                    if (TaskManager.changedList[i] == obj) return true;
+                return false;
+            }
+        },
+        ON_CLICK: function (click_id) {
+            return function () {
+                if (TaskManager.event && click_id === TaskManager.event) return true;
+                return false;
+            }
+        }
     }
 }();
-
 
 class Task {
     constructor(id, func, waitConditions = null) {
@@ -195,6 +169,7 @@ class Task {
         this.timeout = 6000000; // 每个任务默认时间
         this.endTime = 0;
         this.stopped = false;
+        this.events = {}
     }
 
     pause() {
@@ -210,8 +185,6 @@ class Task {
     }
 
 }
-
-
 
 const TaskManager = (function (task) {
     var aliveTasks = {};
@@ -289,8 +262,10 @@ const TaskManager = (function (task) {
         }
     }
 
-    function run(diffData) {
-        TaskManager.tempDiff = diffData ? diffData : null;
+    function run(obj) {
+        TaskManager.changedList = obj.changedList ? obj.changedList : null;
+        TaskManager.event = obj.event ? obj.event : null;
+
         for (var taskId in aliveTasks) {
             if (aliveTasks[taskId].paused) continue;
             runTask(aliveTasks[taskId]);
@@ -340,10 +315,17 @@ const TaskManager = (function (task) {
     }
 
     return {
-        tempDiff: null,
+        changedList: null,
         add,
         remove,
         run,
+        setEvent: function (event) {
+            for (var taskId in aliveTasks) {
+                if (aliveTasks[taskId].paused || aliveTasks[taskId].stopped) continue;
+                var task = aliveTasks[taskId];
+                task.events = event;
+            }
+        },
         getAll: function () {
             return aliveTasks;
         }
@@ -381,40 +363,43 @@ const RESUME_TASK = function (task) {
     task.resume();
 }
 
-
 /**
- * 返回指定变量的数据类型
- * @param  {Any} data
- * @return {String}
+ * DATA SERIES
  */
-const type = (d) => Object.prototype.toString.call(d).slice(8, -1);
+
+class DATA_SERIAL {
+    constructor(id) {
+        this.id = id;
+        this.datas = [];
+        this.begin = null;
+        this.end = null;
+        this.binding = {};
+    }
+
+    pause() {
+        this.paused = true;
+    }
+
+    resume() {
+        this.paused = false;
+    }
+
+    stop() {
+        this.stopped = true;
+    }
+}
+
+/**************************************************************
+ * 生成函数 全局？ctx？
+ *************************************************************/
+Object.assign(window, trader_context)
 
 /************************************************************
  * UI 部分
  *************************************************************/
 
-UiUtils = {};
-
-UiUtils.readNodeBySelector = function (sel) {
-    let nodeList = document.querySelectorAll(sel);
-    let params = {};
-    nodeList.forEach((node, index, array) => {
-        Object.assign(params, UiUtils.readNode(node));
-    });
-    return params;
-}
-
-UiUtils.readNode = function (node) {
-    switch (node.type) {
-        case 'number': return { [node.id]: node.valueAsNumber };
-        case 'text': return { [node.id]: node.value };
-        case 'radio': return node.checked ? { [node.name]: node.value } : {};
-        default: return { [node.id]: undefined };
-    }
-}
-
-UiUtils.writeNode = function (key, value) {
-    function _writeBySelector(sel) {
+const UiUtils = (function () {
+    function _writeBySelector(sel, value) {
         let nodeList = document.querySelectorAll(sel);
         let success = false;
         nodeList.forEach((node, index, array) => {
@@ -433,17 +418,37 @@ UiUtils.writeNode = function (key, value) {
         });
         return success;
     }
-    if (!_writeBySelector('.tq-datas#' + key)) _writeBySelector('input.tq-datas[type="radio"][name=' + key + ']');
-}
+    return {
+        readNodeBySelector(sel) {
+            let nodeList = document.querySelectorAll(sel);
+            let params = {};
+            nodeList.forEach((node, index, array) => {
+                Object.assign(params, UiUtils.readNode(node));
+            });
+            return params;
+        },
+        readNode(node) {
+            switch (node.type) {
+                case 'number': return { [node.id]: node.valueAsNumber };
+                case 'text': return { [node.id]: node.value };
+                case 'radio': return node.checked ? { [node.name]: node.value } : {};
+                default: return { [node.id]: undefined };
+            }
+        },
+        writeNode(key, value) {
+            if (!_writeBySelector('#' + key, value))
+                _writeBySelector('input[type="radio"][name=' + key + ']', value);
+        }
+    }
+})();
 
 const UI_DATAS = new Proxy(() => null, {
     get: function (target, key, receiver) {
-        let nodeList = document.querySelectorAll('input.tq-datas#' + key);
-        if (nodeList.length > 0) return UiUtils.readNode(nodeList[0]);
-        else { // radio 
-            let res = UiUtils.readNodeBySelector('input.tq-datas[name="' + key + '"]');
-            return res[key] ? res[key] : undefined;
-        }
+        let nodeList = document.querySelectorAll('input#' + key);
+        let res = null;
+        if (nodeList.length > 0) res = UiUtils.readNode(nodeList[0]);
+        else res = UiUtils.readNodeBySelector('input[name="' + key + '"]'); // radio 
+        return res[key] ? res[key] : undefined;
     },
     set: function (target, key, value, receiver) {
         UiUtils.writeNode(key, value);
@@ -451,7 +456,7 @@ const UI_DATAS = new Proxy(() => null, {
     apply: function (target, ctx, args) {
         let params = args[0];
         if (params) for (let key in params) UiUtils.writeNode(key, params[key]);
-        else return UiUtils.readNodeBySelector('input.tq-datas');
+        else return UiUtils.readNodeBySelector('input');
         return args[0];
     }
 });
@@ -467,9 +472,76 @@ function INIT_UI() {
     $('#collapse').on('show.bs.collapse', () => $('#collapse_arrow').removeClass('glyphicon-menu-down').addClass('glyphicon-menu-up'));
 }
 
-function ENABLE_INPUTS(isAble) {
-    $('input.tq-datas').attr('disabled', !!isAble);
-    $('button.tq-datas').attr('disabled', !!isAble);
+function SET_STATE(cmd) {
+    cmd = cmd.toUpperCase();
+    if (cmd === 'START' || cmd === 'RESUME') {
+        $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
+        $('input').attr('disabled', true);
+        $('button.START').attr('disabled', true);
+    } else if (cmd === 'PAUSE') {
+        $('.panel-title .STATE').html('<span class="label label-warning">暂停</span>');
+        $('input').attr('disabled', true);
+        $('button.START').attr('disabled', true);
+    } else if (cmd === 'END') {
+        $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
+        $('input').attr('disabled', false);
+        $('button.START').attr('disabled', false);
+    }
 }
 
-$(() => INIT_UI());
+$(() => {
+    INIT_UI();
+    $(document).on('click', function (e) {
+        console.log(e.target.dataset);
+        console.log(e.target.id);
+        // 页面 Click 事件统一处理
+        // 4 类按钮 START RESUME PAUSE END
+        // events.publish(e.target.id, e.target.dataset)
+        TaskManager.run({event: e.target.id});
+
+    })
+});
+
+/**
+ * 返回指定变量的数据类型
+ * @param  {Any} data
+ * @return {String}
+ */
+const type = (d) => Object.prototype.toString.call(d).slice(8, -1);
+
+/**
+ * 显示通知
+ */
+const Notify = (function () {
+    let debug = false;
+
+    let defaults = {
+        layout: 'topRight',
+        theme: 'relax',// defaultTheme, relax, bootstrapTheme, metroui
+        type: 'information',
+        force: true,
+        timeout: 2000,
+        maxVisible: 50,
+        closeWith: ['click', 'button'],
+    };
+
+    function getNotyFun(type) {
+        if (!debug) {
+            return function (text) {
+                return noty(Object.assign(defaults, { text, type }));
+            };
+        } else {
+            return function (text) {
+                return console.log('%c%s', 'color: #7C37D4', type + ' : ' + text);
+            };
+        }
+    }
+
+    let notys = {};
+    notys.success = getNotyFun('success');
+    notys.error = notys.err = getNotyFun('error');
+    notys.warning = notys.warn = getNotyFun('warning');
+    notys.information = notys.info = getNotyFun('information');
+    notys.notification = notys.noty = getNotyFun('notification');
+    return notys;
+}());

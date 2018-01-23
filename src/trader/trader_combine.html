@@ -33,7 +33,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control tq-datas input-sm" id="instrument" placeholder="合约代码" value='rr'>
+                            <input type="text" class="form-control input-sm" id="instrument" placeholder="合约代码" value='rr'>
                         </div>
                     </div>
                     <div class="row">
@@ -44,10 +44,10 @@
                         </div>
                         <div class="col col-xs-9">
                             <label class="radio-inline">
-                                <input type="radio" class="tq-datas" name="direction" value="BUY" checked> 买
+                                <input type="radio" name="direction" value="BUY" checked> 买
                             </label>
                             <label class="radio-inline">
-                                <input type="radio" class="tq-datas" name="direction" value="SELL"> 卖
+                                <input type="radio" name="direction" value="SELL"> 卖
                             </label>
                         </div>
                     </div>
@@ -59,13 +59,13 @@
                         </div>
                         <div class="col col-xs-9">
                             <label class="radio-inline">
-                                <input type="radio" class="tq-datas" name="offset" value="OPEN" checked> 开
+                                <input type="radio" name="offset" value="OPEN" checked> 开
                             </label>
                             <label class="radio-inline">
-                                <input type="radio" class="tq-datas" name="offset" value="CLOSE"> 平
+                                <input type="radio" name="offset" value="CLOSE"> 平
                             </label>
                             <label class="radio-inline">
-                                <input type="radio" class="tq-datas" name="offset" value="CLOSETODAY"> 平今
+                                <input type="radio" name="offset" value="CLOSETODAY"> 平今
                             </label>
                         </div>
                     </div>
@@ -76,7 +76,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" id='volume' class="form-control tq-datas input-sm" value="1">
+                            <input type="number" id='volume' class="form-control input-sm" value="1">
                         </div>
                     </div>
                 </li>
@@ -85,7 +85,7 @@
                         <div class="col col-xs-12">
                             <div class="btn-toolbar" role="toolbar">
                                 <div class="btn-group btn-group-xs">
-                                    <button type="button" class="btn btn-default tq-datas START" data-state="START">
+                                    <button type="button" class="btn btn-default START" data-state="START">
                                         <span class="glyphicon glyphicon-play"></span>&nbsp;执行
                                     </button>
 
@@ -174,11 +174,11 @@
 
         function* TaskCombime(C) {
             runningFlag = true;
-            $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
-            ENABLE_INPUTS(true);
+            SET_STATE('START');
 
-            var params = UI_DATAS(); // 读取页面参数
-            var weights = C.GET_COMBINE(params.instrument);
+            var combine_id = 'USER.' + UI_DATAS.instrument; // 读取页面参数
+
+            var weights = C.GET_COMBINE(combine_id);
 
             var order_aids = {}; // 执行交易要完成目标
             var quotes = {}; // 合约
@@ -187,10 +187,10 @@
 
             while (!weights) {
                 var result = yield {
-                    COMBINE_CHANGED: function () { return C.COMBINE_CHANGED(params.instrument) },
+                    CHANGED: ON_CHANGED(),
                     USER_CLICK_STOP: function () { return runningFlag === false }
                 };
-                if (result.COMBINE_CHANGED) weights = C.GET_COMBINE(params.instrument);
+                if (result.CHANGED) weights = C.GET_COMBINE(params.instrument);
                 if (result.USER_CLICK_STOP) {
                     completed = true;
                     break;
@@ -224,11 +224,17 @@
                     }
                 }
 
-                var result = yield {
-                    ORDER_CHANGED: function () { for (var id in orders) return C.ORDER_CHANGED(id) },
-                    QUOTE_CHANGED: function () { return C.QUOTE_CHANGED('USER.' + params.instrument) },
-                    USER_CLICK_STOP: function () { return runningFlag === false }
+                var wait_object = {}
+                for (var id in orders) {
+                    wait_object['CHANGED_' + id] = ON_CHANGED(id)
                 }
+
+                var result = yield Object.assign(wait_object, {
+                    QUOTE_CHANGED: ON_CHANGED(C.GET_QUOTE('USER.' + params.instrument)), //组合合约变化
+                    USER_CLICK_STOP: function () { return runningFlag === false }
+                })
+
+                console.log(result)
 
                 if (result.QUOTE_CHANGED || result.USER_CLICK_STOP) {
                     for (var ord_id in orders) {
@@ -259,8 +265,7 @@
                 completed = Object.entries(order_aids).map(([id, aid]) => aid.origin === aid.traded).reduce((a, b) => a && b);
             }
             // 任务结束
-            $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
-            ENABLE_INPUTS(false);
+            SET_STATE('START');
             return;
         }
 

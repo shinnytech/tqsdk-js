@@ -30,7 +30,7 @@
                             <span class="pull-right">合约代码</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control tq-datas input-sm" placeholder="合约代码" value="CFFEX.TF1803" id="instrument">
+                            <input type="text" class="form-control input-sm" placeholder="合约代码" value="CFFEX.TF1803" id="instrument">
                         </div>
                     </div>
                     <div class="row">
@@ -38,7 +38,7 @@
                             <span class="pull-right">手数</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control tq-datas input-sm" placeholder="手数" value="3" id="volume">
+                            <input type="number" class="form-control input-sm" placeholder="手数" value="3" id="volume">
                         </div>
                     </div>
                     <div class="row">
@@ -46,7 +46,7 @@
                             <span class="pull-right">价格</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control tq-datas input-sm" placeholder="价格" value="96" id="limit_price">
+                            <input type="number" class="form-control input-sm" placeholder="价格" value="96" id="limit_price">
                         </div>
                     </div>
                 </li>
@@ -56,15 +56,15 @@
                     <div class="col col-xs-12">
                         <div class="btn-toolbar" role="toolbar">
                             <div class="btn-group btn-group-xs">
-                                <button type="button" class="btn btn-default tq-datas START" data-direction="BUY" data-offset="OPEN">买开</button>
-                                <button type="button" class="btn btn-default tq-datas START" data-direction="SELL" data-offset="OPEN">卖开</button>
+                                <button type="button" class="btn btn-default START" data-direction="BUY" data-offset="OPEN">买开</button>
+                                <button type="button" class="btn btn-default START" data-direction="SELL" data-offset="OPEN">卖开</button>
                             </div>
                             <div class="btn-group btn-group-xs">
-                                <button type="button" class="btn btn-default tq-datas START" data-direction="BUY" data-offset="CLOSE">买平</button>
-                                <button type="button" class="btn btn-default tq-datas START" data-direction="SELL" data-offset="CLOSE">卖平</button>
+                                <button type="button" class="btn btn-default START" data-direction="BUY" data-offset="CLOSE">买平</button>
+                                <button type="button" class="btn btn-default START" data-direction="SELL" data-offset="CLOSE">卖平</button>
                             </div>
                             <div class="btn-group btn-group-xs">
-                                <button type="button" class="btn btn-default STOP">
+                                <button type="button" class="btn btn-default STOP" id='STOP'>
                                     停止
                                 </button>
                             </div>
@@ -125,12 +125,9 @@
     <script type="text/javascript" src="trader_sdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
         var task_trade = null; // 执行交易任务
-        var runningFlag = true;
 
         function* TaskOrder(C, direction, offset) {
-            runningFlag = true;
-            $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
-            ENABLE_INPUTS(true);
+            SET_STATE('START');
 
             var params = UI_DATAS(); // 读取页面参数
             params.direction = direction;
@@ -142,12 +139,12 @@
             var completed = false;
             var order = C.INSERT_ORDER(params);
 
-            while (!completed) {
+            while (order && !completed) {
                 var result = yield {
-                    FINISHED: function () { return C.ORDER_CHANGED(order) },
-                    USER_CLICK_STOP: function () { return runningFlag === false },
-                    TIMEOUT: 200
+                    CHANGED: ON_CHANGED(order),
+                    USER_CLICK_STOP: ON_CLICK('STOP'),
                 };
+
                 if (order.status === "FINISHED") completed = true;
                 if (result.USER_CLICK_STOP) {
                     C.CANCEL_ORDER(order);
@@ -155,20 +152,15 @@
                 }
             }
             // 任务结束
-            $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
-            ENABLE_INPUTS(false);
+            SET_STATE('END');
             return;
         }
 
         $(function () {
-            INIT_UI();
             $('button.START').on('click', function (e) {
                 var direction = e.target.dataset.direction;
                 var offset = e.target.dataset.offset;
                 if (task_trade === null || task_trade.stopped) task_trade = START_TASK(TaskOrder, direction, offset);
-            });
-            $('button.STOP').on('click', function () {
-                runningFlag = false;
             });
         });
     </script>
