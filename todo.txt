@@ -1,3 +1,74 @@
+重复代码考虑整理合并
+
+基础:
+    datamanager
+    websocket
+    trader
+    uibase
+    这几块代码合并为sdk
+
+ta管理器:
+    在使用sdk基础上, 额外加入
+        func_store
+        ide
+        worker
+        来形成技术指标板块
+
+yield等待处需要仔细设计:
+    怎样方便的处理各种等待对象
+
+    对象指针
+    变动集合
+        处理变动集合
+        或只处理单个变动?
+
+    目前每个item一定是一个 bool function, 在function中可以自由访问全截面信息
+    改进:
+        1. 在function中, 可以获取当前 change_set (DM 相关函数给一个context)
+            三个集合 (before patch, patch, after patch)
+            三个集合不能共用同一内存地址, 访问时只能以key来找
+
+            use case:
+                在最新数据集上工作, 直接使用ref或 GetData(N)
+                在diff集上工作, 使用 GetData(D)
+
+        1. 在context中增加一个简单的 trade_unit, 用于筛选自身发出的委托单及其成交记录
+
+        2. function可以返回任意类型result, 返回 null 或 false 或 {} 或 [] 被认为判定失败
+
+        3. UI 处理与数据集整合, 任何对UI的改变自动与屏幕同步
+            SetData("/ui/btn/text", "启动");
+            var v = GetData("/ui/btn/status"); //"CLICKED" or "DOWN"
+
+        4. 错误处理尽量前移:
+            全系统未初始化引发的问题, 前移到用户函数执行前
+            用户代码中涉及输入错误的, 在代码最前端判定
+
+
+DM设计方案:
+    整个数据截面是一个 dict obj
+    每次的变动数据包diff是一个 dict obj
+
+    //数据集访问函数
+    value = GetData(path, data_set=N, trade_unit_filter = null)
+    SetData(path, data_set=N, value)
+
+    //数据集结构
+    /
+    /trades
+    /ui
+
+    //系统数据集
+
+
+
+目前使用的是定时检查截面的方案, 当关注重点是diff时, 不好用
+    想得到上次调用到这次调用的变化 (新的成交记录, 委托单变动等)
+        每次调用的时候存一个截面?
+        or
+        在事件到来时通知
+
+
 转换器需修改:
     不认识的函数报错信息
     异常的常量报错信息
