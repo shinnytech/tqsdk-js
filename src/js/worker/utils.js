@@ -115,6 +115,7 @@ IndicatorInstance.prototype.update = function () {
 
     //重生成函数
     this.func = self[this.ta_class_name](this);
+    this.func.next(this.calculateLeft);
 };
 
 IndicatorInstance.prototype.postEndMessage = function () {
@@ -129,6 +130,7 @@ IndicatorInstance.prototype.postEndMessage = function () {
 IndicatorInstance.prototype.exec = function () {
     //执行计算calculateRight
     var [left, right] = [this.calculateLeft, this.calculateRight];
+    console.log(left, right)
     try {
         for (; this.calculateLeft <= this.calculateRight; this.calculateLeft++) {
             this.func.next(this.calculateLeft);

@@ -5,18 +5,14 @@ const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
     onmessage: function (message) {
         if (message.aid === 'rtn_data') {
             //收到行情数据包，更新到数据存储区
-            var changedList = [];
-            for (let i = 0; i < message.data.length; i++) {
-                var list = DM.update_data(message.data[i]);
-                changedList = changedList.concat(list);
-            }
-            TaskManager.run({ changedList: changedList });
+            DM.update_data(message.data);
+            TaskManager.run();
         } else if (message.aid === 'update_custom_combine') {
             // 用户自定义组合
             let combines = {};
             combines[message.symbol] = message.weights;
-            var changedList = DM.update_data({ combines });
-            TaskManager.run({ changedList: changedList });
+            DM.update_data({ combines });
+            TaskManager.run();
         }
     },
 
@@ -131,9 +127,17 @@ const trader_context = function () {
         }
     }
 
+    function get_data(target, path){
+
+    }
+
+
     return {
         INSERT_ORDER: insertOrder,
         CANCEL_ORDER: cancelOrder,
+
+        GET_DATA: get_data,
+        SET_DATA: set_data,
 
         GET_ACCOUNT: DM.get_account,
         GET_POSITION: DM.get_positions,

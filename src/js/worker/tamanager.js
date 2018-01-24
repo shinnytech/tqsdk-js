@@ -20,7 +20,7 @@ const TM = (function () {
             } else {
                 let req = covertWHRequest(indicator);
                 if (req === null) return;
-                fetch('http://127.0.0.1:8000/convert/wh', {
+                fetch('http://192.168.1.80:8000/convert/wh', {
                     method: 'POST',
                     body: JSON.stringify(req),
                 })

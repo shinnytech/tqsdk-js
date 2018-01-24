@@ -2,26 +2,20 @@
 const DM = (function () {
 
     function mergeObject(target, source) {
-        let result = [];
         for (let key in source) {
             let value = source[key];
             switch (typeof value) {
                 case 'object':
-                    var tempRes = [];
                     if (value === null) {
                         target[key] = value;
-                        tempRes = [target[key]]
                     } else if (Array.isArray(value)) {
                         target[key] = target[key] ? target[key] : [];
-                        tempRes = mergeObject(target[key], value);
+                        mergeObject(target[key], value);
                     } else {
                         target[key] = target[key] ? target[key] : {};
-                        tempRes = mergeObject(target[key], value);
+                        mergeObject(target[key], value);
                     }
-                    result.push(target[key])
-                    result = result.concat(tempRes);
                     break;
-
                 case 'string':
                     if (value === 'NaN') {
                         target[key] = NaN;
@@ -29,17 +23,14 @@ const DM = (function () {
                         target[key] = value;
                     }
                     break;
-
                 case 'boolean':
                 case 'number':
                     target[key] = value;
                     break;
-
                 case 'undefined':
                     break;
             }
         }
-        return result;
     }
 
     function setInvalid(diff) {
@@ -66,14 +57,20 @@ const DM = (function () {
         }
     }
 
-    function updateData(diff) {
-        // 将 diff 中所有数据更新到 datas 中
-        var changeObjList = mergeObject(DM.datas, diff);
-
+    function updateData(diff_list) {
+        var diff_object = diff_list;
+        if (diff_list instanceof Array) {
+            diff_object = diff_list[0];
+            for (var i = 1; i < diff_list.length; i++) {
+                mergeObject(diff_object, diff_list[i]);
+            }
+        }
+        DM.last_changed_data = diff_object;
+        mergeObject(DM.datas, diff_object)
         // 将 diff 中所有数据涉及的 instance 设置 invalid 标志
         // 只检查了 klines[ins_id][dur_id] 里的数据
-        setInvalid(diff);
-        return changeObjList; // 返回 diff 中所有对象组成的列表
+        setInvalid(diff_object);
+        return ;
     }
 
     function getTdataObj(insId, instanceId) {
@@ -112,7 +109,7 @@ const DM = (function () {
             // todo： 只取唯一一个key
             // return keys.length > 0 ? keys[0] : undefined;
             /************ 临时方案 过滤掉 0 */
-            for (var k in keys){
+            for (var k in keys) {
                 if (keys[k] == 0) continue;
                 return keys[k];
             }
@@ -121,7 +118,7 @@ const DM = (function () {
         return undefined;
     }
 
-    function getDataFromTrade(path){
+    function getDataFromTrade(path) {
         var accountId = getAccountId();
         if (accountId) return getData('trade.' + accountId + '.' + path, '.');
         return undefined;
@@ -144,6 +141,7 @@ const DM = (function () {
     return {
         account_id: undefined,
         datas: {},
+        last_changed_data: {},
         paths: new Map(),
         get_tdata_obj: getTdataObj,
         get_kdata_obj: getKdataObj,
@@ -155,7 +153,7 @@ const DM = (function () {
         get_data: getData,
 
         // TODO: 怎么选择某个帐户
-        get_account_id: getAccountId ,
+        get_account_id: getAccountId,
         get_account: function () {
             return getDataFromTrade('accounts.CNY');
         },
