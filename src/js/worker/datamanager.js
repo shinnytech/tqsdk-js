@@ -35,7 +35,7 @@ const DM = (function () {
         }
     }
 
-    function updateData(diff_list) {
+    function updateData(diff_list, from='server') {
         var diff_object = diff_list;
         if (diff_list instanceof Array) {
             diff_object = diff_list[0];
@@ -43,7 +43,10 @@ const DM = (function () {
                 mergeObject(diff_object, diff_list[i], false);
             }
         }
-        DM.last_changed_data = diff_object;
+        if (from === 'server'){
+            // 只有从服务器更新的数据包，更新 last_changed_data 字段
+            DM.last_changed_data = diff_object;
+        }
         mergeObject(DM.datas, diff_object, true)
         return;
     }
@@ -86,22 +89,21 @@ const DM = (function () {
         return undefined;
     }
 
-    function getData(path, separator) {
+    function getData(path, separator = '/') {
         try {
-            var d = DM.datas;
-            var pathList = null;
-            if (path instanceof Array) pathList = path;
-            else if (typeof path === 'string') pathList = path.split(separator ? separator : ' ');
+            if (typeof path === 'string'){
+                var d = DM.datas;
+                var pathList = path.split(separator);
+                for (var i = 0; i < pathList.length; i++) d = d[pathList[i]];
+                return d;
+            } 
             else return undefined;
-            for (var i = 0; i < pathList.length; i++) d = d[pathList[i]];
-            return d;
         } catch (e) {
             return undefined;
         }
     }
 
     return {
-        account_id: undefined,
         datas: {},
         last_changed_data: {},
         get_tdata_obj: getTdataObj,
