@@ -74,14 +74,8 @@ const DM = (function () {
     function getAccountId() {
         if (DM.datas.trade) {
             var keys = Object.keys(DM.datas.trade);
-            // todo： 只取唯一一个key
-            // return keys.length > 0 ? keys[0] : undefined;
-            /************ 临时方案 过滤掉 0 */
-            for (var k in keys) {
-                if (keys[k] == 0) continue;
-                return keys[k];
-            }
-            /************ */
+            // 只取唯一一个key
+            return keys.length > 0 ? keys[0] : undefined;
         }
         return undefined;
     }
