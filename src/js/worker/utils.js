@@ -15,7 +15,6 @@ IndicatorInstance.prototype.resetByInstance = function (obj) {
     } else {
         this.invalid = true;
     }
-
     this.rels = [];
     this.BEGIN = -1;
     this.calculateLeft = -1;
@@ -24,24 +23,40 @@ IndicatorInstance.prototype.resetByInstance = function (obj) {
 };
 
 IndicatorInstance.prototype.updateRange = function () {
-    let path = this.ins_id + '.' + this.dur_nano;
-    let { firstId, lastId } = DM.get_data_range(path);
-    if (this.view_left > -1 && this.view_right > -1 && this.view_right >= firstId
-        && this.view_left <= lastId && firstId < lastId) {
-        // view_left view_right 和 已有全部数据范围 firstId, lastId 有交集
-        let leftId = firstId > this.view_left ? firstId : this.view_left;
-        let rightId = lastId < this.view_right ? lastId : this.view_right;
-        if (this.BEGIN === -1 || this.BEGIN > this.view_left) {
-            this.BEGIN = leftId;
-            this.calculateLeft = leftId;
-            this.calculateRight = rightId;
+    var ds = DM.get_kdata_obj(this.ins_id, this.dur_nano);
+    var id_arr = Object.keys(ds).map(x => parseInt(x)).sort((a, b) => a - b);
+    if (ds && this.view_left > -1 && this.view_right > -1) {
+        var start_id = -1;
+        var i = 0;
+        for (; i < id_arr.length; i++) {
+            var id = id_arr[i];
+            if (id >= this.view_left) {
+                start_id = id;
+                i++;
+                break;
+            }
+        }
+        if (start_id == -1) {
+            this.BEGIN = -1;
+            return;
+        }
+        var end_id = start_id;
+        for (; i < id_arr.length; i++) {
+            if (id_arr[i] != end_id + 1) break;
+            end_id = id_arr[i];
+            if (end_id >= this.view_right) break;
+        }
+        if (this.BEGIN == -1 || this.BEGIN > this.view_left) {
+            this.BEGIN = start_id;
+            this.calculateLeft = start_id;
+            this.calculateRight = end_id;
             this.update(); // 重新定义函数
         } else {
-            this.calculateRight = rightId;
+            this.calculateRight = end_id;
         }
     } else {
-        // view_left view_right 和 已有全部数据范围 firstId, lastId 无交集
         this.BEGIN = -1;
+        return;
     }
 };
 
@@ -68,7 +83,7 @@ IndicatorInstance.prototype.update = function () {
 
     this.SERIAL = function (serialSelector) {
         var selector = serialSelector.toLowerCase();
-        var ds = DM.get_kdata_obj(this.ins_id, this.dur_nano, this.instance_id);
+        var ds = DM.get_kdata_obj(this.ins_id, this.dur_nano);
         var path = this.ins_id + '.' + this.dur_nano;
         G_INSTANCES[this.instance_id].addRelationship(path);
         return new Proxy({}, {
@@ -125,7 +140,7 @@ IndicatorInstance.prototype.postEndMessage = function () {
             className: this.ta_class_name,
         },
     });
-}    
+}
 
 IndicatorInstance.prototype.exec = function () {
     //执行计算calculateRight

@@ -37,12 +37,6 @@ const initWorker = function () {
             case 'calc_end':
                 clearTimeout(ErrorHandlers.records[content.id]);
                 break;
-            case 'trade_start':
-                console.log('trade_start');
-                break;
-            case 'trade_end':
-                console.log('trade_end');
-                break;
             case 'feedback':
                 if (content.error) {
                     Notify.error((new TqFeedback(content)).toString());
