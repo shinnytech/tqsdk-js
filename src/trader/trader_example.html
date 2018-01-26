@@ -122,6 +122,7 @@
 
     <script type="text/javascript" src="/js/worker/datamanager.js"></script>
     <script type="text/javascript" src="/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="/js/utils.js"></script>
     <script type="text/javascript" src="trader_sdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
         var task_trade = null; // 执行交易任务
@@ -141,10 +142,9 @@
 
             while (order && !completed) {
                 var result = yield {
-                    CHANGED: ON_CHANGED(order),
-                    USER_CLICK_STOP: ON_CLICK('STOP'),
+                    CHANGED: function(){ return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA) },
+                    USER_CLICK_STOP: C.ON_CLICK('STOP'),
                 };
-
                 if (order.status === "FINISHED") completed = true;
                 if (result.USER_CLICK_STOP) {
                     C.CANCEL_ORDER(order);

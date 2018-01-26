@@ -2,7 +2,7 @@
 /**
  * 返回指定变量的数据类型
  * @param  {Any} data
- * @return {String}
+ * @return {String} Array Object Generator Function String Number Null Undefined Boolean
  */
 const type = (d) => Object.prototype.toString.call(d).slice(8, -1);
 
@@ -48,3 +48,31 @@ const Notify = (function () {
     notys.notification = notys.noty = getNotyFun('notification');
     return notys;
 }());
+
+/**
+ * 生成指定长度的随机字符串
+ * 默认长度为 8
+ */
+const RandomStr = function (len = 8) {
+    var charts = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    var s = '';
+    for (var i = 0; i < len; i++) s += charts[Math.random() * 0x3e | 0];
+    return s;
+}
+
+/**
+ * 生成序列生成器
+ * 默认从 0 开始
+ */
+function* GenerateSequence(start = 0) {
+    while (true) {
+        yield start.toString(36);
+        start++;
+    }
+}
+
+
+
+
+
+

@@ -35,7 +35,7 @@ const DM = (function () {
         }
     }
 
-    function updateData(diff_list, from='server') {
+    function updateData(diff_list, from = 'server') {
         var diff_object = diff_list;
         if (diff_list instanceof Array) {
             diff_object = diff_list[0];
@@ -43,9 +43,10 @@ const DM = (function () {
                 mergeObject(diff_object, diff_list[i], false);
             }
         }
-        if (from === 'server'){
+        if (from === 'server') {
             // 只有从服务器更新的数据包，更新 last_changed_data 字段
-            DM.last_changed_data = diff_object;
+            for (var k in DM.last_changed_data) delete DM.last_changed_data[k];
+            Object.assign(DM.last_changed_data, diff_object);
         }
         mergeObject(DM.datas, diff_object, true)
         return;
@@ -83,20 +84,13 @@ const DM = (function () {
         return undefined;
     }
 
-    function getDataFromTrade(path) {
-        var accountId = getAccountId();
-        if (accountId) return getData('trade.' + accountId + '.' + path, '.');
-        return undefined;
-    }
-
-    function getData(path, separator = '/') {
+    function getData(path, originData = DM.datas) {
         try {
-            if (typeof path === 'string'){
-                var d = DM.datas;
-                var pathList = path.split(separator);
-                for (var i = 0; i < pathList.length; i++) d = d[pathList[i]];
-                return d;
-            } 
+            if (typeof path === 'string') {
+                var pathList = path.split('/');
+                for (var i = 0; i < pathList.length; i++) originData = originData[pathList[i]];
+                return originData;
+            }
             else return undefined;
         } catch (e) {
             return undefined;
@@ -113,38 +107,6 @@ const DM = (function () {
         // 清空全部数据
         clear_data: clearData,
         get_data: getData,
-
-        // TODO: 怎么选择某个帐户
-        get_account_id: getAccountId,
-        get_account: function () {
-            return getDataFromTrade('accounts.CNY');
-        },
-        get_positions: function () {
-            return getDataFromTrade('positions');
-        },
-        get_session: function () {
-            return getDataFromTrade('session');
-        },
-        get_order: function (id) {
-            return getDataFromTrade('orders.' + id);
-        },
-        get_quote: function (id) {
-            // 订阅行情
-            var ins_list = DM.datas.ins_list;
-            if (ins_list && !ins_list.includes(id)) {
-                id = (ins_list.substr(-1, 1) === ',') ? id : (',' + id);
-                var s = ins_list + id;
-                WS.sendJson({
-                    aid: "subscribe_quote",
-                    ins_list: s
-                });
-            }
-            return DM.datas.quotes[id];
-        },
-        get_combine: function (name) {
-            if (DM.datas.combines && DM.datas.combines['USER.' + name])
-                return DM.datas.combines['USER.' + name];
-            return undefined;
-        }
+        get_account_id: getAccountId
     };
 }());

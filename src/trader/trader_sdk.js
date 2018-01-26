@@ -9,70 +9,87 @@ const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
             TaskManager.run();
         } else if (message.aid === 'update_custom_combine') {
             // 用户自定义组合
+            // todo: 合并到 rtn_data, 这里就不需要了
             let combines = {};
             combines[message.symbol] = message.weights;
             DM.update_data({ combines });
             TaskManager.run();
         }
     },
-
     onopen: function () {
         WS.sendJson({
             aid: 'sync_datas',
             sync_datas: {},
         });
     },
-
     onclose: function () {
         DM.clear_data();
     },
-
-    onreconnect: function () {
-
-    }
+    onreconnect: function () { }
 });
 
 WS.init();
 
-// 按顺序生成 key 记录, 每次都连着上一次的
-const GenerateKeyLocal = function (name, key) {
-    var str = localStorage.getItem(name);
-    var obj = str ? JSON.parse(str) : {};
-    obj[key] = obj[key] ? (parseInt(obj[key], 36) + 1).toString(36) : '0';
-    localStorage.setItem(name, JSON.stringify(obj));
-    return obj[key];
-}
-
-// 按顺序生成 key 记录，每次都重新开始
-function* GenerateKey() {
-    let i = 0;
-    while (true) {
-        yield i.toString(36);
-        i++;
+/**
+ * 浏览器 - BrowserId
+ * 页面 - PageId
+ */
+const BrowserId = (() => {
+    let b_id = localStorage.getItem('TianqinBrowserId');
+    if (!b_id) {
+        b_id = RandomStr(4);
+        localStorage.setItem('TianqinBrowserId', b_id);
     }
-}
-const GenTaskId = GenerateKey();
+    return b_id;
+})();
+
+const PageId = (() => {
+    let p_id = localStorage.getItem('TianqinPageId');
+    p_id = p_id ? (parseInt(p_id, 36) + 1).toString(36) : '0';
+    localStorage.setItem('TianqinPageId', p_id);
+    return p_id;
+})();
 
 /**
- * trade task
+ * unit_id = [TaskId]
+ * order_id = [BrowserId]-[PageId]-[OrderId] 
  */
 
-const trader_context = function () {
-    function insertOrder(ord) {
-        var account_id = DM.get_account_id();
-        var session = DM.get_session();
-        if (!account_id || !session) {
-            Notify.error('未登录，请在软件中登录后重试。')
-            return false;
-        }
+const GenTaskId = GenerateSequence();
+const GenOrderId = GenerateSequence();
 
-        var session_id = session.session_id;
+class TaskCtx {
+    constructor() {
+        this.unit_id = null;
+        this.unit_mode = false;
+        this.account_id = DM.get_account_id();
+        this.orders = {};
+        this.LATEST_DATA = new Proxy(DM.datas, {
+            get: function (target, key, receiver) {
+                return Reflect.get(target, key, receiver);
+            }
+        });
+        this.LAST_UPDATED_DATA = new Proxy(DM.last_changed_data, {
+            get: function (target, key, receiver) {
+                return Reflect.get(target, key, receiver);
+            }
+        });
+    }
 
-        var order_id = GenerateKeyLocal('orderid', session_id);
+    _cancalOrd(order) {
+        WS.sendJson({
+            "aid": "cancel_order",
+            "order_id": order.order_id,
+            "unit_id": this.unit_id
+        });
+    }
+
+    _insertOrd(ord) {
+        var order_id = BrowserId + '-' + PageId + '-' + GenOrderId.next().value;
         var send_obj = {
             "aid": "insert_order",
+            "unit_id": this.unit_id,
             "order_id": order_id,
-            "user_id": DM.get_session().user_id,
             "exchange_id": ord.exchange_id,
             "instrument_id": ord.instrument_id,
             "direction": ord.direction,
@@ -82,15 +99,13 @@ const trader_context = function () {
             "limit_price": ord.limit_price
         };
         WS.sendJson(send_obj);
-        var id = session_id + '|' + order_id;
-        if (DM.get_order(id)) {
-            return DM.get_order(id);
-        } else {
+
+        var id = this.unit_id + '|' + order_id;
+        if (!this.GET_ORDER(id)) {
             var orders = {};
             orders[id] = {
                 order_id: order_id,
-                session_id: session_id,
-                exchange_order_id: id,
+                unit_id: this.unit_id,
                 status: "UNDEFINED",
                 volume_orign: ord.volume,
                 volume_left: ord.volume,
@@ -99,70 +114,81 @@ const trader_context = function () {
             }
             DM.update_data({
                 "trade": {
-                    [account_id]: {
+                    [this.account_id]: {
                         "orders": orders
                     }
                 }
+            }, 'local');
+        }
+        return id;
+    }
+
+    INSERT_ORDER(ord) {
+        this.account_id = DM.get_account_id();
+        if (!this.account_id) {
+            Notify.error('未登录，请在软件中登录后重试。')
+            return false;
+        }
+        var ord_id = this._insertOrd(ord);
+        return this.orders[ord_id] = this.GET_ORDER(ord_id);
+    }
+
+    CANCEL_ORDER(order) {
+        if (order && order.exchange_order_id) {
+            this._cancalOrd(order);
+        } else if (this.unit_mode) {
+            for (var order in this.orders) {
+                this._cancalOrd(order);
+            }
+        }
+        return;
+    }
+
+    ON_CLICK(click_id) {
+        return function () {
+            if (TaskManager.event && click_id === TaskManager.event) return true;
+            return false;
+        }
+    }
+
+    GET_ACCOUNT_ID() {
+        return this.account_id = DM.get_account_id();
+    }
+
+    GET_ACCOUNT(fromOrigin = DM.datas) {
+        return DM.get_data('trade/' + this.account_id + '/accounts/CNY', fromOrigin);
+    }
+
+    GET_POSITION(fromOrigin = DM.datas) {
+        return DM.get_data('trade/' + this.account_id + '/positions', fromOrigin);
+    }
+
+    GET_SESSION(fromOrigin = DM.datas) {
+        return DM.get_data('trade/' + this.account_id + '/session', fromOrigin);
+    }
+
+    GET_QUOTE(id, fromOrigin = DM.datas) {
+        // 订阅行情
+        var ins_list = DM.datas.ins_list;
+        if (ins_list && !ins_list.includes(id)) {
+            id = (ins_list.substr(-1, 1) === ',') ? id : (',' + id);
+            var s = ins_list + id;
+            WS.sendJson({
+                aid: "subscribe_quote",
+                ins_list: s
             });
-            return DM.get_order(id);
         }
-    };
-
-    function cancelOrder(order) {
-        if (order.exchange_order_id) {
-            var send_obj = {
-                "aid": "cancel_order", //必填, 撤单请求
-                "order_session_id": order.session_id, //必填, 委托单的session_id
-                "order_id": order.order_id, //必填, 委托单的order_id
-                "exchange_id": order.exchange_id, //必填, 交易所
-                "instrument_id": order.instrument_id, //必填, 合约代码
-                //"action_id": "0001", //当指令发送给飞马后台时需填此字段,
-                "user_id": DM.get_session().user_id, //可选, 与登录用户名一致, 当只登录了一个用户的情况下,此字段可省略
-            }
-            WS.sendJson(send_obj);
-            return order;
-        } else {
-            console.info('CANCEL_ORDER:', '传入的参数不是 ORDER 类型', order);
-            return null;
-        }
+        return DM.get_data('quotes/' + id, fromOrigin);
     }
 
-    function get_data(target, path){
-
+    GET_ORDER(id, fromOrigin = DM.datas) {
+        return DM.get_data('trade/' + this.account_id + '/orders/' + id, fromOrigin);
     }
 
-
-    return {
-        INSERT_ORDER: insertOrder,
-        CANCEL_ORDER: cancelOrder,
-
-        GET_DATA: get_data,
-        SET_DATA: set_data,
-
-        GET_ACCOUNT: DM.get_account,
-        GET_POSITION: DM.get_positions,
-        GET_SESSION: DM.get_session,
-        GET_QUOTE: DM.get_quote,
-        GET_ORDER: DM.get_order,
-        GET_COMBINE: DM.get_combine,
-
-        ON_CHANGED: function (obj) {
-            // ON_CHANGED 判断制定数据对象是否更新
-            return () => {
-                if (obj == undefined) return true;
-                for (let i = 0; TaskManager.changedList && i < TaskManager.changedList.length; i++)
-                    if (TaskManager.changedList[i] == obj) return true;
-                return false;
-            }
-        },
-        ON_CLICK: function (click_id) {
-            return function () {
-                if (TaskManager.event && click_id === TaskManager.event) return true;
-                return false;
-            }
-        }
+    GET_COMBINE(name, fromOrigin = DM.datas) {
+        return DM.get_data('combines/USER.' + name, fromOrigin);
     }
-}();
+}
 
 class Task {
     constructor(id, func, waitConditions = null) {
@@ -174,6 +200,7 @@ class Task {
         this.endTime = 0;
         this.stopped = false;
         this.events = {}
+        this.ctx = null;
     }
 
     pause() {
@@ -210,20 +237,18 @@ const TaskManager = (function (task) {
             return false;
         } else if (node instanceof Array) {
             // array &&
+            var status = [];
             for (var i in node) {
-                if (!checkItem(node[k])) {
-                    return false;
-                }
+                status[i] = checkItem(node[k]);
             }
-            return true;
+            return status;
         } else if (node instanceof Object) {
             // object ||
+            var status = {};
             for (var k in node) {
-                if (checkItem(node[k])) {
-                    return true;
-                }
+                status[k] = checkItem(node[k]);
             }
-            return false;
+            return status;
         }
     }
 
@@ -235,8 +260,7 @@ const TaskManager = (function (task) {
                 task.timeout = task.waitConditions[cond];
                 continue;
             }
-            if (checkItem(task.waitConditions[cond])) status[cond] = true;
-            else status[cond] = false;
+            status[cond] = checkItem(task.waitConditions[cond])
         }
 
         if ((new Date()).getTime() >= task.endTime) status['TIMEOUT'] = true;
@@ -250,6 +274,12 @@ const TaskManager = (function (task) {
         /**
          * ret: { value, done }
          */
+        function isFalseObj(o) {
+            if (type(o) == 'Array') { return o.length > 0 ? true : false; }
+            if (type(o) == 'Object') { return Object.keys(o).length > 0 ? true : false; }
+            if (type(o) == 'String') { return o.length > 0 ? true : false; }
+            return o;
+        }
         for (var r in waitResult) {
             if (waitResult[r]) {
                 // waitConditions 中某个条件为真才执行 next
@@ -267,9 +297,7 @@ const TaskManager = (function (task) {
     }
 
     function run(obj) {
-        TaskManager.changedList = obj.changedList ? obj.changedList : null;
-        TaskManager.event = obj.event ? obj.event : null;
-
+        TaskManager.event = obj && obj.event ? obj.event : null;
         for (var taskId in aliveTasks) {
             if (aliveTasks[taskId].paused) continue;
             runTask(aliveTasks[taskId]);
@@ -292,12 +320,13 @@ const TaskManager = (function (task) {
         }
     }, intervalTime);
 
-    function add(func) {
+    function add(func, context) {
         var id = GenTaskId.next().value;
         var task = new Task(id, func);
+        task.ctx = context;
+        task.ctx.unit_id = id;
         aliveTasks[id] = task;
         var ret = task.func.next();
-        // console.log(ret.value)
         if (ret.done) {
             task.stopped = true;
             // remove(task);
@@ -337,8 +366,10 @@ const TaskManager = (function (task) {
 }());
 
 const START_TASK = function (func) {
+
     if (typeof func === 'function') {
-        var args = [trader_context];
+        var context = new TaskCtx();
+        var args = [context];
         if (arguments.length > 1) {
             var len = 1;
             while (len < arguments.length)
@@ -346,7 +377,7 @@ const START_TASK = function (func) {
         }
         var f = func.apply(null, args);
         if (f.next && (typeof f.next === 'function')) {
-            return TaskManager.add(f);
+            return TaskManager.add(f, context);
         } else {
             console.log('task 参数类型错误');
         }
@@ -366,37 +397,6 @@ const PAUSE_TASK = function (task) {
 const RESUME_TASK = function (task) {
     task.resume();
 }
-
-/**
- * DATA SERIES
- */
-
-class DATA_SERIAL {
-    constructor(id) {
-        this.id = id;
-        this.datas = [];
-        this.begin = null;
-        this.end = null;
-        this.binding = {};
-    }
-
-    pause() {
-        this.paused = true;
-    }
-
-    resume() {
-        this.paused = false;
-    }
-
-    stop() {
-        this.stopped = true;
-    }
-}
-
-/**************************************************************
- * 生成函数 全局？ctx？
- *************************************************************/
-Object.assign(window, trader_context)
 
 /************************************************************
  * UI 部分
@@ -496,56 +496,8 @@ function SET_STATE(cmd) {
 $(() => {
     INIT_UI();
     $(document).on('click', function (e) {
-        console.log(e.target.dataset);
-        console.log(e.target.id);
         // 页面 Click 事件统一处理
         // 4 类按钮 START RESUME PAUSE END
-        // events.publish(e.target.id, e.target.dataset)
-        TaskManager.run({event: e.target.id});
-
+        TaskManager.run({ event: e.target.id, data: e.target.dataset });
     })
 });
-
-/**
- * 返回指定变量的数据类型
- * @param  {Any} data
- * @return {String}
- */
-const type = (d) => Object.prototype.toString.call(d).slice(8, -1);
-
-/**
- * 显示通知
- */
-const Notify = (function () {
-    let debug = false;
-
-    let defaults = {
-        layout: 'topRight',
-        theme: 'relax',// defaultTheme, relax, bootstrapTheme, metroui
-        type: 'information',
-        force: true,
-        timeout: 2000,
-        maxVisible: 50,
-        closeWith: ['click', 'button'],
-    };
-
-    function getNotyFun(type) {
-        if (!debug) {
-            return function (text) {
-                return noty(Object.assign(defaults, { text, type }));
-            };
-        } else {
-            return function (text) {
-                return console.log('%c%s', 'color: #7C37D4', type + ' : ' + text);
-            };
-        }
-    }
-
-    let notys = {};
-    notys.success = getNotyFun('success');
-    notys.error = notys.err = getNotyFun('error');
-    notys.warning = notys.warn = getNotyFun('warning');
-    notys.information = notys.info = getNotyFun('information');
-    notys.notification = notys.noty = getNotyFun('notification');
-    return notys;
-}());
