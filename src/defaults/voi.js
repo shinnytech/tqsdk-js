@@ -1,4 +1,4 @@
-function* voi_copy(C){
+function* voi(C){
     //指标定义
     C.DEFINE({
         type: "SUB",
