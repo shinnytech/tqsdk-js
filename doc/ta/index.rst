@@ -17,4 +17,3 @@
    examples/index.rst
    convert.rst
    extern.rst
-   trade/index.rst
