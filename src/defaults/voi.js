@@ -5,7 +5,7 @@ function* voi(C){
         cname: "成交量持仓量",
         state: "KLINE",
         yaxis: [
-            {id: 0, format: "HUGE"},
+            {id: 0, format: "HUGE", min: 0},
             {id: 1, format: "HUGE"},
         ],
     });
