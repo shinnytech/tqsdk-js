@@ -33,7 +33,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control  input-sm" id="instrument" placeholder="合约代码" value='SHFE.rb1801'>
+                            <input type="text" class="form-control  input-sm" id="instrument" placeholder="合约代码" value='SHFE.rb1805'>
                         </div>
                     </div>
                     <div class="row">
@@ -125,10 +125,10 @@
                         <div class="col col-xs-4">
                             <div class="btn-toolbar" role="toolbar">
                                 <div class="btn-group btn-group-xs">
-                                    <button type="button" class="btn btn-default  START" data-state="START">
+                                    <button type="button" class="btn btn-default START" id='START' data-state="START">
                                         <span class="glyphicon glyphicon-play"></span>&nbsp;开始
                                     </button>
-                                    <button type="button" class="btn btn-default STOP">
+                                    <button type="button" class="btn btn-default STOP" id='STOP'>
                                         <span class="glyphicon glyphicon-stop"></span>&nbsp;停止
                                     </button>
                                 </div>
@@ -212,113 +212,104 @@
 
     <script type="text/javascript" src="/js/worker/datamanager.js"></script>
     <script type="text/javascript" src="/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="/js/utils.js"></script>
     <script type="text/javascript" src="trader_sdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
-        var task_quote = null; // 显示合约最新价格
         var task_trade = null; // 执行交易任务
-        var runningFlag = false;
 
         function* TaskQuote(C) {
-            var params = UI_DATAS();
-            var quote = C.GET_QUOTE(params.instrument);
             while (true) {
-                if (quote) UI_DATAS(quote);
                 var result = yield {
-                    CHANGED: function () { return C.QUOTE_CHANGED(quote) }
+                    UPDATED_QUOTE: function () { return C.GET_QUOTE(UI.instrument, C.LAST_UPDATED_DATA) },
+                    CHANGED: C.ON_CHANGE('instrument')
                 };
+                
+                var quote = C.GET_QUOTE(UI.instrument);
+                UI(quote);
             }
         }
 
         function* TaskSplit(C) {
-            runningFlag = true;
-            $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
-            ENABLE_INPUTS(true);
+            var started = false;
+            while (!started) {
+                var wait = yield {
+                    'START': [C.ON_CLICK('START'), function(){return C.GET_ACCOUNT_ID();}]
+                }
+                if (wait.START[0] && wait.START[1]){
+                    started = true;
+                    C.SET_STATE('START');
+                }
+            }
 
-            var params = UI_DATAS();
-            var quote = C.GET_QUOTE(params.instrument);
-            var [exchange_id, instrument_id] = params.instrument.split('.');
-            var max_price = Math.max(params.price_from, params.price_to);
-            var min_price = Math.min(params.price_from, params.price_to);
+            var quote = C.GET_QUOTE(UI.instrument);
+            var [exchange_id, instrument_id] = UI.instrument.split('.');
+            var max_price = Math.max(UI.price_from, UI.price_to);
+            var min_price = Math.min(UI.price_from, UI.price_to);
             // 价格设定为跟盘价格
-            var price_field = (params.direction === 'SELL') ? 'ask_price1' : 'bid_price1';
+            var price_field = (UI.direction === 'SELL') ? 'ask_price1' : 'bid_price1';
 
             var order_params = {
                 exchange_id: exchange_id,
                 instrument_id: instrument_id,
-                direction: params.direction,
-                offset: params.offset,
+                direction: UI.direction,
+                offset: UI.offset,
             };
 
-            var pending_volume = 0; // 挂单手数
-            var traded_sum = 0; // 已成交的总金额
-            var traded_volume = 0; // 已成交的总手数
-            var orders = {};
+            var completed = false;
 
-            while (traded_volume < params.all_volume) {
+            while (quote && !completed) {
 
-                pending_volume = traded_sum = traded_volume = 0;
-                for (var order_id in orders) {
-                    var ord = orders[order_id];
+                var pending_volume = 0; // 挂单手数
+                var traded_sum = 0; // 已成交的总金额
+                var traded_volume = 0; // 已成交的总手数
+                for (var order_id in C.orders) {
+                    var ord = C.orders[order_id];
                     if (ord.status === 'UNDEFINED') continue;
                     var vol = ord.volume_orign - ord.volume_left;
-                    if (ord.status === 'FINISHED' && vol === 0) {
-                        // 已经撤掉的挂单，删除
-                        delete orders[order_id];
-                        continue;
-                    }
                     traded_volume += vol;
                     pending_volume += ord.volume_left;
                     traded_sum += ord.limit_price * vol;
                 }
                 // 成交均价
                 traded_avgprice = traded_volume == 0 ? 0 : Math.round(traded_sum / traded_volume * 100) / 100;
-                var all_volume = params.all_volume - traded_volume; // 剩余全部手数
-                UI_DATAS({ traded_volume, traded_avgprice, all_volume }); // 更新显示已成交手数、已成交均价，剩余全部手数
+                var all_volume = UI.all_volume - traded_volume; // 剩余全部手数
+                UI({ traded_volume, traded_avgprice, all_volume }); // 更新显示已成交手数、已成交均价，剩余全部手数
 
                 if (quote[price_field] <= max_price && quote[price_field] >= min_price) {
-                    order_params.volume = Math.min(params.max_one_volume, params.all_volume - traded_volume) - pending_volume; // 设置手数
+                    order_params.volume = Math.min(UI.max_one_volume, UI.all_volume - traded_volume) - pending_volume; // 设置手数
                     order_params.limit_price = quote[price_field]; // 设置价格
                     if (order_params.volume > 0) {
-                        var order = C.INSERT_ORDER(order_params);
-                        orders[order.order_id] = order;
+                        C.INSERT_ORDER(order_params);
+                    } else {
+                        completed = true;
                     }
                 }
 
                 var result = yield {
-                    QUOTE_CHANGED: function () { return C.QUOTE_CHANGED(quote) },
+                    QUOTE_CHANGED: function () { return C.GET_QUOTE(UI.instrument, C.LAST_UPDATED_DATA) },
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
-                    USER_CLICK_STOP: function () { return runningFlag === false }
+                    USER_CLICK_STOP: C.ON_CLICK('STOP')
                 }
 
+                console.log(result)
+
                 if (result.PRICE_CHANGED || result.USER_CLICK_STOP) {
-                    for (var id in orders)
-                        if (orders[id].status === "ALIVE") C.CANCEL_ORDER(orders[id]);
+                    C.CANCEL_ORDER();
                     if (result.USER_CLICK_STOP) break;
                 }
             }
             // 任务结束
-            $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
-            ENABLE_INPUTS(false);
+            C.SET_STATE('STOP');
+            STOP_TASK(task_trade);
+            task_trade = START_TASK(TaskSplit);
             return;
         }
 
+
+
         $(function () {
-            // TODO: 初始化选择合约输入框
-            $('#instrument').on('change', function () {
-                task_quote = STOP_TASK(task_quote);
-                task_quote = START_TASK(TaskQuote);
-            });
-
-            // 开始交易按钮
-            $('button.START').on('click', function () {
-                if (task_quote === null) task_quote = START_TASK(TaskQuote);
-                if (task_trade === null || task_trade.stopped) task_trade = START_TASK(TaskSplit);
-            });
-            // 停止交易按钮
-            $('button.STOP').on('click', function () {
-                runningFlag = false;
-            });
-
+            START_TASK(TaskQuote);
+            task_trade = START_TASK(TaskSplit);
         });
     </script>
 </body>

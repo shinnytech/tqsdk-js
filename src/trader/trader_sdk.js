@@ -1,10 +1,16 @@
 /**
  * 通用连接客户端应用
  */
+const AppDataStatus = {
+    receivedData: false,
+    isLogin: false
+};
 const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
     onmessage: function (message) {
         if (message.aid === 'rtn_data') {
             //收到行情数据包，更新到数据存储区
+            if (!AppDataStatus.receivedData) AppDataStatus.receivedData = true;
+            if (!AppDataStatus.isLogin && DM.get_account_id()) AppDataStatus.isLogin = true;
             DM.update_data(message.data);
             TaskManager.run();
         } else if (message.aid === 'update_custom_combine') {
@@ -62,7 +68,7 @@ class TaskCtx {
     constructor() {
         this.unit_id = null;
         this.unit_mode = false;
-        this.account_id = DM.get_account_id();
+        this.account_id = '';
         this.orders = {};
         this.LATEST_DATA = new Proxy(DM.datas, {
             get: function (target, key, receiver) {
@@ -126,7 +132,7 @@ class TaskCtx {
     INSERT_ORDER(ord) {
         this.account_id = DM.get_account_id();
         if (!this.account_id) {
-            Notify.error('未登录，请在软件中登录后重试。')
+            Notify.error('未登录，请在软件中登录后重试。');
             return false;
         }
         var ord_id = this._insertOrd(ord);
@@ -144,15 +150,29 @@ class TaskCtx {
         return;
     }
 
-    ON_CLICK(click_id) {
+    _on_event_callback(eType, id) {
         return function () {
-            if (TaskManager.event && click_id === TaskManager.event) return true;
+            if (TaskManager.events[eType] && TaskManager.events[eType][id]) {
+                var d = Object.assign({}, TaskManager.events[eType][id]);
+                delete TaskManager.events[eType][id];
+                return d;
+            }
             return false;
         }
     }
 
+    ON_CLICK(id) {
+        return this._on_event_callback('click', id);
+    }
+
+    ON_CHANGE(id) {
+        return this._on_event_callback('change', id);
+    }
+
     GET_ACCOUNT_ID() {
-        return this.account_id = DM.get_account_id();
+        this.account_id = DM.get_account_id();
+        if(this.account_id) return this.account_id;
+        else throw "not logined";
     }
 
     GET_ACCOUNT(fromOrigin = DM.datas) {
@@ -187,6 +207,23 @@ class TaskCtx {
 
     GET_COMBINE(name, fromOrigin = DM.datas) {
         return DM.get_data('combines/USER.' + name, fromOrigin);
+    }
+
+    SET_STATE(cmd) {
+        cmd = cmd.toUpperCase();
+        if (cmd === 'START' || cmd === 'RESUME') {
+            $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
+            $('input').attr('disabled', true);
+            $('button.START').attr('disabled', true);
+        } else if (cmd === 'PAUSE') {
+            $('.panel-title .STATE').html('<span class="label label-warning">暂停</span>');
+            $('input').attr('disabled', true);
+            $('button.START').attr('disabled', true);
+        } else if (cmd === 'STOP') {
+            $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
+            $('input').attr('disabled', false);
+            $('button.START').attr('disabled', false);
+        }
     }
 }
 
@@ -239,7 +276,7 @@ const TaskManager = (function (task) {
             // array &&
             var status = [];
             for (var i in node) {
-                status[i] = checkItem(node[k]);
+                status[i] = checkItem(node[i]);
             }
             return status;
         } else if (node instanceof Object) {
@@ -297,13 +334,21 @@ const TaskManager = (function (task) {
     }
 
     function run(obj) {
-        TaskManager.event = obj && obj.event ? obj.event : null;
+        if (obj) {
+            if (!(obj.type in TaskManager.events)) TaskManager.events[obj.type] = {};
+            if (!(obj.id in TaskManager.events[obj.type])) TaskManager.events[obj.type][obj.id] = obj.data;
+        }
         for (var taskId in aliveTasks) {
             if (aliveTasks[taskId].paused) continue;
-            runTask(aliveTasks[taskId]);
-            if (aliveTasks[taskId] && aliveTasks[taskId].stopped) {
-                remove(aliveTasks[taskId]);
-                continue;
+            try {
+                runTask(aliveTasks[taskId]);
+            } catch (err) {
+                if(err == 'not logined') Notify.error('未登录，请在软件中登录后重试。')
+            } finally {
+                if (aliveTasks[taskId] && aliveTasks[taskId].stopped) {
+                    remove(aliveTasks[taskId]);
+                    continue;
+                }
             }
         }
     }
@@ -348,17 +393,10 @@ const TaskManager = (function (task) {
     }
 
     return {
-        changedList: null,
+        events: {},
         add,
         remove,
         run,
-        setEvent: function (event) {
-            for (var taskId in aliveTasks) {
-                if (aliveTasks[taskId].paused || aliveTasks[taskId].stopped) continue;
-                var task = aliveTasks[taskId];
-                task.events = event;
-            }
-        },
         getAll: function () {
             return aliveTasks;
         }
@@ -366,6 +404,14 @@ const TaskManager = (function (task) {
 }());
 
 const START_TASK = function (func) {
+    // if (!AppDataStatus.receivedData) {
+    //     Notify.error('还未接收到数据包，请稍后重试。')
+    //     return false;
+    // }
+    // if (!AppDataStatus.isLogin) {
+    //     Notify.error('未登录，请在软件中登录后重试。')
+    //     return false;
+    // }
 
     if (typeof func === 'function') {
         var context = new TaskCtx();
@@ -446,7 +492,7 @@ const UiUtils = (function () {
     }
 })();
 
-const UI_DATAS = new Proxy(() => null, {
+const UI = new Proxy(() => null, {
     get: function (target, key, receiver) {
         let nodeList = document.querySelectorAll('input#' + key);
         let res = null;
@@ -476,28 +522,15 @@ function INIT_UI() {
     $('#collapse').on('show.bs.collapse', () => $('#collapse_arrow').removeClass('glyphicon-menu-down').addClass('glyphicon-menu-up'));
 }
 
-function SET_STATE(cmd) {
-    cmd = cmd.toUpperCase();
-    if (cmd === 'START' || cmd === 'RESUME') {
-        $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
-        $('input').attr('disabled', true);
-        $('button.START').attr('disabled', true);
-    } else if (cmd === 'PAUSE') {
-        $('.panel-title .STATE').html('<span class="label label-warning">暂停</span>');
-        $('input').attr('disabled', true);
-        $('button.START').attr('disabled', true);
-    } else if (cmd === 'END') {
-        $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
-        $('input').attr('disabled', false);
-        $('button.START').attr('disabled', false);
-    }
-}
-
 $(() => {
     INIT_UI();
     $(document).on('click', function (e) {
-        // 页面 Click 事件统一处理
-        // 4 类按钮 START RESUME PAUSE END
-        TaskManager.run({ event: e.target.id, data: e.target.dataset });
-    })
+        // 页面 Click 事件统一处理 4 类按钮 START RESUME PAUSE END
+        var dataSet = Object.assign({}, e.target.dataset);
+        TaskManager.run({ type: e.type, id: e.target.id, data: dataSet });
+    });
+    $('input').on('change', function (e) {
+        var dataSet = Object.assign({}, e.target.dataset);
+        TaskManager.run({ type: e.type, id: e.target.id, data: dataSet });
+    });
 });

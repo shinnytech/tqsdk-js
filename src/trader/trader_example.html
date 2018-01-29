@@ -127,12 +127,23 @@
     <script type="text/javascript" id='TRADE-CODE'>
         var task_trade = null; // 执行交易任务
 
-        function* TaskOrder(C, direction, offset) {
-            SET_STATE('START');
+        function* TaskOrder(C) {
+            var started = false;
+            while (!started) {
+                var wait = yield {
+                    'START': C.ON_CLICK('START'),
+                }
+                if (wait.START){
+                    started = true;
+                    C.SET_STATE('START');
+                }
+            }
 
-            var params = UI_DATAS(); // 读取页面参数
-            params.direction = direction;
-            params.offset = offset;
+            var params = UI(); // 读取页面参数
+            params.direction = wait.START.direction;
+            params.offset = wait.START.offset;
+
+            console.log(params)
 
             var [exchange_id, instrument_id] = params.instrument.split('.');
             Object.assign(params, { exchange_id, instrument_id });
@@ -152,17 +163,19 @@
                 }
             }
             // 任务结束
-            SET_STATE('END');
+            C.SET_STATE('STOP');
             return;
         }
 
-        $(function () {
-            $('button.START').on('click', function (e) {
-                var direction = e.target.dataset.direction;
-                var offset = e.target.dataset.offset;
-                if (task_trade === null || task_trade.stopped) task_trade = START_TASK(TaskOrder, direction, offset);
-            });
-        });
+        START_TASK(TaskOrder);
+
+        // $(function () {
+        //     $('button.START').on('click', function (e) {
+        //         var direction = e.target.dataset.direction;
+        //         var offset = e.target.dataset.offset;
+        //         if (task_trade === null || task_trade.stopped) task_trade = START_TASK(TaskOrder, direction, offset);
+        //     });
+        // });
     </script>
 </body>
 

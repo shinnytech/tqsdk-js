@@ -12,6 +12,19 @@ var concat = require('gulp-concat');
 var connect = require('gulp-connect');
 var replace = require('gulp-replace');
 var gutil = require('gulp-util');
+var minimist = require('minimist');
+
+var argv = minimist(process.argv.slice(2));
+var domain = '127.0.0.1';
+
+if(argv.d) {
+    domain = argv.d;
+    console.log('打包域名为', domain);
+}else{
+    console.log('默认打包域名为', domain);
+    console.log('使用 -d 可以修改默认打包域名')
+}
+
 
 var minifyJs = composer(minifyJsEs6, console);
 
@@ -19,7 +32,7 @@ var vString = '-v' + require('./package').version;
 
 var distDir = 'dist/';
 
-gulp.task('js', ['workerjs'], function () {
+gulp.task('js', ['fontfilespath'], function () {
     return gulp.src(['./src/js/*.js', './src/index.js'], {base: 'src'})
         .pipe(concat('index' + vString + '.js'))
         .pipe(minifyJs())
@@ -36,11 +49,18 @@ gulp.task('workerjs', ['copy'], function () {
         .pipe(gulp.dest('dist/js/worker/'));
 });
 
+gulp.task('fontfilespath', ['workerjs'], function () {
+    return gulp.src('./src/assets/bootstrap/css/bootstrap.min.css')
+        .pipe(replace('../fonts/', 'http://'+domain+'/assets/bootstrap/fonts/'))
+        .pipe(gulp.dest('./' + distDir + '/assets/bootstrap/css/bootstrap.min.css'));        
+});
+
 gulp.task('copy', ['beforecopy'], function () {
     return gulp.src([
         './src/assets/jquery.min.js',
         './src/assets/noty.js',
-        './src/assets/bootstrap/**',
+        './src/assets/bootstrap/js/bootstrap.min.js',
+        './src/assets/bootstrap/fonts/**',
         './src/assets/ace-min/ace.js',
         './src/assets/ace-min/*-javascript.js',
         './src/assets/ace-min/ext-*.js',
