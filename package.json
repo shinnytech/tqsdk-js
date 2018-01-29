@@ -30,6 +30,7 @@
     "gulp-uglify": "^3.0.0",
     "gulp-util": "^3.0.8",
     "jsdoc": "^3.5.5",
+    "minimist": "^1.2.0",
     "uglify-es": "^3.1.2"
   },
   "devDependencies": {

@@ -190,12 +190,12 @@
         var runningFlag = false;
 
         function* TaskQuote(C) {
-            var quoteA = C.GET_QUOTE(UI_DATAS.insA);
-            var quoteB = C.GET_QUOTE(UI_DATAS.insB);
+            var quoteA = C.GET_QUOTE(UI.insA);
+            var quoteB = C.GET_QUOTE(UI.insB);
             while (true) {
                 if (quoteA && quoteB) {
-                    UI_DATAS.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
-                    UI_DATAS.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
+                    UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
+                    UI.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
                 }
                 var result = yield {
                     CHANGED: function () { return ON_CHANGED(quoteA) || ON_CHANGED(quoteB); }
@@ -207,12 +207,12 @@
             runningFlag = true;
             SET_STATE('START');
 
-            var quoteA = C.GET_QUOTE(UI_DATAS.insA);
-            var quoteB = C.GET_QUOTE(UI_DATAS.insB);
+            var quoteA = C.GET_QUOTE(UI.insA);
+            var quoteB = C.GET_QUOTE(UI.insB);
             var short_volume = 0, long_volume = 0;
-            var [exchange_id_a, instrument_id_a] = UI_DATAS.insA.split('.');
-            var [exchange_id_b, instrument_id_b] = UI_DATAS.insB.split('.');
-            var volume = parseInt(UI_DATAS.volume);
+            var [exchange_id_a, instrument_id_a] = UI.insA.split('.');
+            var [exchange_id_b, instrument_id_b] = UI.insB.split('.');
+            var volume = parseInt(UI.volume);
 
             var order_a = { exchange_id: exchange_id_a, instrument_id: instrument_id_a, volume: volume };
             var order_b = { exchange_id: exchange_id_b, instrument_id: instrument_id_b, volume: volume };
@@ -223,10 +223,10 @@
 
             while (true) {
                 var result = yield {
-                    OPEN_BUY: function () { return quoteA.ask_price1 - quoteB.bid_price1 <= UI_DATAS.price_buy_open && long_volume == 0; },
-                    CLOSE_SELL: function () { return quoteA.bid_price1 - quoteB.ask_price1 >= UI_DATAS.price_sell_close && long_volume > 0; },
-                    OPEN_SELL: function () { return quoteA.bid_price1 - quoteB.ask_price1 >= UI_DATAS.price_sell_open && short_volume == 0; },
-                    CLOSE_BUY: function () { return quoteA.ask_price1 - quoteB.bid_price1 <= UI_DATAS.price_buy_close && short_volume > 0; },
+                    OPEN_BUY: function () { return quoteA.ask_price1 - quoteB.bid_price1 <= UI.price_buy_open && long_volume == 0; },
+                    CLOSE_SELL: function () { return quoteA.bid_price1 - quoteB.ask_price1 >= UI.price_sell_close && long_volume > 0; },
+                    OPEN_SELL: function () { return quoteA.bid_price1 - quoteB.ask_price1 >= UI.price_sell_open && short_volume == 0; },
+                    CLOSE_BUY: function () { return quoteA.ask_price1 - quoteB.bid_price1 <= UI.price_buy_close && short_volume > 0; },
                     TIMEOUT: 5000
                 };
 
