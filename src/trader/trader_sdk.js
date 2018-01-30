@@ -67,7 +67,7 @@ const GenOrderId = GenerateSequence();
 class TaskCtx {
     constructor() {
         this.unit_id = null;
-        this.unit_mode = false;
+        this.unit_mode = true;
         this.account_id = '';
         this.orders = {};
         this.LATEST_DATA = new Proxy(DM.datas, {
@@ -82,10 +82,10 @@ class TaskCtx {
         });
     }
 
-    _cancalOrd(order) {
+    _cancelOrd(order_id) {
         WS.sendJson({
             "aid": "cancel_order",
-            "order_id": order.order_id,
+            "order_id": order_id,
             "unit_id": this.unit_id
         });
     }
@@ -141,10 +141,11 @@ class TaskCtx {
 
     CANCEL_ORDER(order) {
         if (order && order.exchange_order_id) {
-            this._cancalOrd(order);
+            this._cancelOrd(order.order_id);
         } else if (this.unit_mode) {
             for (var order in this.orders) {
-                this._cancalOrd(order);
+                if (this.orders[order].status == 'ALIVE')
+                    this._cancelOrd(this.orders[order].order_id);
             }
         }
         return;
@@ -171,7 +172,7 @@ class TaskCtx {
 
     GET_ACCOUNT_ID() {
         this.account_id = DM.get_account_id();
-        if(this.account_id) return this.account_id;
+        if (this.account_id) return this.account_id;
         else throw "not logined";
     }
 
@@ -202,7 +203,18 @@ class TaskCtx {
     }
 
     GET_ORDER(id, fromOrigin = DM.datas) {
-        return DM.get_data('trade/' + this.account_id + '/orders/' + id, fromOrigin);
+        if (type(id) == 'String') {
+            return DM.get_data('trade/' + this.account_id + '/orders/' + id, fromOrigin);
+        } else {
+            var orders = {};
+            for (var ex_or_id in this.orders) {
+                var ord = this.orders[ex_or_id];
+                if (ord.status == 'FINISHED' && ord.volume_orign == ord.volume_left) continue;
+                if (ord.status == 'UNDEFINED') continue;
+                orders[ex_or_id] = ord;
+            }
+            return orders;
+        }
     }
 
     GET_COMBINE(name, fromOrigin = DM.datas) {
@@ -267,11 +279,12 @@ const TaskManager = (function (task) {
         if (typeof node == 'function') {
             return node();
         } else if (node instanceof Task) {
-            var res = checkTask(node);
-            for (var r in res) {
-                if (res[r]) return true;
-            }
-            return false;
+            return node.stopped;
+            // var res = checkTask(node);
+            // for (var r in res) {
+            //     if (res[r]) return true;
+            // }
+            // return false;
         } else if (node instanceof Array) {
             // array &&
             var status = [];
@@ -312,9 +325,8 @@ const TaskManager = (function (task) {
          * ret: { value, done }
          */
         function isFalseObj(o) {
-            if (type(o) == 'Array') { return o.length > 0 ? true : false; }
+            if (type(o) == 'Array' || type(o) == 'String') { return o.length > 0 ? true : false; }
             if (type(o) == 'Object') { return Object.keys(o).length > 0 ? true : false; }
-            if (type(o) == 'String') { return o.length > 0 ? true : false; }
             return o;
         }
         for (var r in waitResult) {
@@ -339,17 +351,18 @@ const TaskManager = (function (task) {
             if (!(obj.id in TaskManager.events[obj.type])) TaskManager.events[obj.type][obj.id] = obj.data;
         }
         for (var taskId in aliveTasks) {
-            if (aliveTasks[taskId].paused) continue;
+            if (aliveTasks[taskId].paused || aliveTasks[taskId].stopped) continue;
             try {
                 runTask(aliveTasks[taskId]);
             } catch (err) {
-                if(err == 'not logined') Notify.error('未登录，请在软件中登录后重试。')
-            } finally {
-                if (aliveTasks[taskId] && aliveTasks[taskId].stopped) {
-                    remove(aliveTasks[taskId]);
-                    continue;
-                }
+                if (err == 'not logined') Notify.error('未登录，请在软件中登录后重试。')
             }
+            //  finally {
+            //     if (aliveTasks[taskId] && aliveTasks[taskId].stopped) {
+            //         remove(aliveTasks[taskId]);
+            //         continue;
+            //     }
+            // }
         }
     }
 
