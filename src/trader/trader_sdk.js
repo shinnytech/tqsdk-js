@@ -144,7 +144,7 @@ class TaskCtx {
             this._cancelOrd(order.order_id);
         } else if (this.unit_mode) {
             for (var order in this.orders) {
-                if (this.orders[order].status == 'ALIVE')
+                if (this.orders[order].status == 'ALIVE' || this.orders[order].status == "UNDEFINED")
                     this._cancelOrd(this.orders[order].order_id);
             }
         }
@@ -279,11 +279,6 @@ const TaskManager = (function (task) {
             return node();
         } else if (node instanceof Task) {
             return node.stopped;
-            // var res = checkTask(node);
-            // for (var r in res) {
-            //     if (res[r]) return true;
-            // }
-            // return false;
         } else if (node instanceof Array) {
             // array &&
             var status = [];
@@ -334,6 +329,7 @@ const TaskManager = (function (task) {
                 var ret = task.func.next(waitResult);
                 if (ret.done) {
                     task.stopped = true;
+                    TaskManager.any_task_stopped = true;
                     // remove(task);
                 } else {
                     task.endTime = getEndTime(task.timeout);
@@ -349,6 +345,7 @@ const TaskManager = (function (task) {
             if (!(obj.type in TaskManager.events)) TaskManager.events[obj.type] = {};
             if (!(obj.id in TaskManager.events[obj.type])) TaskManager.events[obj.type][obj.id] = obj.data;
         }
+        TaskManager.any_task_stopped = false; // 任何一个task 的状态改变，都重新 run
         for (var taskId in aliveTasks) {
             if (aliveTasks[taskId].paused || aliveTasks[taskId].stopped) continue;
             try {
@@ -356,13 +353,8 @@ const TaskManager = (function (task) {
             } catch (err) {
                 if (err == 'not logined') Notify.error('未登录，请在软件中登录后重试。')
             }
-            //  finally {
-            //     if (aliveTasks[taskId] && aliveTasks[taskId].stopped) {
-            //         remove(aliveTasks[taskId]);
-            //         continue;
-            //     }
-            // }
         }
+        if(TaskManager.any_task_stopped) TaskManager.run();
     }
 
     setInterval(() => {

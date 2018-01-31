@@ -171,6 +171,7 @@
     <script type="text/javascript" src="trader_sdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
         function* TaskCombine(C) {
+            C.SET_STATE('START');
             var weights = C.GET_COMBINE(UI.combine_id);
             var completed = false; // 完成标识
 
@@ -192,7 +193,7 @@
                     var direction = weights[ins_id] > 0 ? UI.direction : (UI.direction === 'SELL' ? 'BUY' : 'SELL'); // 交易方向
                     var offset = UI.offset; // 交易开平
                     var price_field = direction === 'SELL' ? 'bid_price1' : 'ask_price1'; // 价格字段(选择对手价的字段)
-                    var order_param = {ins_id, exchange_id, instrument_id, direction, volume, offset, price_field };
+                    var order_param = { ins_id, exchange_id, instrument_id, direction, volume, offset, price_field };
                     TaskList.push(START_TASK(TaskSingleOrder, order_param));
                 }
             }
@@ -200,16 +201,15 @@
             while (!completed) {
                 var result = yield {
                     SUBTASK_COMPLETED: TaskList,
-                    COMBINE_CHANGED: function(){C.GET_COMBINE(UI.combine_id, C.LAST_UPDATED_DATA)}, //组合合约变化
+                    COMBINE_CHANGED: function () { C.GET_COMBINE(UI.combine_id, C.LAST_UPDATED_DATA) }, //组合合约变化
                     USER_CLICK_STOP: C.ON_CLICK('STOP')
                 };
-                if(result.COMBINE_CHANGED || result.USER_CLICK_STOP){
-                    for(var task of TaskList) STOP_TASK(task);
+                if (result.COMBINE_CHANGED || result.USER_CLICK_STOP) {
+                    for (var task of TaskList) STOP_TASK(task);
                     completed = true;
                 }
                 completed = result.SUBTASK_COMPLETED.reduce((a, b) => a && b);
             }
-            
             // 任务结束
             C.SET_STATE('STOP');
             return;
@@ -217,10 +217,10 @@
 
         function* TaskSingleOrder(C, order_param) {
             var quote = C.GET_QUOTE(order_param.ins_id);
-            while (order_param.volume > 0) {
-                // 设定为当前对手价
-                order_param.limit_price = quote[order_param.price_field];
-                var order = C.INSERT_ORDER(order_param);
+            // 设定为当前对手价
+            order_param.limit_price = quote[order_param.price_field];
+            var order = C.INSERT_ORDER(order_param);
+            while (order.status != 'FINISHED') {
                 var result = yield {
                     UPDATED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA) },
                     USER_CLICK_STOP: C.ON_CLICK('STOP'),
@@ -229,15 +229,12 @@
                     C.CANCEL_ORDER(order);
                     break;
                 }
-                if (order.status === "ALIVE") C.CANCEL_ORDER(order);
-                //在总手数总扣减当前委托单的已成交手数, 回到循环头部按剩余手数重新下单
-                order_param.volume -= (order.volume_orign - order.volume_left);
             }
             return;
         }
 
-        $(function(){
-            $('#START').on('click', function(){
+        $(function () {
+            $('#START').on('click', function () {
                 START_TASK(TaskCombine);
             });
         });
