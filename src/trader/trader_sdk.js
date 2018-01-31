@@ -490,12 +490,15 @@ const UiUtils = (function () {
             return params;
         },
         readNode(node) {
-            switch (node.type) {
-                case 'number': return { [node.id]: node.valueAsNumber };
-                case 'text': return { [node.id]: node.value };
-                case 'radio': return node.checked ? { [node.name]: node.value } : {};
-                default: return { [node.id]: undefined };
-            }
+            if (node.nodeName == 'INPUT')
+                switch (node.type) {
+                    case 'number': return { [node.id]: node.valueAsNumber };
+                    case 'text': return { [node.id]: node.value };
+                    case 'radio': return node.checked ? { [node.name]: node.value } : {};
+                    default: return { [node.id]: undefined };
+                }
+            else if (node.nodeName == 'SPAN')
+                return {[node.id]: node.innerText}
         },
         writeNode(key, value) {
             if (!_writeBySelector('#' + key, value))
@@ -506,11 +509,13 @@ const UiUtils = (function () {
 
 const UI = new Proxy(() => null, {
     get: function (target, key, receiver) {
-        let nodeList = document.querySelectorAll('input#' + key);
-        let res = null;
-        if (nodeList.length > 0) res = UiUtils.readNode(nodeList[0]);
-        else res = UiUtils.readNodeBySelector('input[name="' + key + '"]'); // radio 
-        return res[key] ? res[key] : undefined;
+        let res = UiUtils.readNodeBySelector('input#' + key);
+        if (res[key]) return res[key];
+        res = UiUtils.readNodeBySelector('input[name="' + key + '"]'); // radio 
+        if (res[key]) return res[key];
+        res = UiUtils.readNodeBySelector('span#' + key);
+        if (res[key]) return res[key];
+        return undefined;
     },
     set: function (target, key, value, receiver) {
         UiUtils.writeNode(key, value);
