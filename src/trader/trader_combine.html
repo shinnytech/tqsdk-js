@@ -215,27 +215,6 @@
             return;
         }
 
-
-        // function* TaskSingleOrder(C, order_param) {
-        //     var completed = false;
-        //     var quote = C.GET_QUOTE(order_param.ins_id);
-        //     // 设定为当前对手价
-        //     order_param.limit_price = quote[order_param.price_field];
-        //     var order = C.INSERT_ORDER(order_param);
-        //     while (!completed) {
-        //         var result = yield {
-        //             CHANGED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA) },
-        //             USER_CLICK_STOP: C.ON_CLICK('STOP'),
-        //         };
-        //         if (order.status === "FINISHED") completed = true;
-        //         if (result.USER_CLICK_STOP) {
-        //             C.CANCEL_ORDER(order);
-        //             completed = true;
-        //         }
-        //     }
-        //     return;
-        // }
-
         function* TaskSingleOrder(C, order_param) {
             var quote = C.GET_QUOTE(order_param.ins_id);
             while (order_param.volume > 0) {
