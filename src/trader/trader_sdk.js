@@ -148,7 +148,6 @@ class TaskCtx {
                     this._cancelOrd(this.orders[order].order_id);
             }
         }
-        return;
     }
 
     _on_event_callback(eType, id) {
@@ -210,7 +209,7 @@ class TaskCtx {
             for (var ex_or_id in this.orders) {
                 var ord = this.orders[ex_or_id];
                 if (ord.status == 'FINISHED' && ord.volume_orign == ord.volume_left) continue;
-                if (ord.status == 'UNDEFINED') continue;
+                // if (ord.status == 'UNDEFINED') continue;
                 orders[ex_or_id] = ord;
             }
             return orders;
