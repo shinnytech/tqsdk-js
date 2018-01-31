@@ -33,7 +33,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control input-sm" id="instrument" placeholder="合约代码" value='rr'>
+                            <input type="text" class="form-control input-sm" id="combine_id" placeholder="组合代码" value='rr'>
                         </div>
                     </div>
                     <div class="row">
@@ -167,49 +167,48 @@
 
     <script type="text/javascript" src="/js/worker/datamanager.js"></script>
     <script type="text/javascript" src="/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="/js/utils.js"></script>
     <script type="text/javascript" src="trader_sdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
-        var task_trade = null; // 执行交易任务
-        var runningFlag = true;
-
-        function* TaskCombime(C) {
-            runningFlag = true;
-            SET_STATE('START');
-
-            var combine_id = 'USER.' + UI.instrument; // 读取页面参数
-
-            var weights = C.GET_COMBINE(combine_id);
-
-            var order_aids = {}; // 执行交易要完成目标
-            var quotes = {}; // 合约
+        function* TaskCombine(C) {
+            C.SET_STATE('START');
+            var weights = C.GET_COMBINE(UI.combine_id);
             var completed = false; // 完成标识
-            var orders = {}; // 下单记录
 
-            while (!weights) {
+            while (!completed && !weights) {
                 var result = yield {
-                    CHANGED: ON_CHANGED(),
-                    USER_CLICK_STOP: function () { return runningFlag === false }
+                    CHANGED: function () { return C.GET_COMBINE(UI.combine_id, C.LAST_UPDATED_DATA) },
+                    USER_CLICK_STOP: C.ON_CLICK('STOP')
                 };
-                if (result.CHANGED) weights = C.GET_COMBINE(params.instrument);
-                if (result.USER_CLICK_STOP) {
-                    completed = true;
-                    break;
+                if (result.CHANGED) weights = C.GET_COMBINE(UI.combine_id);
+                if (result.USER_CLICK_STOP) completed = true;
+            }
+
+            var TaskList = [];
+            for (var ins_id in weights) { // 对成分乘数表中的每一个合约, 开启一个任务去下单
+                if (!ins_id) continue; // 等价于 ins_id == ''
+                var volume = Math.abs(Math.round(UI.volume * weights[ins_id])); // 手数(四舍五入至整数)
+                if (volume > 0) {
+                    var [exchange_id, instrument_id] = ins_id.split('.'); // 交易所代码，合约代码
+                    var direction = weights[ins_id] > 0 ? UI.direction : (UI.direction === 'SELL' ? 'BUY' : 'SELL'); // 交易方向
+                    var offset = UI.offset; // 交易开平
+                    var price_field = direction === 'SELL' ? 'bid_price1' : 'ask_price1'; // 价格字段(选择对手价的字段)
+
+                    var order_param = { exchange_id, instrument_id, direction, volume, offset, price_field };
+                    TaskList.push(START_TASK(TaskSingleOrder, order_param));
                 }
             }
 
-            for (var ins_id in weights) { // 对成分乘数表中的每一个合约
-                if (!ins_id) continue;
-                quotes[ins_id] = C.GET_QUOTE(ins_id); // 合约对象
-                var [exchange_id, instrument_id] = ins_id.split('.'); // 交易所代码，合约代码
-                var direction = weights[ins_id] > 0 ? params.direction : (params.direction === 'SELL' ? 'BUY' : 'SELL'); // 交易方向
-                var offset = params.offset; // 交易开平
-                var volume = Math.abs(Math.round(params.volume * weights[ins_id])); // 手数(四舍五入至整数)
-                var price_field = direction === 'SELL' ? 'bid_price1' : 'ask_price1'; // 价格字段(选择对手价的字段)
-                if (volume > 0)
-                    order_aids[ins_id] = {
-                        exchange_id, instrument_id, direction, volume, offset,
-                        price_field, origin: volume, traded: 0, pending: 0
-                    };
+            while (!completed) {
+                var result = yield Object.assign(wait_object, {
+                    SUBTASK_COMPLETED: [TaskList],
+                    COMBINE_CHANGED: function(){C.GET_COMBINE(UI.combine_id, C.LAST_UPDATED_DATA)}, //组合合约变化
+                    USER_CLICK_STOP: C.ON_CLICK('STOP')
+                });
+                if(result.COMBINE_CHANGED || result.USER_CLICK_STOP){
+                    for(var task of TaskList) STOP_TASK(task);
+                    completed = true;
+                }
             }
 
             while (!completed) {
@@ -265,21 +264,31 @@
                 completed = Object.entries(order_aids).map(([id, aid]) => aid.origin === aid.traded).reduce((a, b) => a && b);
             }
             // 任务结束
-            SET_STATE('START');
+            C.SET_STATE('STOP');
             return;
         }
 
-        $(function () {
-            // 初始化UI
-            INIT_UI();
-            // 开始交易按钮
-            $('button.START').on('click', function () {
-                if (task_trade === null || task_trade.stopped) task_trade = START_TASK(TaskCombime);
-            });
-            $('button.STOP').on('click', function () {
-                runningFlag = false;
-            });
-        });
+
+        function* TaskSingleOrder(C, order_param) {
+            console.log(order_param);
+
+            var completed = false;
+            while (!completed) {
+                var order = C.INSERT_ORDER(order_param);
+                var result = yield {
+                    CHANGED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA) },
+                    USER_CLICK_STOP: C.ON_CLICK('STOP'),
+                };
+                if (order.status === "FINISHED") completed = true;
+                if (result.USER_CLICK_STOP) {
+                    C.CANCEL_ORDER(order);
+                    completed = true;
+                }
+            }
+            return;
+        }
+
+        var task_trade = START_TASK(TaskCombine);
     </script>
 </body>
 

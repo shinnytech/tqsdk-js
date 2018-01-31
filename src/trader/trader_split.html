@@ -33,7 +33,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control  input-sm" id="instrument" placeholder="合约代码" value='SHFE.rb1805'>
+                            <input type="text" class="form-control  input-sm" id="instrument" placeholder="合约代码" value='CFFEX.T1803'>
                         </div>
                     </div>
                     <div class="row">
@@ -93,7 +93,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-4">
-                            <input type="number" id='price_from' class="form-control  input-sm" value="2000">
+                            <input type="number" id='price_from' class="form-control  input-sm" value="20">
                         </div>
                         <div class="col col-xs-1">
                             <span class="pull-right">
@@ -215,15 +215,12 @@
     <script type="text/javascript" src="/js/utils.js"></script>
     <script type="text/javascript" src="trader_sdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
-        var task_trade = null; // 执行交易任务
-
         function* TaskQuote(C) {
             while (true) {
                 var result = yield {
                     UPDATED_QUOTE: function () { return C.GET_QUOTE(UI.instrument, C.LAST_UPDATED_DATA) },
                     CHANGED: C.ON_CHANGE('instrument')
                 };
-                
                 var quote = C.GET_QUOTE(UI.instrument);
                 UI(quote);
             }
@@ -233,21 +230,19 @@
             var started = false;
             while (!started) {
                 var wait = yield {
-                    'START': [C.ON_CLICK('START'), function(){return C.GET_ACCOUNT_ID();}]
+                    'START': [C.ON_CLICK('START'), function () { return C.GET_ACCOUNT_ID(); }]
                 }
-                if (wait.START[0] && wait.START[1]){
+                if (wait.START[0] && wait.START[1]) {
                     started = true;
                     C.SET_STATE('START');
                 }
             }
-
             var quote = C.GET_QUOTE(UI.instrument);
             var [exchange_id, instrument_id] = UI.instrument.split('.');
             var max_price = Math.max(UI.price_from, UI.price_to);
             var min_price = Math.min(UI.price_from, UI.price_to);
             // 价格设定为跟盘价格
             var price_field = (UI.direction === 'SELL') ? 'ask_price1' : 'bid_price1';
-
             var order_params = {
                 exchange_id: exchange_id,
                 instrument_id: instrument_id,
@@ -256,15 +251,13 @@
             };
 
             var completed = false;
-
             while (quote && !completed) {
-
+                var orders = C.GET_ORDER();
                 var pending_volume = 0; // 挂单手数
                 var traded_sum = 0; // 已成交的总金额
                 var traded_volume = 0; // 已成交的总手数
-                for (var order_id in C.orders) {
-                    var ord = C.orders[order_id];
-                    if (ord.status === 'UNDEFINED') continue;
+                for (var order in orders) {
+                    var ord = orders[order_id];
                     var vol = ord.volume_orign - ord.volume_left;
                     traded_volume += vol;
                     pending_volume += ord.volume_left;
@@ -272,27 +265,20 @@
                 }
                 // 成交均价
                 traded_avgprice = traded_volume == 0 ? 0 : Math.round(traded_sum / traded_volume * 100) / 100;
-                var all_volume = UI.all_volume - traded_volume; // 剩余全部手数
-                UI({ traded_volume, traded_avgprice, all_volume }); // 更新显示已成交手数、已成交均价，剩余全部手数
-
-                if (quote[price_field] <= max_price && quote[price_field] >= min_price) {
+                UI({ traded_volume, traded_avgprice }); // 更新显示已成交手数、已成交均价
+                if (UI.all_volume - traded_volume == 0) completed = true; // 剩余手数为 0, 交易完成
+                if (!completed && quote[price_field] <= max_price && quote[price_field] >= min_price) {
                     order_params.volume = Math.min(UI.max_one_volume, UI.all_volume - traded_volume) - pending_volume; // 设置手数
-                    order_params.limit_price = quote[price_field]; // 设置价格
                     if (order_params.volume > 0) {
+                        order_params.limit_price = quote[price_field]; // 设置价格
                         C.INSERT_ORDER(order_params);
-                    } else {
-                        completed = true;
                     }
                 }
-
                 var result = yield {
                     QUOTE_CHANGED: function () { return C.GET_QUOTE(UI.instrument, C.LAST_UPDATED_DATA) },
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
                     USER_CLICK_STOP: C.ON_CLICK('STOP')
                 }
-
-                console.log(result)
-
                 if (result.PRICE_CHANGED || result.USER_CLICK_STOP) {
                     C.CANCEL_ORDER();
                     if (result.USER_CLICK_STOP) break;
@@ -305,12 +291,8 @@
             return;
         }
 
-
-
-        $(function () {
-            START_TASK(TaskQuote);
-            task_trade = START_TASK(TaskSplit);
-        });
+        START_TASK(TaskQuote);
+        var task_trade = START_TASK(TaskSplit); // 执行交易任务
     </script>
 </body>
 
