@@ -85,7 +85,7 @@
                         <div class="col col-xs-12">
                             <div class="btn-toolbar" role="toolbar">
                                 <div class="btn-group btn-group-xs">
-                                    <button type="button" class="btn btn-default START" data-state="START">
+                                    <button type="button" class="btn btn-default START" id="START" data-state="START">
                                         <span class="glyphicon glyphicon-play"></span>&nbsp;执行
                                     </button>
 
@@ -193,102 +193,51 @@
                     var direction = weights[ins_id] > 0 ? UI.direction : (UI.direction === 'SELL' ? 'BUY' : 'SELL'); // 交易方向
                     var offset = UI.offset; // 交易开平
                     var price_field = direction === 'SELL' ? 'bid_price1' : 'ask_price1'; // 价格字段(选择对手价的字段)
-
-                    var order_param = { exchange_id, instrument_id, direction, volume, offset, price_field };
+                    var order_param = { ins_id, exchange_id, instrument_id, direction, volume, offset, price_field };
                     TaskList.push(START_TASK(TaskSingleOrder, order_param));
                 }
             }
 
             while (!completed) {
-                var result = yield Object.assign(wait_object, {
-                    SUBTASK_COMPLETED: [TaskList],
-                    COMBINE_CHANGED: function(){C.GET_COMBINE(UI.combine_id, C.LAST_UPDATED_DATA)}, //组合合约变化
+                var result = yield {
+                    SUBTASK_COMPLETED: TaskList,
+                    COMBINE_CHANGED: function () { C.GET_COMBINE(UI.combine_id, C.LAST_UPDATED_DATA) }, //组合合约变化
                     USER_CLICK_STOP: C.ON_CLICK('STOP')
-                });
-                if(result.COMBINE_CHANGED || result.USER_CLICK_STOP){
-                    for(var task of TaskList) STOP_TASK(task);
+                };
+                if (result.COMBINE_CHANGED || result.USER_CLICK_STOP) {
+                    for (var task of TaskList) STOP_TASK(task);
                     completed = true;
                 }
-            }
-
-            while (!completed) {
-                for (var ins_id in order_aids) { // 下单
-                    var param = order_aids[ins_id];
-                    param.volume = param.origin - param.traded - param.pending; // 下单之前计算手数
-                    if (param.volume > 0) {
-                        var quo = quotes[ins_id];
-                        param.limit_price = quo[param.price_field]; // 下单之前设定价格
-                        var ord = C.INSERT_ORDER(param);
-                        orders[ord.exchange_order_id] = ord;
-                    }
-                }
-
-                var wait_object = {}
-                for (var id in orders) {
-                    wait_object['CHANGED_' + id] = ON_CHANGED(id)
-                }
-
-                var result = yield Object.assign(wait_object, {
-                    QUOTE_CHANGED: ON_CHANGED(C.GET_QUOTE('USER.' + params.instrument)), //组合合约变化
-                    USER_CLICK_STOP: function () { return runningFlag === false }
-                })
-
-                console.log(result)
-
-                if (result.QUOTE_CHANGED || result.USER_CLICK_STOP) {
-                    for (var ord_id in orders) {
-                        var ord = orders[ord_id];
-                        var param = order_aids[ord.exchange_id + '.' + ord.instrument_id];
-                        if (ord.limit_price !== quotes[ins_id][param.price_field] && ord.status === "ALIVE") C.CANCEL_ORDER(ord);
-                    }
-                    if (result.USER_CLICK_STOP) {
-                        completed = true;
-                        break;
-                    }
-                }
-
-                for (var aid in order_aids) order_aids[aid].pending = order_aids[aid].traded = 0;
-
-                for (var order_id in orders) {
-                    var order = orders[order_id];
-                    var vol = order.volume_orign - order.volume_left;
-                    if (order.status === 'FINISHED' && vol === 0) {
-                        delete orders[order_id]; // 已经撤掉且未成交过的挂单，删除
-                        continue;
-                    }
-                    var ins = order.exchange_id + '.' + order.instrument_id;
-                    order_aids[ins].traded += vol;
-                    order_aids[ins].pending += order.volume_left;
-                }
-
-                completed = Object.entries(order_aids).map(([id, aid]) => aid.origin === aid.traded).reduce((a, b) => a && b);
+                completed = result.SUBTASK_COMPLETED.reduce((a, b) => a && b);
             }
             // 任务结束
             C.SET_STATE('STOP');
             return;
         }
 
-
         function* TaskSingleOrder(C, order_param) {
-            console.log(order_param);
-
-            var completed = false;
-            while (!completed) {
-                var order = C.INSERT_ORDER(order_param);
+            var quote = C.GET_QUOTE(order_param.ins_id);
+            // 设定为当前对手价
+            order_param.limit_price = quote[order_param.price_field];
+            var order = C.INSERT_ORDER(order_param);
+            while (order.status != 'FINISHED') {
                 var result = yield {
-                    CHANGED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA) },
+                    UPDATED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA) },
                     USER_CLICK_STOP: C.ON_CLICK('STOP'),
                 };
-                if (order.status === "FINISHED") completed = true;
                 if (result.USER_CLICK_STOP) {
                     C.CANCEL_ORDER(order);
-                    completed = true;
+                    break;
                 }
             }
             return;
         }
 
-        var task_trade = START_TASK(TaskCombine);
+        $(function () {
+            $('#START').on('click', function () {
+                START_TASK(TaskCombine);
+            });
+        });
     </script>
 </body>
 
