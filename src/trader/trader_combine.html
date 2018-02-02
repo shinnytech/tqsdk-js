@@ -171,18 +171,9 @@
     <script type="text/javascript" src="trader_sdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
         function* TaskCombine(C) {
+            var weights = C.GET_COMBINE({ id: UI.combine_id });
+            if (!weights) return;
             C.SET_STATE('START');
-            var weights = C.GET_COMBINE(UI.combine_id);
-            var completed = false; // 完成标识
-
-            while (!completed && !weights) {
-                var result = yield {
-                    CHANGED: function () { return C.GET_COMBINE(UI.combine_id, C.LAST_UPDATED_DATA) },
-                    USER_CLICK_STOP: C.ON_CLICK('STOP')
-                };
-                if (result.CHANGED) weights = C.GET_COMBINE(UI.combine_id);
-                if (result.USER_CLICK_STOP) completed = true;
-            }
 
             var TaskList = [];
             for (var ins_id in weights) { // 对成分乘数表中的每一个合约, 开启一个任务去下单
@@ -198,33 +189,37 @@
                 }
             }
 
-            while (!completed) {
+            while (true) {
                 var result = yield {
                     SUBTASK_COMPLETED: TaskList,
-                    COMBINE_CHANGED: function () { C.GET_COMBINE(UI.combine_id, C.LAST_UPDATED_DATA) }, //组合合约变化
+                    COMBINE_CHANGED: function () { C.GET_COMBINE({ id: UI.combine_id, from: C.LAST_UPDATED_DATA }) }, //组合合约变化
                     USER_CLICK_STOP: C.ON_CLICK('STOP')
                 };
                 if (result.COMBINE_CHANGED || result.USER_CLICK_STOP) {
-                    for (var task of TaskList) STOP_TASK(task);
-                    completed = true;
+                    break;
                 }
-                completed = result.SUBTASK_COMPLETED.reduce((a, b) => a && b);
+                // 全部task结束
+                if (result.SUBTASK_COMPLETED.reduce((a, b) => a && b)) break;
             }
             // 任务结束
             C.SET_STATE('STOP');
             return;
         }
 
+        // 修改为追单模式
         function* TaskSingleOrder(C, order_param) {
-            var quote = C.GET_QUOTE(order_param.ins_id);
+            var quote = C.GET_QUOTE({ id: order_param.ins_id });
+            var rest_volume = order_param.volume;
             // 设定为当前对手价
-            order_param.limit_price = quote[order_param.price_field];
-            var order = C.INSERT_ORDER(order_param);
-            while (order.status != 'FINISHED') {
+            while (rest_volume > 0) {
+                order_param.limit_price = quote[order_param.price_field];
+                var order = C.INSERT_ORDER(order_param);
                 var result = yield {
-                    UPDATED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA) },
+                    UPDATED: function () { return C.GET_ORDER({ id: order.exchange_order_id, from: C.LAST_UPDATED_DATA }); },
                     USER_CLICK_STOP: C.ON_CLICK('STOP'),
                 };
+                if (order.status != "FINISHED") C.CANCEL_ORDER(order);
+                rest_volume -= (order.volume_orign - order.volume_left);
                 if (result.USER_CLICK_STOP) {
                     C.CANCEL_ORDER(order);
                     break;

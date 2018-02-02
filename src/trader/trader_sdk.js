@@ -175,19 +175,19 @@ class TaskCtx {
         else throw "not logined";
     }
 
-    GET_ACCOUNT(fromOrigin = DM.datas) {
-        return DM.get_data('trade/' + this.account_id + '/accounts/CNY', fromOrigin);
+    GET_ACCOUNT({ from = DM.datas } = {}) {
+        return DM.get_data('trade/' + this.account_id + '/accounts/CNY', from);
     }
 
-    GET_POSITION(fromOrigin = DM.datas) {
-        return DM.get_data('trade/' + this.account_id + '/positions', fromOrigin);
+    GET_POSITION({ from = DM.datas } = {}) {
+        return DM.get_data('trade/' + this.account_id + '/positions', from);
     }
 
-    GET_SESSION(fromOrigin = DM.datas) {
-        return DM.get_data('trade/' + this.account_id + '/session', fromOrigin);
+    GET_SESSION({ from = DM.datas } = {}) {
+        return DM.get_data('trade/' + this.account_id + '/session', from);
     }
 
-    GET_QUOTE(id, fromOrigin = DM.datas) {
+    GET_QUOTE({ id, from = DM.datas } = {}) {
         // 订阅行情
         var ins_list = DM.datas.ins_list;
         if (ins_list && !ins_list.includes(id)) {
@@ -198,26 +198,27 @@ class TaskCtx {
                 ins_list: s
             });
         }
-        return DM.get_data('quotes/' + id, fromOrigin);
+        return DM.get_data('quotes/' + id, from);
     }
 
-    GET_ORDER(id, fromOrigin = DM.datas) {
+    GET_ORDER({ id, from = DM.datas } = {}) {
         if (type(id) == 'String') {
-            return DM.get_data('trade/' + this.account_id + '/orders/' + id, fromOrigin);
+            return DM.get_data('trade/' + this.account_id + '/orders/' + id, from);
         } else {
             var orders = {};
             for (var ex_or_id in this.orders) {
-                var ord = this.orders[ex_or_id];
-                if (ord.status == 'FINISHED' && ord.volume_orign == ord.volume_left) continue;
-                // if (ord.status == 'UNDEFINED') continue;
-                orders[ex_or_id] = ord;
+                var ord = DM.get_data('trade/' + this.account_id + '/orders/' + ex_or_id, from);
+                if (ord) {
+                    if (ord.status == 'FINISHED' && ord.volume_orign == ord.volume_left) continue;
+                    orders[ex_or_id] = ord;
+                }
             }
             return orders;
         }
     }
 
-    GET_COMBINE(name, fromOrigin = DM.datas) {
-        return DM.get_data('combines/USER.' + name, fromOrigin);
+    GET_COMBINE({ id, from = DM.datas } = {}) {
+        return DM.get_data('combines/USER.' + id, from);
     }
 
     SET_STATE(cmd) {
@@ -244,8 +245,8 @@ class Task {
         this.func = func;
         this.paused = false;
         this.waitConditions = waitConditions;
-        this.timeout = 6000000; // 每个任务默认时间
-        this.endTime = 0;
+        // this.timeout = 6000000; // 每个任务默认时间
+        // this.endTime = 0;
         this.stopped = false;
         this.events = {}
         this.ctx = null;
@@ -298,17 +299,18 @@ const TaskManager = (function (task) {
 
     function checkTask(task) {
         var status = {};
-
+        task.timeout = undefined;
         for (var cond in task.waitConditions) {
             if (cond.toUpperCase() === 'TIMEOUT') {
                 task.timeout = task.waitConditions[cond];
+                if ((new Date()).getTime() >= task.endTime) status['TIMEOUT'] = true;
+                else status['TIMEOUT'] = false;
                 continue;
             }
             status[cond] = checkItem(task.waitConditions[cond])
         }
 
-        if ((new Date()).getTime() >= task.endTime) status['TIMEOUT'] = true;
-        else status['TIMEOUT'] = false;
+
 
         return status;
     }
@@ -318,13 +320,13 @@ const TaskManager = (function (task) {
         /**
          * ret: { value, done }
          */
-        function isFalseObj(o) {
+        function isTrueObj(o) {
             if (type(o) == 'Array' || type(o) == 'String') { return o.length > 0 ? true : false; }
             if (type(o) == 'Object') { return Object.keys(o).length > 0 ? true : false; }
             return o;
         }
         for (var r in waitResult) {
-            if (waitResult[r]) {
+            if (isTrueObj(waitResult[r])) {
                 // waitConditions 中某个条件为真才执行 next
                 var ret = task.func.next(waitResult);
                 if (ret.done) {
@@ -332,7 +334,7 @@ const TaskManager = (function (task) {
                     TaskManager.any_task_stopped = true;
                     // remove(task);
                 } else {
-                    task.endTime = getEndTime(task.timeout);
+                    if (task.timeout) task.endTime = getEndTime(task.timeout);
                     task.waitConditions = ret.value;
                 }
                 break;
@@ -351,20 +353,24 @@ const TaskManager = (function (task) {
             try {
                 runTask(aliveTasks[taskId]);
             } catch (err) {
-                if (err == 'not logined') Notify.error('未登录，请在软件中登录后重试。')
+                if (err == 'not logined') Notify.error('未登录，请在软件中登录后重试。');
+                else console.log(err)
             }
         }
-        if(TaskManager.any_task_stopped) TaskManager.run();
+        if (TaskManager.any_task_stopped) TaskManager.run();
     }
 
     setInterval(() => {
         for (var taskId in aliveTasks) {
             var task = aliveTasks[taskId];
-            if (task.paused) {
-                task.endTime += intervalTime;
-            } else {
-                var now = (new Date()).getTime();
-                if (task.endTime <= now) runTask(task);
+            // 用户显示定义了 timeout 才记录 timeout 字段
+            if (task.timeout) {
+                if (task.paused) {
+                    task.endTime += intervalTime;
+                } else {
+                    var now = (new Date()).getTime();
+                    if (task.endTime <= now) runTask(task);
+                }
             }
         }
     }, intervalTime);
@@ -378,15 +384,14 @@ const TaskManager = (function (task) {
         var ret = task.func.next();
         if (ret.done) {
             task.stopped = true;
-            // remove(task);
         } else {
             for (var cond in ret.value) {
                 if (cond.toUpperCase() === 'TIMEOUT') {
                     task.timeout = ret.value[cond];
+                    task.endTime = getEndTime(task.timeout);
                     break;
                 }
             }
-            task.endTime = getEndTime(task.timeout);
             task.waitConditions = ret.value;
         }
         return task;
@@ -408,15 +413,6 @@ const TaskManager = (function (task) {
 }());
 
 const START_TASK = function (func) {
-    // if (!AppDataStatus.receivedData) {
-    //     Notify.error('还未接收到数据包，请稍后重试。')
-    //     return false;
-    // }
-    // if (!AppDataStatus.isLogin) {
-    //     Notify.error('未登录，请在软件中登录后重试。')
-    //     return false;
-    // }
-
     if (typeof func === 'function') {
         var context = new TaskCtx();
         var args = [context];
@@ -490,7 +486,7 @@ const UiUtils = (function () {
                     default: return { [node.id]: undefined };
                 }
             else if (node.nodeName == 'SPAN')
-                return {[node.id]: node.innerText}
+                return { [node.id]: node.innerText }
         },
         writeNode(key, value) {
             if (!_writeBySelector('#' + key, value))
