@@ -120,7 +120,7 @@
             <div class="panel-heading" role="tab" id="headingOne">
                 <h4 class="panel-title">
                     <a role="button" data-toggle="collapse" href="#collapse" aria-expanded="true" aria-controls="collapse">
-                        说明：本下单策略适用于跟随市场波动
+                        说明：本下单策略适用于跟随市场价差变化
                         <span id='collapse_arrow' class="glyphicon glyphicon-menu-down pull-right"></span>
                     </a>
                 </h4>
@@ -136,13 +136,13 @@
                         <div class="row">
                             <div class="col col-xs-3">
                                 <p class="pull-right">
-                                    下单
+                                    下单：
                                 </p>
                             </div>
                             <div class="col col-xs-9">
-                                <p>买入的报单价总是在买 1 价。</p>
-                                <p>卖出的报单价总是在卖 1 价。</p>
-                                <p>下单手数为最大单笔手数，最后剩余手数小于最大单笔手数时，下单手数为最后剩余的手数。</p>
+                                <p>设置两个价格关联的合约，这里记为A,B。</p>
+                                <p>设置买开、卖平的期望价差点，以及卖开、买平的期望价差点。</p>
+                                <p>监控价格到达指定价差位置，立即采用对手加价追单策略下单。</p>
                             </div>
                         </div>
                         <div class="row">
@@ -152,8 +152,7 @@
                                 </span>
                             </div>
                             <div class="col col-xs-9">
-                                <p>挂单后若不成交且挂盘价已变动，则立即撤单。</p>
-                                <p>挂单若成交，则补平挂单手数至最大单笔手数，最后剩余手数小于最大单笔手数时，下单手数为最后剩余的手数。</p>
+                                <p>挂单后若不成交、或部分成交，则立即撤单，以剩余手数继续下单。</p>
                             </div>
                         </div>
                     </li>
@@ -189,24 +188,25 @@
         function* TaskQuote(C) {
             while (true) {
                 var result = yield {
-                    UPDATED_A: function () { return C.GET_QUOTE(UI.insA, C.LAST_UPDATED_DATA); },
-                    UPDATED_B: function () { return C.GET_QUOTE(UI.insB, C.LAST_UPDATED_DATA); },
+                    UPDATED_A: function () { return C.GET_QUOTE({id:UI.insA, from:C.LAST_UPDATED_DATA}); },
+                    UPDATED_B: function () { return C.GET_QUOTE({id:UI.insB, from:C.LAST_UPDATED_DATA}); },
                     CHANGED_A: C.ON_CHANGE('insA'),
                     CHANGED_B: C.ON_CHANGE('insB'),
                 };
-                var quoteA = C.GET_QUOTE(UI.insA);
-                var quoteB = C.GET_QUOTE(UI.insB);
+                var quoteA = C.GET_QUOTE({id:UI.insA});
+                var quoteB = C.GET_QUOTE({id:UI.insB});
                 UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
                 UI.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
             }
         }
 
         function* TaskSpread(C) {
-            C.SET_STATE('START');
+            var quoteA = C.GET_QUOTE({id:UI.insA});
+            var quoteB = C.GET_QUOTE({id:UI.insB});
+            if(!quoteA || !quoteB) return;
 
+            C.SET_STATE('START');
             var short_volume = 0, long_volume = 0;
-            var quoteA = C.GET_QUOTE(UI.insA);
-            var quoteB = C.GET_QUOTE(UI.insB);
             // 参数设定
             var [exchange_id_a, instrument_id_a] = UI.insA.split('.');
             var [exchange_id_b, instrument_id_b] = UI.insB.split('.');
@@ -221,24 +221,17 @@
             while (true) {
                 var result = yield {
                     PRARM: function () {
-                        if (quoteA.ask_price1 - quoteB.bid_price1 <= UI.price_buy_open && long_volume == 0) return buy_open;
-                        if (quoteA.bid_price1 - quoteB.ask_price1 >= UI.price_sell_close && long_volume > 0) return sell_close;
-                        if (quoteA.bid_price1 - quoteB.ask_price1 >= UI.price_sell_open && short_volume == 0) return sell_open;
-                        if (quoteA.ask_price1 - quoteB.bid_price1 <= UI.price_buy_close && short_volume > 0) return buy_close;
-                        return false;
+                        if (quoteA.ask_price1 - quoteB.bid_price1 <= UI.price_buy_open && long_volume == 0) return [buy_open, sell_open];
+                        if (quoteA.bid_price1 - quoteB.ask_price1 >= UI.price_sell_close && long_volume > 0) return [sell_close, buy_close];
+                        if (quoteA.bid_price1 - quoteB.ask_price1 >= UI.price_sell_open && short_volume == 0) return [sell_open, buy_open];
+                        if (quoteA.ask_price1 - quoteB.bid_price1 <= UI.price_buy_close && short_volume > 0) return [buy_close, sell_close];
+                        return [false, false];
                     },
                     USER_CLICK_STOP: C.ON_CLICK('STOP')
                 };
                 if (result.USER_CLICK_STOP) break;
 
-                var param_a = result.PRARM;
-                var param_b = null;
-
-                if(param_a == buy_open) param_b = sell_open;
-                if(param_a == sell_close) param_b = buy_close;
-                if(param_a == sell_open) param_b = buy_open;
-                if(param_a == buy_close) param_b = sell_close;
-                
+                var [param_a, param_b] = result.PRARM;
                 if (param_a && param_b) {
                     var task_a = START_TASK(TaskSingleOrder, Object.assign({}, order_a, param_a));
                     var task_b = START_TASK(TaskSingleOrder, Object.assign({}, order_b, param_b));
@@ -247,8 +240,6 @@
                         SUBTASK_B: task_b,
                     }
                     if (result.SUBTASK_A && result.SUBTASK_B) {
-                        STOP_TASK(task_a);
-                        STOP_TASK(task_b);
                         if (param_a == buy_open && long_volume == 0) { long_volume = volume; }
                         if (param_a == sell_close && long_volume > 0) { long_volume = 0; }
                         if (param_a == sell_open && short_volume == 0) { short_volume = volume; }
@@ -261,16 +252,21 @@
             return;
         }
 
+        // 修改为追单模式
         function* TaskSingleOrder(C, order_param) {
-            var quote = C.GET_QUOTE(order_param.ins_id);
+            var quote = C.GET_QUOTE({ id: order_param.ins_id });
+            var rest_volume = order_param.volume;
             // 设定为当前对手价
-            order_param.limit_price = (order_param.direction === 'SELL') ? quote.bid_price1 : quote.ask_price1;
-            var order = C.INSERT_ORDER(order_param);
-            while (order.status != 'FINISHED') {
+            while (rest_volume > 0) {
+                // 设定为当前对手价
+                order_param.limit_price = (order_param.direction === 'SELL') ? quote.bid_price1 : quote.ask_price1;
+                var order = C.INSERT_ORDER(order_param);
                 var result = yield {
-                    UPDATED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA) },
+                    UPDATED: function () { return C.GET_ORDER({ id: order.exchange_order_id, from: C.LAST_UPDATED_DATA }); },
                     USER_CLICK_STOP: C.ON_CLICK('STOP'),
                 };
+                if (order.status != "FINISHED") C.CANCEL_ORDER(order);
+                rest_volume -= (order.volume_orign - order.volume_left);
                 if (result.USER_CLICK_STOP) {
                     C.CANCEL_ORDER(order);
                     break;
@@ -285,7 +281,6 @@
             $('button.START').on('click', function () {
                 START_TASK(TaskSpread);
             });
-
         });
     </script>
 </body>
