@@ -169,58 +169,6 @@ class TaskCtx {
         return this._on_event_callback('change', id);
     }
 
-    GET_ACCOUNT_ID() {
-        this.account_id = DM.get_account_id();
-        if (this.account_id) return this.account_id;
-        else throw "not logined";
-    }
-
-    GET_ACCOUNT({ from = DM.datas } = {}) {
-        return DM.get_data('trade/' + this.account_id + '/accounts/CNY', from);
-    }
-
-    GET_POSITION({ from = DM.datas } = {}) {
-        return DM.get_data('trade/' + this.account_id + '/positions', from);
-    }
-
-    GET_SESSION({ from = DM.datas } = {}) {
-        return DM.get_data('trade/' + this.account_id + '/session', from);
-    }
-
-    GET_QUOTE({ id, from = DM.datas } = {}) {
-        // 订阅行情
-        var ins_list = DM.datas.ins_list;
-        if (ins_list && !ins_list.includes(id)) {
-            id = (ins_list.substr(-1, 1) === ',') ? id : (',' + id);
-            var s = ins_list + id;
-            WS.sendJson({
-                aid: "subscribe_quote",
-                ins_list: s
-            });
-        }
-        return DM.get_data('quotes/' + id, from);
-    }
-
-    GET_ORDER({ id, from = DM.datas } = {}) {
-        if (type(id) == 'String') {
-            return DM.get_data('trade/' + this.account_id + '/orders/' + id, from);
-        } else {
-            var orders = {};
-            for (var ex_or_id in this.orders) {
-                var ord = DM.get_data('trade/' + this.account_id + '/orders/' + ex_or_id, from);
-                if (ord) {
-                    if (ord.status == 'FINISHED' && ord.volume_orign == ord.volume_left) continue;
-                    orders[ex_or_id] = ord;
-                }
-            }
-            return orders;
-        }
-    }
-
-    GET_COMBINE({ id, from = DM.datas } = {}) {
-        return DM.get_data('combines/USER.' + id, from);
-    }
-
     SET_STATE(cmd) {
         cmd = cmd.toUpperCase();
         if (cmd === 'START' || cmd === 'RESUME') {
@@ -238,6 +186,56 @@ class TaskCtx {
         }
     }
 }
+
+const DataOperationFuncs = {
+    GET_ACCOUNT_ID () {
+        this.account_id = DM.get_account_id();
+        if (this.account_id) return this.account_id;
+        else throw "not logined";
+    },
+    GET_ACCOUNT(from = DM.datas) {
+        return DM.get_data('trade/' + this.account_id + '/accounts/CNY', from);
+    },
+    GET_POSITION(from = DM.datas) {
+        return DM.get_data('trade/' + this.account_id + '/positions', from);
+    },
+    GET_SESSION(from = DM.datas) {
+        return DM.get_data('trade/' + this.account_id + '/session', from);
+    },
+    GET_QUOTE(id, from = DM.datas) {
+        // 订阅行情
+        var ins_list = DM.datas.ins_list;
+        if (ins_list && !ins_list.includes(id)) {
+            id = (ins_list.substr(-1, 1) === ',') ? id : (',' + id);
+            var s = ins_list + id;
+            WS.sendJson({
+                aid: "subscribe_quote",
+                ins_list: s
+            });
+        }
+        return DM.get_data('quotes/' + id, from);
+    },
+    GET_ORDER(id, from = DM.datas) {
+        if (type(id) == 'String') {
+            return DM.get_data('trade/' + this.account_id + '/orders/' + id, from);
+        } else {
+            var orders = {};
+            for (var ex_or_id in this.orders) {
+                var ord = DM.get_data('trade/' + this.account_id + '/orders/' + ex_or_id, from);
+                if (ord) {
+                    if (ord.status == 'FINISHED' && ord.volume_orign == ord.volume_left) continue;
+                    orders[ex_or_id] = ord;
+                }
+            }
+            return orders;
+        }
+    },
+    GET_COMBINE(id, from = DM.datas) {
+        return DM.get_data('combines/USER.' + id, from);
+    }
+}
+
+Object.assign(TaskCtx.prototype, DataOperationFuncs);
 
 class Task {
     constructor(id, func, waitConditions = null) {

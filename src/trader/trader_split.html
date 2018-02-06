@@ -218,10 +218,10 @@
         function* TaskQuote(C) {
             while (true) {
                 var result = yield {
-                    UPDATED_QUOTE: function () { return C.GET_QUOTE({ id: UI.instrument, from: C.LAST_UPDATED_DATA }) },
+                    UPDATED_QUOTE: function () { return C.GET_QUOTE(UI.instrument, C.LAST_UPDATED_DATA) },
                     CHANGED: C.ON_CHANGE('instrument')
                 };
-                var quote = C.GET_QUOTE({ id: UI.instrument });
+                var quote = C.GET_QUOTE(UI.instrument);
                 UI(quote);
             }
         }
@@ -232,7 +232,7 @@
             }
             C.SET_STATE('START');
 
-            var quote = C.GET_QUOTE({ id: UI.instrument });
+            var quote = C.GET_QUOTE(UI.instrument);
             if (!quote) {
                 C.SET_STATE('STOP');
                 STOP_TASK(task_trade);
@@ -279,7 +279,7 @@
                     }
                 }
                 var result = yield {
-                    ORDER_CHANGED: function () { return C.GET_ORDER({ from: C.LAST_UPDATED_DATA }); },
+                    ORDER_CHANGED: function () { return C.GET_ORDER(null, C.LAST_UPDATED_DATA); },
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
                     USER_CLICK_STOP: C.ON_CLICK('STOP')
                 }
