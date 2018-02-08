@@ -292,6 +292,8 @@ const TaskManager = (function (task) {
                 status[k] = checkItem(node[k]);
             }
             return status;
+        } else {
+            return node;
         }
     }
 
