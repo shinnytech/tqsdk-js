@@ -188,22 +188,22 @@
         function* TaskQuote(C) {
             while (true) {
                 var result = yield {
-                    UPDATED_A: function () { return C.GET_QUOTE({id:UI.insA, from:C.LAST_UPDATED_DATA}); },
-                    UPDATED_B: function () { return C.GET_QUOTE({id:UI.insB, from:C.LAST_UPDATED_DATA}); },
+                    UPDATED_A: function () { return C.GET_QUOTE(UI.insA, C.LAST_UPDATED_DATA); },
+                    UPDATED_B: function () { return C.GET_QUOTE(UI.insB, C.LAST_UPDATED_DATA); },
                     CHANGED_A: C.ON_CHANGE('insA'),
                     CHANGED_B: C.ON_CHANGE('insB'),
                 };
-                var quoteA = C.GET_QUOTE({id:UI.insA});
-                var quoteB = C.GET_QUOTE({id:UI.insB});
+                var quoteA = C.GET_QUOTE(UI.insA);
+                var quoteB = C.GET_QUOTE(UI.insB);
                 UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
                 UI.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
             }
         }
 
         function* TaskSpread(C) {
-            var quoteA = C.GET_QUOTE({id:UI.insA});
-            var quoteB = C.GET_QUOTE({id:UI.insB});
-            if(!quoteA || !quoteB) return;
+            var quoteA = C.GET_QUOTE(UI.insA);
+            var quoteB = C.GET_QUOTE(UI.insB);
+            if (!quoteA || !quoteB) return;
 
             C.SET_STATE('START');
             var short_volume = 0, long_volume = 0;
@@ -236,10 +236,10 @@
                     var task_a = START_TASK(TaskSingleOrder, Object.assign({}, order_a, param_a));
                     var task_b = START_TASK(TaskSingleOrder, Object.assign({}, order_b, param_b));
                     var result = yield {
-                        SUBTASK_A: task_a,
-                        SUBTASK_B: task_b,
+                        SUBTASK: [task_a, task_b],
                     }
-                    if (result.SUBTASK_A && result.SUBTASK_B) {
+                    // 全部task结束
+                    if (result.SUBTASK.reduce((a, b) => a && b)) {
                         if (param_a == buy_open && long_volume == 0) { long_volume = volume; }
                         if (param_a == sell_close && long_volume > 0) { long_volume = 0; }
                         if (param_a == sell_open && short_volume == 0) { short_volume = volume; }
@@ -254,7 +254,7 @@
 
         // 修改为追单模式
         function* TaskSingleOrder(C, order_param) {
-            var quote = C.GET_QUOTE({ id: order_param.ins_id });
+            var quote = C.GET_QUOTE(order_param.ins_id);
             var rest_volume = order_param.volume;
             // 设定为当前对手价
             while (rest_volume > 0) {
@@ -262,7 +262,7 @@
                 order_param.limit_price = (order_param.direction === 'SELL') ? quote.bid_price1 : quote.ask_price1;
                 var order = C.INSERT_ORDER(order_param);
                 var result = yield {
-                    UPDATED: function () { return C.GET_ORDER({ id: order.exchange_order_id, from: C.LAST_UPDATED_DATA }); },
+                    UPDATED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA); },
                     USER_CLICK_STOP: C.ON_CLICK('STOP'),
                 };
                 if (order.status != "FINISHED") C.CANCEL_ORDER(order);
