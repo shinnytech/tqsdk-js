@@ -23,7 +23,7 @@ graphviz_dot = 'dot'
 #                      '-Nfontname=Georgia',
 #                      '-Efontname=Georgia']
 # 输出格式，默认png，这里我用svg矢量图
-# graphviz_output_format = 'svg'
+graphviz_output_format = 'svg'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
