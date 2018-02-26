@@ -1,6 +1,6 @@
 .. _s_set_state:
 
-SET_STATE 
+方法 C.SET_STATE 
 ==================================
 
 .. js:function:: SET_STATE(state)
