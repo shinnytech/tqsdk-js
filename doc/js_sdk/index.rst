@@ -25,31 +25,41 @@
 .. toctree::
     :maxdepth: 1
 
-    example/index.rst
-
+    example/1_prepare.rst
+    example/2_new.rst
+    example/3_config.rst
+    example/4_define.rst
+    
 第二章 开发流程
 ------------------------------------------
 
 .. toctree::
     :maxdepth: 1
 
-    workflow/index.rst
+    workflow/1_page.rst
+    workflow/2_start_stop.rst
+    workflow/3_function.rst
+    workflow/4_yield.rst
 
 第三章 函数列表
 ------------------------------------------
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
 
     funs/global_funs.rst
+
+.. toctree::
+    :maxdepth: 3
+    
     funs/system_funs.rst
 
 第四章 更多示例 
 ------------------------------------------
 
-1. :ref:`3_1_spread`
-2. :ref:`3_2_split`
-3. :ref:`3_3_combine`
++ :ref:`1_spread`
++ :ref:`2_split`
++ :ref:`3_combine`
 
 .. _天勤客户端下载地址: http://tq18.cn/
 .. _Chrome 浏览器下载地址: https://www.google.com/chrome/browser/desktop/index.html

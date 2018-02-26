@@ -1,6 +1,6 @@
 .. _s_get_combine:
 
-方法 GET_COMBINE 
+方法 C.GET_COMBINE 
 ==================================
 
 获取用户自定义组合信息
@@ -15,22 +15,32 @@
 数据源
 ----------------------------------
 
-+------------------------+------------+--------------+
-| from                   | id         | default      |
-+========================+============+==============+
-| Ctx.LATEST_DATA        | instrument | CFFEX.TF1803 |
-+------------------------+------------+--------------+
-| Ctx.LAST_UPDATED_DATA  | volume     | 3            |
-+------------------------+------------+--------------+
+C.LATEST_DATA
 
+C.LAST_UPDATED_DATA 
 
+.. hint::
+    这里 C 表示 Task 函数的一个参数。
+    
 示例
 ----------------------------------
+
+如果您想查看某个自定义组合的信息可以这样查看：
 
 .. code-block:: javascript
 
     function * Task(C){
         ...
-        var weights = C.GET_COMBINE('rr', C.LAST_UPDATED_DATE);
+        var weights = C.GET_COMBINE('rr');
+        ...
+    }
+
+如果您想知道最近一次数据包中自定义组合的信息有没有更改，可以这样写：
+
+.. code-block:: javascript
+
+    function * Task(Ctx){
+        ...
+        var weights = Ctx.GET_COMBINE('rr', C.LAST_UPDATED_DATE);
         ...
     }

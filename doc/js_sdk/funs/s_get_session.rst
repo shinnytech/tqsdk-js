@@ -1,6 +1,6 @@
 .. _s_get_session:
 
-GET_SESSION 
+方法 C.GET_SESSION 
 ==================================
 
 获取当前会话信息

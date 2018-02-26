@@ -14,65 +14,94 @@ Generator 函数是 ES6 提供的一种异步编程解决方案，执行 Generat
 客户端在每次收到服务器发来的数据包时，都会检查 yield 后面的条件，只要其中某个条件成立，程序即会继续运行到下一个 yield。
 
 
-.. graphviz::
-
-    digraph idp_modules{
-        fontname = "Microsoft YaHei";
-        rankdir = TB;
-     
-        node [fontname = "Microsoft YaHei", fontsize = 12, shape = "record" ];
-        edge [fontname = "Microsoft YaHei", fontsize = 10 ];
-
-        subgraph cluster_sl{
-             label="IDP支持层";
-             bgcolor="mintcream";
-             node [shape="Mrecord", color="skyblue", style="filled"];
-             network_mgr [label="网络管理器"];
-             log_mgr [label="日志管理器"];
-             module_mgr [label="模块管理器"];
-             conf_mgr [label="配置管理器"];
-             db_mgr [label="数据库管理器"];
-        };
-     
-        subgraph cluster_md{
-             label="可插拔模块集";
-             bgcolor="lightcyan";
-             node [color="chartreuse2", style="filled"];
-             mod_dev [label="开发支持模块"];
-             mod_dm [label="数据建模模块"];
-             mod_dp [label="部署发布模块"];
-        };
-     
-     mod_dp -> mod_dev [label="依赖..."];
-     mod_dp -> mod_dm [label="依赖..."];
-     mod_dp -> module_mgr [label="安装...", color="yellowgreen", arrowhead="none"];
-     mod_dev -> mod_dm [label="依赖..."];
-     mod_dev -> module_mgr [label="安装...", color="yellowgreen", arrowhead="none"];
-     mod_dm -> module_mgr [label="安装...", color="yellowgreen", arrowhead="none"];
-    }
-
 yield 返回数据的说明 
 
 yield 返回的是一个对象，根据不同对象的类型，返回不同结果。
 
-+ Function
++ Function 返回函数执行结果
 
-+ Array
+.. code-block:: javascript
 
-+ Object
+    function* TaskQuote(C) {
+        while (true) {
+            var result = yield {
+                QUOTE: function () { return C.GET_QUOTE(UI.instrument) },
+            };
+            /** js code **/
+        }
+    }
 
-.. math::
+    // 如果传入条件是可执行的普通，则直接返回函数执行结果。在这里就是指定合约的行情。
+    result.QUOTE = {
+        instrument_id: ... ,
+        ask_price1: ... , // 卖1价
+        ask_volume1: ... , // 卖1量
+        bid_price1: ... , // 买1价
+        bid_volume1: ... , // 买1量
+        last_price: ... // 最新价
+        ....
+    }
 
-==========  ==========  ==========
-type        return
-==========  ==========  ==========
-Function    False  False
-Array        False  False
-Object       True   False
-Others        True   True
-==========  ==========  ==========
++ Task 返回 true / false， 返回 Task 是否已经执行完毕
 
+.. code-block:: javascript
 
+    function* TaskQuote(C) {
+        TaskList = [];
+        TaskList.push(START_TASK(TaskSingleOrder));
+        TaskList.push(START_TASK(TaskSingleOrder));
+        while (true) {
+            var result = yield {
+                ONE: START_TASK(TaskSingleOrder),
+                TWO: TaskList,
+            };
+            /** js code **/
+        }
+    }
 
-http://es6.ruanyifeng.com/#docs/generator
-https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Generator
+    // 得到返回的对象的数据结构, Task 对象返回 true/false
+    result = {
+        ONE: false,
+        TWO: [true, false]
+    } 
+
++ Array 返回数组，对应输入数组的位置
+
+.. code-block:: javascript
+
+    function* TaskQuote(C) {
+        while (true) {
+            var result = yield {
+                QUOTE: [
+                    function condA(){},
+                    function condB(){}
+                ],
+            };
+            /** js code **/
+        }
+    }
+
+    // 得到返回的对象的数据结构, 数组顺序与传入的检查条件一一对应
+    result.QUOTE = [,]
+
++ Object 返回对象，对应输入对象的键值
+
+.. code-block:: javascript
+
+    function* TaskQuote(C) {
+        while (true) {
+            var result = yield {
+                QUOTE: {
+                    condA: function (){},
+                    condB: function (){},
+                },
+            };
+            /** js code **/
+        }
+    }
+
+    // 得到返回的对象的数据结构
+    result.QUOTE = { 
+        condA: ... ,
+        condB: ...
+    }
