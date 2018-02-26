@@ -3,6 +3,7 @@ node_modules/
 dist/
 .DS_Store
 doc/_build/
+doc/js_sdk/_build
 extensions/
 
 
