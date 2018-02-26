@@ -47,31 +47,27 @@
                         <div class="col col-xs-3">
                             <span class="pull-right">买开</span>
                         </div>
-                        <div class="col col-xs-9">
+                        <div class="col col-xs-3">
                             <input type="number" class="form-control input-sm" placeholder="买开" value="154" id="price_buy_open">
+                        </div>
+                        <div class="col col-xs-3">
+                            <span class="pull-right">卖开</span>
+                        </div>
+                        <div class="col col-xs-3">
+                            <input type="number" class="form-control input-sm" placeholder="卖开" value="133" id="price_sell_open">
                         </div>
                     </div>
                     <div class="row">
                         <div class="col col-xs-3">
                             <span class="pull-right">卖平</span>
                         </div>
-                        <div class="col col-xs-9">
+                        <div class="col col-xs-3">
                             <input type="number" class="form-control input-sm" placeholder="卖平" value="160" id="price_sell_close">
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col col-xs-3">
-                            <span class="pull-right">卖开</span>
-                        </div>
-                        <div class="col col-xs-9">
-                            <input type="number" class="form-control input-sm" placeholder="卖开" value="133" id="price_sell_open">
-                        </div>
-                    </div>
-                    <div class="row">
                         <div class="col col-xs-3">
                             <span class="pull-right">买平</span>
                         </div>
-                        <div class="col col-xs-9">
+                        <div class="col col-xs-3">
                             <input type="number" class="form-control input-sm" placeholder="买平" value="188" id="price_buy_close">
                         </div>
                     </div>
@@ -230,21 +226,24 @@
                     USER_CLICK_STOP: C.ON_CLICK('STOP')
                 };
                 if (result.USER_CLICK_STOP) break;
-
                 var [param_a, param_b] = result.PRARM;
                 if (param_a && param_b) {
                     var task_a = START_TASK(TaskSingleOrder, Object.assign({}, order_a, param_a));
                     var task_b = START_TASK(TaskSingleOrder, Object.assign({}, order_b, param_b));
-                    var result = yield {
-                        SUBTASK: [task_a, task_b],
-                    }
-                    // 全部task结束
-                    if (result.SUBTASK.reduce((a, b) => a && b)) {
-                        if (param_a == buy_open && long_volume == 0) { long_volume = volume; }
-                        if (param_a == sell_close && long_volume > 0) { long_volume = 0; }
-                        if (param_a == sell_open && short_volume == 0) { short_volume = volume; }
-                        if (param_a == buy_close && short_volume > 0) { short_volume = 0; }
-                    }
+                    while(true){
+                        var result = yield {
+                            SUBTASK: [task_a, task_b],
+                            USER_CLICK_STOP: C.ON_CLICK('STOP')
+                        }
+                        if (result.SUBTASK.reduce((a, b) => a && b)) {
+                            if (param_a == buy_open && long_volume == 0) { long_volume = volume; }
+                            if (param_a == sell_close && long_volume > 0) { long_volume = 0; }
+                            if (param_a == sell_open && short_volume == 0) { short_volume = volume; }
+                            if (param_a == buy_close && short_volume > 0) { short_volume = 0; }
+                            break;
+                        }
+                        if (result.USER_CLICK_STOP) break;
+                    }  
                 }
             }
             // 任务结束
