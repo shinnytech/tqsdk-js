@@ -1,4 +1,4 @@
-.. _s_order_insert:
+.. _s_cancel_order:
 
 方法 C.CANCEL_ORDER
 ==================================
@@ -29,16 +29,13 @@
         // 下单不成功，退出
         if(!order) return;
         // 下单成功，继续执行后续代码
-        while (true) {
-            var result = yield {
-                UPDATED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA); },
-                USER_CLICK_STOP: C.ON_CLICK('STOP'),
-            };
-            if (order.status != "FINISHED") C.CANCEL_ORDER(order);
-            if (result.USER_CLICK_STOP) {
-                C.CANCEL_ORDER(order);
-                break;
-            }
-        }
+        var result = yield {
+            UPDATED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA); },
+            USER_CLICK_STOP: C.ON_CLICK('STOP'),
+        };
+        if (order.status != "FINISHED")
+            C.CANCEL_ORDER(order);
+        if (result.USER_CLICK_STOP)
+            return;
         ...
     }

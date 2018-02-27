@@ -1,14 +1,13 @@
-.. _g_stop_task:
+.. _g_resume_task:
 
-STOP_TASK 停止
+RESUME_TASK 恢复
 ==============================
+恢复运行一个被暂停的任务。
 
-停止运行一个交易程序。
-
-.. js:function:: STOP_TASK(task)
+.. js:function:: RESUME_TASK(task)
 
    :param object task: 调用 START_TASK() 时返回的对象。
-   :returns: null
+   :returns: task 对象 
 
 示例
 ----------------------------------
@@ -20,5 +19,6 @@ STOP_TASK 停止
     }
 
     var task = START_TASK(TaskOrder);
-    STOP_TASK(task);
+    PAUSE_TASK(task);
+    RESUME_TASK(task);
     

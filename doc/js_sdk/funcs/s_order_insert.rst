@@ -1,4 +1,4 @@
-.. _s_order_insert:
+.. _s_insert_order:
 
 方法 C.INSERT_ORDER
 ==================================

@@ -1,3 +1,24 @@
+示例程序笔记:
+
+trader_split:
+    等待按开始按钮的部分太复杂
+    为何要有一个 completed 标志?
+    ORDER_CHANGED 等待某个委托单变动时, 是否可以在框架上支持?
+
+trader_combine:
+    启动时为何需要一个 while(...)?
+    TaskSingleOrder只负责发出一个单, 那为何要有这个task呢? 并没有超时追下的机制
+
+trader_spread:
+    yield 中的return有用吗?
+    246行的这个wait是什么用处?
+    策略执行效果与说明文字不匹配
+
+
+
+
+
+
 重复代码考虑整理合并
 
 基础:
@@ -37,6 +58,9 @@ yield等待处需要仔细设计:
         2. function可以返回任意类型result, 返回 null 或 false 或 {} 或 [] 被认为判定失败
 
         3. UI 处理与数据集整合, 任何对UI的改变自动与屏幕同步
+			ui.btn-test.text ="启动"
+			var v = ui.text-volume.text;
+			
             SetData("/ui/btn/text", "启动");
             var v = GetData("/ui/btn/status"); //"CLICKED" or "DOWN"
 

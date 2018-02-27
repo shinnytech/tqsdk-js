@@ -10,8 +10,8 @@ from wh import wenhua_translate, TranslateException
 
 logging.basicConfig(
     level=logging.INFO,
-    filename="/var/log/tatranslator.log",
-    # filename="c:\\tmp\\tatranslator.log",
+    # filename="/var/log/tatranslator.log",
+    filename="c:\\tmp\\tatranslator.log",
     # filemode="w",
     format='%(asctime)-15s %(message)s'
 )

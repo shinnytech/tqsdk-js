@@ -1,4 +1,4 @@
-.. _s_ui:
+.. _g_ui:
 
 UI
 ==================================
@@ -12,6 +12,7 @@ UI 部分，UI 用于读取页面填写的参数，或者在页面上填写指�
 
     <input type="radio" class="tq-datas" name="direction" value="BUY" checked>
     <input type="radio" class="tq-datas" name="direction" value="SELL">
+
 
 UI 读、写一组参数对象
 ------------------------------------
@@ -40,12 +41,13 @@ UI 作为函数调用，可以直接读、写一组参数对象。
         "direction" : "SELL",
         "volume" : 100
     }
-    UI(params); // 可以更新页面对应的数据
+    UI(params); // 可以更新页面对应控件的内容
+
 
 UI 读、写指定参数
 ------------------------------------
 
-UI 用点操作符可以直接读写到对应的字段值。
+UI 用点操作符可以直接读写到对应控件的内容。
 
 + 读某个参数
 
