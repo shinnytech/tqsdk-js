@@ -11,10 +11,8 @@
     :glob:
     :maxdepth: 1
 
-    g_*
-
-
-
-
-
-
+    g_start_task.rst
+    g_pause_task.rst
+    g_resume_task.rst
+    g_stop_task.rst
+    g_ui.rst

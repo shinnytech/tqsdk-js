@@ -1,12 +1,9 @@
 .. _g_start_task:
 
-START_TASK
+START_TASK 启动
 ==============================
 
 全局函数，用于控制 TASK 运行生命周期的。函数名称形式，全部大写字母，单词中间以 ``_`` 分隔。
-
-启动、暂停、恢复和停止任务
----------------------------------------------------
 
 START_TASK 启动
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -18,3 +15,14 @@ START_TASK 启动
    :param option task_func: 后面可以传入若干个参数，参数会按照顺序传入 task_func。
    :returns: task 对象 
 
+示例
+----------------------------------
+
+.. code-block:: javascript
+
+    function *TaskOrder(C){
+        ......
+    }
+
+    var task = START_TASK(TaskOrder);
+    

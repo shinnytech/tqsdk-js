@@ -1,6 +1,6 @@
 .. _s_on_changed:
 
-ON_CHANGED 
+方法 C.ON_CHANGED 
 ==================================
 
 .. js:function:: ON_CHANGED(data_object)

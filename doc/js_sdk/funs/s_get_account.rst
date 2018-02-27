@@ -1,6 +1,6 @@
 .. _s_get_account:
 
-方法 GET_ACCOUNT
+方法 C.GET_ACCOUNT
 ==================================
 
 获取账户信息

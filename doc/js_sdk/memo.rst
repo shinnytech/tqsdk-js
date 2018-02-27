@@ -185,36 +185,35 @@ Chrome 浏览器， `Chrome 浏览器下载地址`_ 。
 ----------------------------------------------------------------------
 
 .. danger::
-   Beware killer rabbits!
+   Beware killer rabbits! -- danger
 
 .. error::
-   Beware killer rabbits!
-
-.. caution::
-   Beware killer rabbits!
-
-.. attention::
-   Beware killer rabbits!
-
+   Beware killer rabbits! -- error
 
 .. warning::
-   Beware killer rabbits!
+   Beware killer rabbits! -- warning
+
+.. caution::
+   Beware killer rabbits! -- caution
+
+.. attention::
+   Beware killer rabbits! -- attention
 
 .. important::
-   Beware killer rabbits!
+   Beware killer rabbits! -- important
 
 .. note:: This is a note admonition.
-   This is the second line of the first paragraph.
+   This is the second line of the first paragraph. -- note
 
    - The note contains all indented body elements
      following.
    - It includes this bullet list.
 
 .. hint::
-   Beware killer rabbits!
+   Beware killer rabbits! -- hint
 
 .. tip::
-   Beware killer rabbits!
+   Beware killer rabbits! -- tip
 
 .. contents:: :depth: 2 
 

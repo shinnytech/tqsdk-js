@@ -1,6 +1,6 @@
 .. _s_on_click:
 
-ON_CLICK 只读属性
+方法 C.ON_CLICK
 ==================================
 
 .. js:function:: ON_CHANGED(data_object)
