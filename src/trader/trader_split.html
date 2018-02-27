@@ -244,9 +244,9 @@
             var max_price = Math.max(UI.price_from, UI.price_to);
             var min_price = Math.min(UI.price_from, UI.price_to);
             // 价格设定为跟盘价格
-            // var price_field = (UI.direction === 'SELL') ? 'ask_price1' : 'bid_price1';
+            var price_field = (UI.direction === 'SELL') ? 'ask_price1' : 'bid_price1';
             // 价格设定为对手价
-            var price_field = (UI.direction === 'BUY') ? 'ask_price1' : 'bid_price1';
+            // var price_field = (UI.direction === 'BUY') ? 'ask_price1' : 'bid_price1';
 
             var order_params = {
                 exchange_id: exchange_id,
