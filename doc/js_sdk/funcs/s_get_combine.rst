@@ -39,8 +39,18 @@ C.LAST_UPDATED_DATA
 
 .. code-block:: javascript
 
-    function * Task(Ctx){
+    function * Task(C){
         ...
-        var weights = Ctx.GET_COMBINE('rr', C.LAST_UPDATED_DATE);
+        var weights = C.GET_COMBINE('rr', C.LAST_UPDATED_DATE);
         ...
+    }
+
+返回数据结构示例
+----------------------------------
+
+.. code-block:: javascript
+
+    {
+        'SHFE.cu1803': 1,
+        'SHFE.cu1805': -1,
     }

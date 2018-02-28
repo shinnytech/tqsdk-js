@@ -19,7 +19,7 @@ C.LATEST_DATA
 C.LAST_UPDATED_DATA 
 
 .. hint::
-    这里 C 表示 Task 函数的一个参数。
+    这里 C 表示 Task 函数的第一个参数。
 
 
 示例
@@ -49,9 +49,9 @@ C.LAST_UPDATED_DATA
 
 .. code-block:: javascript
 
-    function * Task(Ctx){
+    function * Task(C){
         ...
-        var order = Ctx.GET_ORDER(order_id, C.LAST_UPDATED_DATE);
+        var order = C.GET_ORDER(order_id, C.LAST_UPDATED_DATE);
         ...
     }
 
@@ -59,8 +59,40 @@ C.LAST_UPDATED_DATA
 
 .. code-block:: javascript
 
-    function * Task(Ctx){
+    function * Task(C){
         ...
-        var orders = Ctx.GET_ORDER(null, C.LAST_UPDATED_DATE);
+        var orders = C.GET_ORDER(null, C.LAST_UPDATED_DATE);
         ...
+    }
+
+返回数据结构示例
+----------------------------------
+
+.. code-block:: javascript
+
+    {
+        //核心字段
+        "order_type": "TRADE",                        //指令类型
+        "session_id": "abc",                          //会话ID
+        "order_id": "123",                            //委托单ID, 在每个会话中唯一
+        "exchange_id": "SHFE",                        //交易所
+        "instrument_id": "cu1801",                    //合约代码
+        "direction": "BUY",                           //下单方向
+        "offset": "OPEN",                             //开平标志
+        "volume_orign": 6,                            //总报单手数
+        "volume_left": 3,                             //未成交手数
+        "trade_type": "TAKEPROFIT",                   //指令类型
+        "price_type": "LIMIT",                        //价格类型
+        "limit_price": 45000,                         //委托价格, 仅当 price_type = LIMIT 时有效
+        "time_condition": "GTD",                      //时间条件
+        "volume_condition": "ANY",                    //数量条件
+        "min_volume": 0,
+        "hedge_flag": "SPECULATION",                  //保值标志
+        "status": "ALIVE",                            //委托单状态, ALIVE=有效, FINISHED=已完
+        //参考字段
+        "last_msg": "",                               //最后操作信息
+        "force_close": "NOT",                         //强平原因
+        "frozen_money": 15750,                        //冻结金额
+        "insert_date_time": "151754",                 //下单时间  
+        "exchange_order_id": "434214",                //交易所单号
     }

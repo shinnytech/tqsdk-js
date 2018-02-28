@@ -1,46 +1,27 @@
 Quick Start
-########################################
+#################################################
 
 目标
-========================================
+=================================================
 示例的目标：构建一个交易算法，以指定价格、手数下单，直到全部手数成交。
 
-我们把界面上的参数列出来：
+最终界面如下图所示：
 
-+ 用户填写的参数
+.. figure:: _static/example_ui_1.png
+    :width: 500px
+    :figwidth: 80%
+    :alt: 示例目标截图
 
-+------------+------------+--------------+
-| name       | id         | default      |
-+============+============+==============+
-| 合约       | instrument | CFFEX.TF1803 |
-+------------+------------+--------------+
-| 手数       | volume     | 3            |
-+------------+------------+--------------+
-| 价格       | limit_price| 96           |
-+------------+------------+--------------+
 
-+ 点击按钮时，携带的参数
-
-========== ========== ==========
-button     direction  offset
-========== ========== ==========
-买开         BUY        OPEN
-卖开         SELL       OPEN
-买平         BUY        CLOSE
-卖平         SELL       CLOSE
-========== ========== ==========
-
-在整个交易程序中，需要完成以下步骤：
++ 在这个示例程序中，将会完成以下步骤：
 
 1. 监听用户单击事件，获取用户交易买卖、开平的参数
 2. 读取用户中页面上填写的其他参数
 3. 根据这些参数，下单
 4. 如果挂单交易完成，结束程序；如果用户单击结束按钮，撤单后结束程序
 
-
-
 环境准备
-========================================
+======================================================
 
 在开始真正编写代码前，先来检查以下你的电脑环境，确保达到以下要求：
 
@@ -52,9 +33,7 @@ button     direction  offset
     - 等等
 + Chrome 浏览器， `Chrome 浏览器下载地址`_ 。
 
-
-
-新建交易程序
+交易程序
 ======================================================
 
 软件自带的交易页面存储的位置在 <...>，本章的通过一个完整示例，来告诉用户如何自定义交易程序。
@@ -63,15 +42,9 @@ button     direction  offset
 
 1. UI 界面，用来展示信息和用户交互。UI 界面就是普通的 HTML。如果您还不熟悉，可以参考 `Html 教程`_。
 
-2. JavaScript 逻辑部分，主要负责实现交易逻辑。本篇教程主要针对这一部分。
+2. JavaScript 逻辑部分，主要负责实现交易逻辑。本篇教程主要针对这一部分。为了方便书写，我们把负责交易逻辑的 js 代码添加到页面的 script 标签里。
 
-
-新建文件
--------------------------------------------------------
-
-在交易页面存储的目录下，找到文件 ``trader_example.html``。
-
-文件 ``trader_example.html`` 完整实现本示例的 demo。
+本章示例程序为 ``trader_example.html`` 文件，它完整实现本示例的 demo。
 
 .. tip::
     当您自己编写新的交易程序时，可以复制 ``trader_example.html``，直接修改文件名和内容。
@@ -88,7 +61,11 @@ button     direction  offset
 
 这时候软件中应该能够显示以下界面：
 
-.. image:: _static/example_ui_client.png
+.. figure:: _static/example_ui_client.png
+    :width: 800px
+    :figwidth: 80%
+    :alt: map to buried treasure
+
 
 方式二、在 Chrome 浏览器中打开
 *******************************************************
@@ -96,29 +73,51 @@ button     direction  offset
 
 这时候页面应该能够显示以下界面：
 
-.. image:: _static/example_ui.png
-
-目前，我们已经有了一个简单页面，下面我们就来修改代码，实现最终的交易需求。
-
+.. figure:: _static/example_ui.png
+    :width: 800px
+    :figwidth: 80%
+    :alt: map to buried treasure
 
 在页面上显示对应的 UI
----------------------------------------
+-------------------------------------------------------
+
+分析之前页面截图，可以得到页面需要以下这些参数：
+
++ 界面上需要用户填写的参数有：
+
++------------+------------+--------------+
+| name       | id         | default      |
++============+============+==============+
+| 合约       | instrument | CFFEX.TF1803 |
++------------+------------+--------------+
+| 手数       | volume     | 3            |
++------------+------------+--------------+
+| 价格       | limit_price| 96           |
++------------+------------+--------------+
+
++ 用户点击按钮时，规定了买卖、开平方向，这一点通过为按钮添加参数来实现：
+
+========== ========== ==========
+button     direction  offset
+========== ========== ==========
+买开         BUY        OPEN
+卖开         SELL       OPEN
+买平         BUY        CLOSE
+卖平         SELL       CLOSE
+========== ========== ==========
 
 界面关键代码
 
 .. code-block:: html
 
     <input type="text" placeholder="合约代码" value="CFFEX.TF1803" id="instrument">
-
     <input type="number" placeholder="手数" value="3" id="volume">
-
     <input type="number" placeholder="价格" value="96" id="limit_price">
 
     <button type="button" class="START" data-direction="BUY" data-offset="OPEN">买开</button>
     <button type="button" class="START" data-direction="SELL" data-offset="OPEN">卖开</button>
     <button type="button" class="START" data-direction="BUY" data-offset="CLOSE">买平</button>
     <button type="button" class="START" data-direction="SELL" data-offset="CLOSE">卖平</button>
-
     <button type="button" class="STOP">停止</button>
 
 .. hint::
@@ -130,55 +129,12 @@ button     direction  offset
     #. button 用 data- 的表示数据， data-direction 表示方向，data-offset 表示开平。
 
 
-页面上的控制按钮
----------------------------------------
+关于页面构成，及页面按钮的监听方式，在 :ref:`ui` 部分有详细说明。
 
-.. code-block:: html
-
-    <button type="button" id="START" data-direction="BUY" data-offset="OPEN">买开</button>
-
-针对以上按钮，有两种监听按钮事件的方式：
-
-1. 传统的 JQuery 方案
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    利用 JQuery 提供的 on 函数来监听事件。
-
-.. code-block:: javascript
-
-    $(function(){
-        $('#START').on('click', function(){
-            START_TASK(xxxtask);
-        });
-    });
-
-2. 利用系统提供的 ON_CLICK 监听函数
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-在 Task 函数内部，则需要通过 C.ON_CLICK 监听按钮事件，返回的对象就是 data-xxx 构成的对象。
-
-.. code-block:: javascript
-
-    function* TaskOrder(C) {
-        var wait = yield {
-            'START': C.ON_CLICK('START'),
-        }
-        C.SET_STATE('START');
-
-        var params = UI(); 
-        params.direction = wait.START.direction; // "BUY"
-        params.offset = wait.START.offset; // "OPEN"
-
-        ......
-    }
-
-下一步，开始完成编辑交易逻辑。
-
-
-交易程序
+完成交易逻辑
 =======================================
 
-交易任务用一个 generate function 来表示，形式为 
+简单来说，交易任务用一个 generate function 来表示，形式为 
 
 .. code-block:: javascript
 
@@ -195,18 +151,10 @@ button     direction  offset
     - 关键字 ``yield`` 表示，函数在执行到这里时，会检查后面对象表示出的条件，并以对象形式返回，后面代码中就可以根据返回的内容执行不同的逻辑。
     - 关键字 ``return`` 表示函数执行完毕。
 
-交易步骤
+关于 Task 框架在 :ref:`task` 有完整的说明。
+
+完整的示例代码
 -------------------------------------------
-
-1. 监听用户单击事件，获取用户交易买卖、开平的参数
-2. 读取用户中页面上填写的其他参数
-3. 根据这些参数，下单
-4. 如果挂单交易完成，结束程序；如果用户单击结束按钮，撤单后结束程序
-
-Example
--------------------------------------------
-
-完整的代码如下：
 
 .. code-block:: javascript
 
@@ -279,13 +227,12 @@ Example
 运行交易程序
 -------------------------------------------
 
-到此，我们就就可以正式运行任务下单了。
+到此，我们就可以正式运行任务下单了。
 
 + 方式一、在天勤客户端中，右击刚刚添加的板块，右键菜单中选择刷新。
 + 方式二、在 Chrome 浏览器中打开，刷新页面，http://taide.tq18.cn/trader/trader_user.html。
 
 单击买开或者卖开按钮，即可开始运行下单任务。试试吧。
-
 
 Refrence
 -------------------------------------------

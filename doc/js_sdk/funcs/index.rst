@@ -20,6 +20,9 @@ UI
 * :ref:`s_get_account`
 * :ref:`s_get_position`
 * :ref:`s_get_order`
+* :ref:`s_get_combine`
+* :ref:`s_get_position`
+* :ref:`s_get_session`
 
 
 监听页面事件

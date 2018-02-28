@@ -15,12 +15,29 @@ UI 用户界面
 在 Task 中监听 UI 动作事件
 ---------------------------------------
 
+有两种推荐的监听按钮事件方案：
+
 .. code-block:: html
 
     <button type="button" id="START" data-direction="BUY" data-offset="OPEN">买开</button>
 
+1. 传统的 JQuery 方案
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-在 Task 内部，通过 ON_CLICK 监听按钮事件，返回的对象就是 data-xxx 构成的对象。
+    利用 JQuery 提供的 on 函数来监听事件。
+
+.. code-block:: javascript
+
+    $(function(){
+        $('#START').on('click', function(){
+            START_TASK(xxxtask);
+        });
+    });
+
+2. 利用系统提供的 ON_CLICK 监听函数
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+在 Task 函数内部，则需要通过 C.ON_CLICK 监听按钮事件，返回的对象就是 data-xxx 构成的对象。
 
 .. code-block:: javascript
 
@@ -28,8 +45,11 @@ UI 用户界面
         var wait = yield {
             'START': C.ON_CLICK('START'),
         }
-        var params = UI();
+        C.SET_STATE('START');
+
+        var params = UI(); 
         params.direction = wait.START.direction; // "BUY"
         params.offset = wait.START.offset; // "OPEN"
+
         ......
     }
