@@ -9,4 +9,4 @@ Javascript SDK
     quick_start.rst
     concept/index.rst
     funcs/index.rst
-    more_examples/index.rst
+    examples/index.rst
