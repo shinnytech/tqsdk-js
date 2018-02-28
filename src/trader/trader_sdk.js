@@ -1,16 +1,10 @@
 /**
  * 通用连接客户端应用
  */
-const AppDataStatus = {
-    receivedData: false,
-    isLogin: false
-};
 const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
     onmessage: function (message) {
         if (message.aid === 'rtn_data') {
             //收到行情数据包，更新到数据存储区
-            if (!AppDataStatus.receivedData) AppDataStatus.receivedData = true;
-            if (!AppDataStatus.isLogin && DM.get_account_id()) AppDataStatus.isLogin = true;
             DM.update_data(message.data);
             TaskManager.run();
         } else if (message.aid === 'update_custom_combine') {
@@ -64,143 +58,37 @@ const PageId = (() => {
 const GenTaskId = GenerateSequence();
 const GenOrderId = GenerateSequence();
 
-class TaskCtx {
-    constructor() {
-        this.unit_id = null;
-        this.unit_mode = true;
-        this.account_id = '';
-        this.orders = {};
-        this.LATEST_DATA = new Proxy(DM.datas, {
-            get: function (target, key, receiver) {
-                return Reflect.get(target, key, receiver);
-            }
-        });
-        this.LAST_UPDATED_DATA = new Proxy(DM.last_changed_data, {
-            get: function (target, key, receiver) {
-                return Reflect.get(target, key, receiver);
-            }
-        });
-    }
+// class TaskCtx {
+//     constructor() {
+//         this.unit_id = null;
+//         this.unit_mode = true;
+//         this.account_id = '';
+//         this.orders = {};
+//     }
+// }
 
-    _cancelOrd(order_id) {
-        WS.sendJson({
-            "aid": "cancel_order",
-            "order_id": order_id,
-            "unit_id": this.unit_id
-        });
-    }
-
-    _insertOrd(ord) {
-        var order_id = BrowserId + '-' + PageId + '-' + GenOrderId.next().value;
-        var send_obj = {
-            "aid": "insert_order",
-            "unit_id": this.unit_id,
-            "order_id": order_id,
-            "exchange_id": ord.exchange_id,
-            "instrument_id": ord.instrument_id,
-            "direction": ord.direction,
-            "offset": ord.offset,
-            "volume": ord.volume,
-            "price_type": "LIMIT",
-            "limit_price": ord.limit_price
-        };
-        WS.sendJson(send_obj);
-
-        var id = this.unit_id + '|' + order_id;
-        if (!this.GET_ORDER(id)) {
-            var orders = {};
-            orders[id] = {
-                order_id: order_id,
-                unit_id: this.unit_id,
-                status: "UNDEFINED",
-                volume_orign: ord.volume,
-                volume_left: ord.volume,
-                exchange_id: ord.exchange_id,
-                instrument_id: ord.instrument_id
-            }
-            DM.update_data({
-                "trade": {
-                    [this.account_id]: {
-                        "orders": orders
-                    }
-                }
-            }, 'local');
+const TQ = {
+    LATEST_DATA: new Proxy(DM.datas, {
+        get: function (target, key, receiver) {
+            return Reflect.get(target, key, receiver);
         }
-        return id;
-    }
-
-    INSERT_ORDER(ord) {
-        this.account_id = DM.get_account_id();
-        if (!this.account_id) {
-            Notify.error('未登录，请在软件中登录后重试。');
-            return false;
+    }),
+    LAST_UPDATED_DATA: new Proxy(DM.last_changed_data, {
+        get: function (target, key, receiver) {
+            return Reflect.get(target, key, receiver);
         }
-        var ord_id = this._insertOrd(ord);
-        return this.orders[ord_id] = this.GET_ORDER(ord_id);
-    }
-
-    CANCEL_ORDER(order) {
-        if (order && order.exchange_order_id) {
-            this._cancelOrd(order.order_id);
-        } else if (this.unit_mode) {
-            for (var order in this.orders) {
-                if (this.orders[order].status == 'ALIVE' || this.orders[order].status == "UNDEFINED")
-                    this._cancelOrd(this.orders[order].order_id);
-            }
-        }
-    }
-
-    _on_event_callback(eType, id) {
-        return function () {
-            if (TaskManager.events[eType] && TaskManager.events[eType][id]) {
-                var d = Object.assign({}, TaskManager.events[eType][id]);
-                delete TaskManager.events[eType][id];
-                return d;
-            }
-            return false;
-        }
-    }
-
-    ON_CLICK(id) {
-        return this._on_event_callback('click', id);
-    }
-
-    ON_CHANGE(id) {
-        return this._on_event_callback('change', id);
-    }
-
-    SET_STATE(cmd) {
-        cmd = cmd.toUpperCase();
-        if (cmd === 'START' || cmd === 'RESUME') {
-            $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
-            $('input').attr('disabled', true);
-            $('button.START').attr('disabled', true);
-        } else if (cmd === 'PAUSE') {
-            $('.panel-title .STATE').html('<span class="label label-warning">暂停</span>');
-            $('input').attr('disabled', true);
-            $('button.START').attr('disabled', true);
-        } else if (cmd === 'STOP') {
-            $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
-            $('input').attr('disabled', false);
-            $('button.START').attr('disabled', false);
-        }
-    }
-}
-
-const DataOperationFuncs = {
+    }),
     GET_ACCOUNT_ID () {
-        this.account_id = DM.get_account_id();
-        if (this.account_id) return this.account_id;
-        else throw "not logined";
+        return DM.get_account_id();
     },
     GET_ACCOUNT(from = DM.datas) {
-        return DM.get_data('trade/' + this.account_id + '/accounts/CNY', from);
+        return DM.get_data('trade/' + DM.get_account_id() + '/accounts/CNY', from);
     },
     GET_POSITION(from = DM.datas) {
-        return DM.get_data('trade/' + this.account_id + '/positions', from);
+        return DM.get_data('trade/' + DM.get_account_id() + '/positions', from);
     },
     GET_SESSION(from = DM.datas) {
-        return DM.get_data('trade/' + this.account_id + '/session', from);
+        return DM.get_data('trade/' + DM.get_account_id() + '/session', from);
     },
     GET_QUOTE(id, from = DM.datas) {
         // 订阅行情
@@ -217,25 +105,121 @@ const DataOperationFuncs = {
     },
     GET_ORDER(id, from = DM.datas) {
         if (type(id) == 'String') {
-            return DM.get_data('trade/' + this.account_id + '/orders/' + id, from);
+            return DM.get_data('trade/' + DM.get_account_id() + '/orders/' + id, from);
         } else {
             var orders = {};
-            for (var ex_or_id in this.orders) {
-                var ord = DM.get_data('trade/' + this.account_id + '/orders/' + ex_or_id, from);
-                if (ord) {
-                    if (ord.status == 'FINISHED' && ord.volume_orign == ord.volume_left) continue;
-                    orders[ex_or_id] = ord;
-                }
+            var all_orders = DM.get_data('trade/' + DM.get_account_id() + '/orders', from);
+            for (var ex_or_id in all_orders) {
+                var ord = all_orders[ex_or_id];
+                if (ord.status == 'FINISHED' && ord.volume_orign == ord.volume_left) continue;
+                if (ord.unit_id == TaskManager.runningTask.unit_id) orders[ex_or_id] = ord;
             }
             return orders;
         }
     },
     GET_COMBINE(id, from = DM.datas) {
         return DM.get_data('combines/USER.' + id, from);
+    },
+    SET_STATE(cmd) {
+        cmd = cmd.toUpperCase();
+        if (cmd === 'START' || cmd === 'RESUME') {
+            $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
+            $('input').attr('disabled', true);
+            $('button.START').attr('disabled', true);
+        } else if (cmd === 'PAUSE') {
+            $('.panel-title .STATE').html('<span class="label label-warning">暂停</span>');
+            $('input').attr('disabled', true);
+            $('button.START').attr('disabled', true);
+        } else if (cmd === 'STOP') {
+            $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
+            $('input').attr('disabled', false);
+            $('button.START').attr('disabled', false);
+        }
+    },
+    ON_CLICK(id) {
+        return function () {
+            if (TaskManager.events['click'] && TaskManager.events['click'][id]) {
+                var d = Object.assign({}, TaskManager.events['click'][id]);
+                delete TaskManager.events['click'][id];
+                return d;
+            }
+            return false;
+        }
+    },
+    ON_CHANGE(id) {
+        return function () {
+            if (TaskManager.events['change'] && TaskManager.events['change'][id]) {
+                var d = Object.assign({}, TaskManager.events['change'][id]);
+                delete TaskManager.events['change'][id];
+                return d;
+            }
+            return false;
+        }
+    },
+    INSERT_ORDER(ord) {
+        if (!DM.get_account_id()) {
+            Notify.error('未登录，请在软件中登录后重试。');
+            return false;
+        }
+
+        var order_id = BrowserId + '-' + PageId + '-' + GenOrderId.next().value;
+        var send_obj = {
+            "aid": "insert_order",
+            "unit_id": TaskManager.runningTask.unit_id,
+            "order_id": order_id,
+            "exchange_id": ord.exchange_id,
+            "instrument_id": ord.instrument_id,
+            "direction": ord.direction,
+            "offset": ord.offset,
+            "volume": ord.volume,
+            "price_type": "LIMIT",
+            "limit_price": ord.limit_price
+        };
+        WS.sendJson(send_obj);
+
+        var id = TaskManager.runningTask.unit_id + '|' + order_id;
+        if (!TQ.GET_ORDER(id)) {
+            var orders = {};
+            orders[id] = {
+                order_id: order_id,
+                unit_id: TaskManager.runningTask.unit_id,
+                status: "UNDEFINED",
+                volume_orign: ord.volume,
+                volume_left: ord.volume,
+                exchange_id: ord.exchange_id,
+                instrument_id: ord.instrument_id
+            }
+            DM.update_data({
+                "trade": {
+                    [DM.get_account_id()]: {
+                        "orders": orders
+                    }
+                }
+            }, 'local');
+        }
+        return TQ.GET_ORDER(id);
+    },
+
+    CANCEL_ORDER(order) {
+        if (order && order.exchange_order_id) {
+            WS.sendJson({
+                "aid": "cancel_order",
+                "order_id": order.order_id,
+                "unit_id": TaskManager.runningTask.unit_id
+            });
+        } else if (TaskManager.runningTask.unit_mode) {
+            var orders = TQ.GET_ORDER();
+            for (var order in orders) {
+                if (orders[order].status == 'ALIVE' || orders[order].status == "UNDEFINED")
+                    WS.sendJson({
+                        "aid": "cancel_order",
+                        "order_id": orders[order].order_id,
+                        "unit_id": TaskManager.runningTask.unit_id
+                    });
+            }
+        }
     }
 }
-
-Object.assign(TaskCtx.prototype, DataOperationFuncs);
 
 class Task {
     constructor(id, func, waitConditions = null) {
@@ -247,7 +231,8 @@ class Task {
         // this.endTime = 0;
         this.stopped = false;
         this.events = {}
-        this.ctx = null;
+        this.unit_id = null;
+        this.unit_mode = null;
     }
 
     pause() {
@@ -316,17 +301,13 @@ const TaskManager = (function (task) {
     }
 
     function runTask(task) {
+        TaskManager.runningTask = task;
         var waitResult = checkTask(task);
         /**
          * ret: { value, done }
          */
-        function isTrueObj(o) {
-            if (type(o) == 'Array' || type(o) == 'String') { return o.length > 0 ? true : false; }
-            if (type(o) == 'Object') { return Object.keys(o).length > 0 ? true : false; }
-            return o;
-        }
         for (var r in waitResult) {
-            if (isTrueObj(waitResult[r])) {
+            if (waitResult[r]) {
                 // waitConditions 中某个条件为真才执行 next
                 var ret = task.func.next(waitResult);
                 if (ret.done) {
@@ -375,11 +356,10 @@ const TaskManager = (function (task) {
         }
     }, intervalTime);
 
-    function add(func, context) {
+    function add(func) {
         var id = GenTaskId.next().value;
         var task = new Task(id, func);
-        task.ctx = context;
-        task.ctx.unit_id = id;
+        task.unit_id = id;
         aliveTasks[id] = task;
         var ret = task.func.next();
         if (ret.done) {
@@ -402,6 +382,7 @@ const TaskManager = (function (task) {
     }
 
     return {
+        runningTask: null,
         events: {},
         add,
         remove,
@@ -412,10 +393,10 @@ const TaskManager = (function (task) {
     }
 }());
 
-const START_TASK = function (func) {
+TQ.START_TASK = function (func) {
     if (typeof func === 'function') {
-        var context = new TaskCtx();
-        var args = [context];
+        
+        var args = [];
         if (arguments.length > 1) {
             var len = 1;
             while (len < arguments.length)
@@ -423,7 +404,7 @@ const START_TASK = function (func) {
         }
         var f = func.apply(null, args);
         if (f.next && (typeof f.next === 'function')) {
-            return TaskManager.add(f, context);
+            return TaskManager.add(f);
         } else {
             console.log('task 参数类型错误');
         }
@@ -432,15 +413,15 @@ const START_TASK = function (func) {
     }
 }
 
-const STOP_TASK = function (task) {
+TQ.STOP_TASK = function (task) {
     if (task) task.stop();
     return null;
 }
 
-const PAUSE_TASK = function (task) {
+TQ.PAUSE_TASK = function (task) {
     task.pause();
 }
-const RESUME_TASK = function (task) {
+TQ.RESUME_TASK = function (task) {
     task.resume();
 }
 
@@ -495,7 +476,7 @@ const UiUtils = (function () {
     }
 })();
 
-const UI = new Proxy(() => null, {
+TQ.UI = new Proxy(() => null, {
     get: function (target, key, receiver) {
         let res = UiUtils.readNodeBySelector('input#' + key);
         if (res[key]) return res[key];

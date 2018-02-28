@@ -126,14 +126,14 @@
     <script type="text/javascript" src="trader_sdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
 
-        function* TaskOrder(C) {
+        function* TaskOrder() {
 
             var wait = yield {
-                'START': C.ON_CLICK('START'),
+                'START': TQ.ON_CLICK('START'),
             }
-            C.SET_STATE('START');
+            TQ.SET_STATE('START');
 
-            var params = UI(); // 读取页面参数
+            var params = TQ.UI(); // 读取页面参数
             params.direction = wait.START.direction;
             params.offset = wait.START.offset;
 
@@ -143,26 +143,26 @@
             console.log(params)
 
             var completed = false;
-            var order = C.INSERT_ORDER(params);
+            var order = TQ.INSERT_ORDER(params);
 
             while (order && !completed) {
                 var result = yield {
-                    CHANGED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA) },
-                    USER_CLICK_STOP: C.ON_CLICK('STOP'),
+                    CHANGED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.LAST_UPDATED_DATA) },
+                    USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
                 if (order.status === "FINISHED") completed = true;
                 if (result.USER_CLICK_STOP) {
-                    C.CANCEL_ORDER(order);
+                    TQ.CANCEL_ORDER(order);
                     completed = true;
                 }
             }
             // 任务结束
-            C.SET_STATE('STOP');
-            START_TASK(TaskOrder);
+            TQ.SET_STATE('STOP');
+            TQ.START_TASK(TaskOrder);
             return;
         }
 
-        START_TASK(TaskOrder);
+        TQ.START_TASK(TaskOrder);
 
     </script>
 </body>
