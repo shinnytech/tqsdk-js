@@ -83,7 +83,7 @@ gulp.task('traderjs', function () {
             start = false;
         } else if (start) {
             var matchRes = ele.match(reg);
-            if (matchRes) filelist.push('./src' + matchRes[1]);
+            if (matchRes) filelist.push('./src/' + matchRes[1]);
         }
     });
     return gulp.src(filelist.concat('./src/tqsdk.js'))
@@ -96,17 +96,17 @@ gulp.task('js', ['workerjs'], function () {
     return gulp.src(['./src/ta/js/*.js', './src/ta/index.js'], { base: 'src' })
         .pipe(concat('index' + vString + '.js'))
         .pipe(minifyJs())
-        .pipe(replace('worker.js', 'worker' + vString + '.js'))
+        .pipe(replace('js/worker/worker.js', 'worker' + vString + '.js'))
         .pipe(gulp.dest(distDir + 'ta/'));
 });
 
 gulp.task('workerjs', ['copy'], function () {
     var reg = /importScripts\((.+?)\);/;
-    return gulp.src(['./src/ta/js/worker/worker.js', './src/ta/js/worker/*.js'])
+    return gulp.src(['./src/ta/js/worker/*.js', './src/ta/js/worker/worker.js'])
         .pipe(concat('worker' + vString + '.js'))
-        .pipe(replace(reg, 'importScripts("/ta/defaults/basefuncs.js");'))
+        .pipe(replace(reg, 'importScripts("defaults/basefuncs.js");'))
         .pipe(minifyJs({}))
-        .pipe(gulp.dest('dist/ta/js/worker/'));
+        .pipe(gulp.dest(distDir + 'ta/'));
 });
 
 gulp.task('copy', ['beforecopy'], function () {
@@ -117,13 +117,13 @@ gulp.task('copy', ['beforecopy'], function () {
         './src/assets/bootstrap/css/bootstrap.min.css',
         './src/assets/bootstrap/fonts/**',
         './src/assets/highlight/**',
-        './src/assets/ace-min/ace.js',
-        './src/assets/ace-min/*-javascript.js',
-        './src/assets/ace-min/ext-*.js',
-        './src/assets/ace-min/keybinding-*.js',
-        './src/assets/ace-min/theme-*.js',
-        './src/assets/ace-min/snippets/javascript.js',
-        './src/assets/ace-min/snippets/text.js',
+        './src/ta/ace-min/ace.js',
+        './src/ta/ace-min/*-javascript.js',
+        './src/ta/ace-min/ext-*.js',
+        './src/ta/ace-min/keybinding-*.js',
+        './src/ta/ace-min/theme-*.js',
+        './src/ta/ace-min/snippets/javascript.js',
+        './src/ta/ace-min/snippets/text.js',
         './src/ta/defaults/*',
     ], { base: "src" })
         .pipe(gulp.dest(distDir));
