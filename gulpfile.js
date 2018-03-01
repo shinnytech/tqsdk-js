@@ -17,7 +17,8 @@ var minimist = require('minimist');
 var minifyJs = composer(minifyJsEs6, console);
 var vString = '-v' + require('./package').version;
 
-var distDir = 'dist/';
+var dist_ta = 'dist_ta/';
+var dist_tq = 'dist_tq/';
 
 // 获取命令行参数
 var argv = minimist(process.argv.slice(2));
@@ -30,19 +31,19 @@ gulp.task('default', ['clean'], function () {
  * 清空目标文件夹
  */
 gulp.task('clean', function () {
-    return gulp.src([distDir]).pipe(clean());
+    return gulp.src([dist_ta, dist_tq]).pipe(clean());
 });
 
 /**
  * ta/index.html 
  */
 gulp.task('indictor', ['css'], function () {
-    delKeywordWarpContent('./src/ta/index.html', distDir + 'ta/index.html', 'del')
-    return gulp.src([distDir + 'ta/index.html'])
+    delKeywordWarpContent('./src/ta/index.html', dist_ta + 'ta/index.html', 'del')
+    return gulp.src([dist_ta + 'ta/index.html'])
         .pipe(minifyHtml({ collapseWhitespace: true, removeComments: true }))
         .pipe(replace('index.js', 'index' + vString + '.js'))
         .pipe(replace('index.css', 'index' + vString + '.css'))
-        .pipe(gulp.dest(distDir+ 'ta/'));
+        .pipe(gulp.dest(dist_ta + 'ta/'));
 });
 
 /**
@@ -52,22 +53,76 @@ gulp.task('css', ['js'], function () {
     return gulp.src(['./src/ta/css/*.css'], { base: 'src' })
         .pipe(concat('index' + vString + '.css'))
         .pipe(minifyCss())
-        .pipe(gulp.dest('dist/ta/css/'));
+        .pipe(gulp.dest(dist_ta + 'ta/css/'));
+});
+
+gulp.task('js', ['workerjs'], function () {
+    return gulp.src(['./src/ta/js/*.js', './src/ta/index.js'], { base: 'src' })
+        .pipe(concat('index' + vString + '.js'))
+        .pipe(minifyJs())
+        .pipe(replace('js/worker/worker.js', 'worker' + vString + '.js'))
+        .pipe(gulp.dest(dist_ta + 'ta/'));
+});
+
+gulp.task('workerjs', ['copy_ta'], function () {
+    var reg = /importScripts\((.+?)\);/;
+    return gulp.src(['./src/ta/js/worker/*.js', './src/ta/js/worker/worker.js'])
+        .pipe(concat('worker' + vString + '.js'))
+        .pipe(replace(reg, 'importScripts("defaults/basefuncs.js");'))
+        .pipe(minifyJs({}))
+        .pipe(gulp.dest(dist_ta + 'ta/'));
+});
+
+gulp.task('copy_ta', ['beforecopy'], function () {
+    return gulp.src([
+        './src/assets/jquery.min.js',
+        './src/assets/noty.js',
+        './src/assets/bootstrap/js/bootstrap.min.js',
+        './src/assets/bootstrap/css/bootstrap.min.css',
+        './src/assets/bootstrap/fonts/**',
+        './src/ta/ace-min/ace.js',
+        './src/ta/ace-min/*-javascript.js',
+        './src/ta/ace-min/ext-*.js',
+        './src/ta/ace-min/keybinding-*.js',
+        './src/ta/ace-min/theme-*.js',
+        './src/ta/ace-min/snippets/javascript.js',
+        './src/ta/ace-min/snippets/text.js',
+        './src/ta/defaults/*',
+    ], { base: "src" })
+    .pipe(gulp.dest(dist_ta));;
 });
 
 /**
- * trader.html + css
+ * 生成 defaults.json
  */
-gulp.task('trader', ['traderjs'], function () {
+gulp.task('beforecopy', function () {
+    var files = fs.readdirSync('./src/ta/defaults/');
+    var obj = {};
+    files.forEach(function (filename) {
+        if (filename.endsWith('.js') && filename != 'basefuncs.js') {
+            var name = filename.substr(0, filename.length - 3);
+            var content = fs.readFileSync('./src/ta/defaults/' + filename, 'utf8');
+            obj[name] = content.trim();
+        }
+    });
+    fs.writeFileSync('./src/ta/defaults/defaults.json', JSON.stringify(obj), 'utf8');
+    return;
+});
+
+
+/**
+ * trader.html + css + js
+ */
+gulp.task('trader', ['traderjs', 'copy_tq'], function () {
     var files = fs.readdirSync('./src/');
     var obj = {};
     files.forEach(function (filename) {
         if (filename.endsWith('.html'))
-            delKeywordWarpContent('./src/' + filename, distDir + filename, 'concat');
+            delKeywordWarpContent('./src/' + filename, dist_tq + filename, 'concat');
     });
     return gulp.src(['./src/*.css'], { base: 'src' })
         .pipe(minifyCss())
-        .pipe(gulp.dest(distDir));
+        .pipe(gulp.dest(dist_tq));
 });
 
 gulp.task('traderjs', function () {
@@ -89,27 +144,10 @@ gulp.task('traderjs', function () {
     return gulp.src(filelist.concat('./src/tqsdk.js'))
         .pipe(concat('tqsdk.js'))
         .pipe(minifyJs({}))
-        .pipe(gulp.dest(distDir));
+        .pipe(gulp.dest(dist_tq));
 });
 
-gulp.task('js', ['workerjs'], function () {
-    return gulp.src(['./src/ta/js/*.js', './src/ta/index.js'], { base: 'src' })
-        .pipe(concat('index' + vString + '.js'))
-        .pipe(minifyJs())
-        .pipe(replace('js/worker/worker.js', 'worker' + vString + '.js'))
-        .pipe(gulp.dest(distDir + 'ta/'));
-});
-
-gulp.task('workerjs', ['copy'], function () {
-    var reg = /importScripts\((.+?)\);/;
-    return gulp.src(['./src/ta/js/worker/*.js', './src/ta/js/worker/worker.js'])
-        .pipe(concat('worker' + vString + '.js'))
-        .pipe(replace(reg, 'importScripts("defaults/basefuncs.js");'))
-        .pipe(minifyJs({}))
-        .pipe(gulp.dest(distDir + 'ta/'));
-});
-
-gulp.task('copy', ['beforecopy'], function () {
+gulp.task('copy_tq', function () {
     return gulp.src([
         './src/assets/jquery.min.js',
         './src/assets/noty.js',
@@ -117,34 +155,10 @@ gulp.task('copy', ['beforecopy'], function () {
         './src/assets/bootstrap/css/bootstrap.min.css',
         './src/assets/bootstrap/fonts/**',
         './src/assets/highlight/**',
-        './src/ta/ace-min/ace.js',
-        './src/ta/ace-min/*-javascript.js',
-        './src/ta/ace-min/ext-*.js',
-        './src/ta/ace-min/keybinding-*.js',
-        './src/ta/ace-min/theme-*.js',
-        './src/ta/ace-min/snippets/javascript.js',
-        './src/ta/ace-min/snippets/text.js',
-        './src/ta/defaults/*',
     ], { base: "src" })
-        .pipe(gulp.dest(distDir));
+        .pipe(gulp.dest(dist_tq));
 });
-
-/**
- * 生成 defaults.json
- */
-gulp.task('beforecopy', function () {
-    var files = fs.readdirSync('./src/ta/defaults/');
-    var obj = {};
-    files.forEach(function (filename) {
-        if (filename.endsWith('.js') && filename != 'basefuncs.js') {
-            var name = filename.substr(0, filename.length - 3);
-            var content = fs.readFileSync('./src/ta/defaults/' + filename, 'utf8');
-            obj[name] = content.trim();
-        }
-    });
-    fs.writeFileSync('./src/ta/defaults/defaults.json', JSON.stringify(obj), 'utf8');
-    return;
-});
+/** trader.html + css + js */
 
 gulp.task('localRun', function () {
     connect.server({
@@ -191,6 +205,6 @@ function delKeywordWarpContent(sourcepath, targetpath, keyword) {
 gulp.task('fontfilespath', ['workerjs'], function () {
     return gulp.src('./src/assets/bootstrap/css/bootstrap.min.css')
         .pipe(replace('../fonts/', 'http://' + domain + '/assets/bootstrap/fonts/'))
-        .pipe(gulp.dest('./' + distDir + '/assets/bootstrap/css/bootstrap.min.css'));
+        .pipe(gulp.dest('./' + dist_ta + '/assets/bootstrap/css/bootstrap.min.css'));
 });
 /****** end: 如果在本地使用互联网的资源文件，要修改字体文件路径上的域名，因为默认使用的是相对路径 *******/
