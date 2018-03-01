@@ -3,34 +3,26 @@
 函数
 ==============================
 
-任务管理器
----------------------------------------------------
-* :ref:`g_start_task`
-* :ref:`g_pause_task`
-* :ref:`g_resume_task`
-* :ref:`g_stop_task`
+.. toctree::
+    :maxdepth: 1
 
-UI
----------------------------------------------------
-* :ref:`g_ui`
+    g_start_task.rst
+    g_pause_task.rst
+    g_resume_task.rst
+    g_stop_task.rst
 
-获取数据对象、监听数据变化
----------------------------------------------------
-* :ref:`s_get_quote`
-* :ref:`s_get_account`
-* :ref:`s_get_position`
-* :ref:`s_get_order`
-* :ref:`s_get_combine`
-* :ref:`s_get_position`
-* :ref:`s_get_session`
+    g_ui.rst
 
+    s_get_quote.rst
+    s_get_account.rst
+    s_get_position.rst
+    s_get_order.rst
+    s_get_combine.rst
+    s_get_position.rst
 
-监听页面事件
----------------------------------------------------
-* :ref:`s_on_changed`
-* :ref:`s_on_click`
+    s_insert_order.rst
+    s_cancel_order.rst
 
-下单和撤单
----------------------------------------------------
-* :ref:`s_insert_order`
-* :ref:`s_cancel_order`
+    s_on_changed.rst
+    s_on_click.rst
+
