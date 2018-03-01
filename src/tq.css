@@ -1,0 +1,48 @@
+body, html {
+    height: 100%;
+    width: 100%;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0;
+}
+
+.form-control{
+    height: 24px;
+}
+
+.inputs .row {
+    padding: 3px 5px;
+}
+
+.list-group-item{
+    padding: 6px 0px;
+}
+
+.panel {
+    margin-bottom: 5px;
+    border-radius: 0px;
+}
+
+.panel-title{
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* ============================= */
+
+.main-container {
+    min-width: 240px;
+    padding: 0px;
+}
+
+.main-container .row {
+    margin: 0px;
+}
+
+.main-container .input-group {
+    padding: 5px;
+}
+

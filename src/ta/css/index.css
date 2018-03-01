@@ -107,13 +107,6 @@ table.table.wh-param-list td input.form-control[readonly] {
     background-color: #fff;
 }
 
-/* breakpoint style */
-/*.ace_gutter-cell.ace_breakpoint::before{*/
-    /*content: '=>';*/
-    /*color: red;*/
-    /*margin-left: -12px;*/
-/*}*/
-
 /* tips style */
 .seecoderun_tooltip {
     background-color: #FFF;
