@@ -112,7 +112,7 @@ const TQ = {
             for (var ex_or_id in all_orders) {
                 var ord = all_orders[ex_or_id];
                 if (ord.status == 'FINISHED' && ord.volume_orign == ord.volume_left) continue;
-                if (ord.unit_id == TaskManager.runningTask.unit_id) orders[ex_or_id] = ord;
+                if (ex_or_id.includes(BrowserId+'-'+PageId) && ord.unit_id == TaskManager.runningTask.unit_id) orders[ex_or_id] = ord;
             }
             return orders;
         }
@@ -232,7 +232,7 @@ class Task {
         this.stopped = false;
         this.events = {}
         this.unit_id = null;
-        this.unit_mode = null;
+        this.unit_mode = true;
     }
 
     pause() {
@@ -361,6 +361,7 @@ const TaskManager = (function (task) {
         var task = new Task(id, func);
         task.unit_id = id;
         aliveTasks[id] = task;
+        TaskManager.runningTask = task;
         var ret = task.func.next();
         if (ret.done) {
             task.stopped = true;

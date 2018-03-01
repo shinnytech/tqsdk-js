@@ -68,7 +68,7 @@
                             <span class="pull-right">买平</span>
                         </div>
                         <div class="col col-xs-3">
-                            <input type="number" class="form-control input-sm" placeholder="买平" value="188" id="price_buy_close">
+                            <input type="number" class="form-control input-sm" placeholder="买平" value="111" id="price_buy_close">
                         </div>
                     </div>
                     <div class="row">
@@ -98,7 +98,7 @@
                         <div class="col col-xs-12">
                             <div class="btn-toolbar" role="toolbar">
                                 <div class="btn-group btn-group-xs">
-                                    <button type="button" class="btn btn-default START" data-state="START">
+                                    <button type="button" class="btn btn-default START" id="START">
                                         <span class="glyphicon glyphicon-play"></span>&nbsp;开始
                                     </button>
                                     <button type="button" class="btn btn-default STOP" id="STOP">
@@ -184,31 +184,31 @@
         function* TaskQuote(C) {
             while (true) {
                 var result = yield {
-                    UPDATED_A: function () { return C.GET_QUOTE(UI.insA, C.LAST_UPDATED_DATA); },
-                    UPDATED_B: function () { return C.GET_QUOTE(UI.insB, C.LAST_UPDATED_DATA); },
-                    CHANGED_A: C.ON_CHANGE('insA'),
-                    CHANGED_B: C.ON_CHANGE('insB'),
+                    UPDATED_A: function () { return TQ.GET_QUOTE(TQ.UI.insA, TQ.LAST_UPDATED_DATA); },
+                    UPDATED_B: function () { return TQ.GET_QUOTE(TQ.UI.insB, TQ.LAST_UPDATED_DATA); },
+                    CHANGED_A: TQ.ON_CHANGE('insA'),
+                    CHANGED_B: TQ.ON_CHANGE('insB'),
                 };
-                var quoteA = C.GET_QUOTE(UI.insA);
-                var quoteB = C.GET_QUOTE(UI.insB);
-                UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
-                UI.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
+                var quoteA = TQ.GET_QUOTE(TQ.UI.insA);
+                var quoteB = TQ.GET_QUOTE(TQ.UI.insB);
+                if (quoteA) TQ.UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
+                if (quoteB) TQ.UI.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
             }
         }
 
         function* TaskSpread(C) {
-            var quoteA = C.GET_QUOTE(UI.insA);
-            var quoteB = C.GET_QUOTE(UI.insB);
+            var quoteA = TQ.GET_QUOTE(TQ.UI.insA);
+            var quoteB = TQ.GET_QUOTE(TQ.UI.insB);
             if (!quoteA || !quoteB) return;
 
-            C.SET_STATE('START');
+            TQ.SET_STATE('START');
             var short_volume = 0, long_volume = 0;
             // 参数设定
-            var [exchange_id_a, instrument_id_a] = UI.insA.split('.');
-            var [exchange_id_b, instrument_id_b] = UI.insB.split('.');
-            var volume = parseInt(UI.volume);
-            var order_a = { ins_id: UI.insA, exchange_id: exchange_id_a, instrument_id: instrument_id_a, volume: volume };
-            var order_b = { ins_id: UI.insB, exchange_id: exchange_id_b, instrument_id: instrument_id_b, volume: volume };
+            var [exchange_id_a, instrument_id_a] = TQ.UI.insA.split('.');
+            var [exchange_id_b, instrument_id_b] = TQ.UI.insB.split('.');
+            var volume = parseInt(TQ.UI.volume);
+            var order_a = { ins_id: TQ.UI.insA, exchange_id: exchange_id_a, instrument_id: instrument_id_a, volume: volume };
+            var order_b = { ins_id: TQ.UI.insB, exchange_id: exchange_id_b, instrument_id: instrument_id_b, volume: volume };
             var buy_open = { direction: 'BUY', offset: 'OPEN' };
             var sell_close = { direction: 'SELL', offset: 'CLOSE' };
             var sell_open = { direction: 'SELL', offset: 'OPEN' };
@@ -217,23 +217,23 @@
             while (true) {
                 var result = yield {
                     PRARM: function () {
-                        if (quoteA.ask_price1 - quoteB.bid_price1 <= UI.price_buy_open && long_volume == 0) return [buy_open, sell_open];
-                        if (quoteA.bid_price1 - quoteB.ask_price1 >= UI.price_sell_close && long_volume > 0) return [sell_close, buy_close];
-                        if (quoteA.bid_price1 - quoteB.ask_price1 >= UI.price_sell_open && short_volume == 0) return [sell_open, buy_open];
-                        if (quoteA.ask_price1 - quoteB.bid_price1 <= UI.price_buy_close && short_volume > 0) return [buy_close, sell_close];
+                        if (quoteA.ask_price1 - quoteB.bid_price1 <= TQ.UI.price_buy_open && long_volume == 0) return [buy_open, sell_open];
+                        if (quoteA.bid_price1 - quoteB.ask_price1 >= TQ.UI.price_sell_close && long_volume > 0) return [sell_close, buy_close];
+                        if (quoteA.bid_price1 - quoteB.ask_price1 >= TQ.UI.price_sell_open && short_volume == 0) return [sell_open, buy_open];
+                        if (quoteA.ask_price1 - quoteB.bid_price1 <= TQ.UI.price_buy_close && short_volume > 0) return [buy_close, sell_close];
                         return [false, false];
                     },
-                    USER_CLICK_STOP: C.ON_CLICK('STOP')
+                    USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                 };
                 if (result.USER_CLICK_STOP) break;
                 var [param_a, param_b] = result.PRARM;
                 if (param_a && param_b) {
-                    var task_a = START_TASK(TaskSingleOrder, Object.assign({}, order_a, param_a));
-                    var task_b = START_TASK(TaskSingleOrder, Object.assign({}, order_b, param_b));
-                    while(true){
+                    var task_a = TQ.START_TASK(TaskSingleOrder, Object.assign({}, order_a, param_a));
+                    var task_b = TQ.START_TASK(TaskSingleOrder, Object.assign({}, order_b, param_b));
+                    while (true) {
                         var result = yield {
                             SUBTASK: [task_a, task_b],
-                            USER_CLICK_STOP: C.ON_CLICK('STOP')
+                            USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                         }
                         if (result.SUBTASK.reduce((a, b) => a && b)) {
                             if (param_a == buy_open && long_volume == 0) { long_volume = volume; }
@@ -243,31 +243,34 @@
                             break;
                         }
                         if (result.USER_CLICK_STOP) break;
-                    }  
+                    }
                 }
             }
             // 任务结束
-            C.SET_STATE('STOP');
+            TQ.SET_STATE('STOP');
             return;
         }
 
         // 修改为追单模式
-        function* TaskSingleOrder(C, order_param) {
-            var quote = C.GET_QUOTE(order_param.ins_id);
-            var rest_volume = order_param.volume;
+        function* TaskSingleOrder(order_param) {
+            var quote = TQ.GET_QUOTE(order_param.ins_id);
             // 设定为当前对手价
-            while (rest_volume > 0) {
-                // 设定为当前对手价
-                order_param.limit_price = (order_param.direction === 'SELL') ? quote.bid_price1 : quote.ask_price1;
-                var order = C.INSERT_ORDER(order_param);
+            order_param.limit_price = (order_param.direction === 'SELL') ? quote.bid_price1 : quote.ask_price1;
+            var order = TQ.INSERT_ORDER(order_param);
+            while (true) {
                 var result = yield {
-                    UPDATED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA); },
-                    USER_CLICK_STOP: C.ON_CLICK('STOP'),
+                    UPDATED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.LAST_UPDATED_DATA); },
+                    USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
-                if (order.status != "FINISHED") C.CANCEL_ORDER(order);
-                rest_volume -= (order.volume_orign - order.volume_left);
+                if (order.volume_left == 0) break;
+                if (order.status == "ALIVE" && order.volume_left > 0) {
+                    TQ.CANCEL_ORDER(order);
+                    order_param.limit_price = (order_param.direction === 'SELL') ? quote.bid_price1 : quote.ask_price1;
+                    order_param.volume = order.volume_left;
+                    order = TQ.INSERT_ORDER(order_param);
+                }
                 if (result.USER_CLICK_STOP) {
-                    C.CANCEL_ORDER(order);
+                    TQ.CANCEL_ORDER(order);
                     break;
                 }
             }
@@ -275,10 +278,10 @@
         }
 
         $(function () {
-            START_TASK(TaskQuote);
+            TQ.START_TASK(TaskQuote);
             // 开始交易按钮
             $('button.START').on('click', function () {
-                START_TASK(TaskSpread);
+                TQ.START_TASK(TaskSpread);
             });
         });
     </script>

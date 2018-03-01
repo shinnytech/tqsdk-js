@@ -3,18 +3,18 @@
 
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-eqTQ.UIv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <title>天勤-交易</title>
-    <!-- base ui && js -->
+    <!-- base TQ.UI && js -->
     <link href="/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/highlight/styles/atom-one-light.css">
     <link rel="stylesheet" href="index.css">
 </head>
 
 <body>
-    <div class="container-fluid main-container">
+    <div class="container-flTQ.UId main-container">
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h3 class="panel-title">
@@ -215,51 +215,41 @@
     <script type="text/javascript" src="/js/utils.js"></script>
     <script type="text/javascript" src="trader_sdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
-        function* TaskQuote(C) {
+        function* TaskQuote() {
             while (true) {
                 var result = yield {
-                    UPDATED_QUOTE: function () { return C.GET_QUOTE(UI.instrument, C.LAST_UPDATED_DATA) },
-                    CHANGED: C.ON_CHANGE('instrument')
+                    UPDATED_QUOTE: function () { return TQ.GET_QUOTE(TQ.UI.instrument, TQ.LAST_UPDATED_DATA) },
+                    CHANGED: TQ.ON_CHANGE('instrument')
                 };
-                var quote = C.GET_QUOTE(UI.instrument);
-                UI(quote);
+                var quote = TQ.GET_QUOTE(TQ.UI.instrument);
+                TQ.UI(quote);
             }
         }
 
-        function* TaskSplit(C) {
-            var wait = yield {
-                'START': C.ON_CLICK('START')
-            }
-            C.SET_STATE('START');
+        function* TaskSplit() {
+            var quote = TQ.GET_QUOTE(TQ.UI.instrument);
+            if (!quote) return;
+            TQ.SET_STATE('START');
 
-            var quote = C.GET_QUOTE(UI.instrument);
-            if (!quote) {
-                C.SET_STATE('STOP');
-                STOP_TASK(task_trade);
-                task_trade = START_TASK(TaskSplit);
-                return;
-            }
-
-            var [exchange_id, instrument_id] = UI.instrument.split('.');
-            var max_price = Math.max(UI.price_from, UI.price_to);
-            var min_price = Math.min(UI.price_from, UI.price_to);
+            var [exchange_id, instrument_id] = TQ.UI.instrument.split('.');
+            var max_price = Math.max(TQ.UI.price_from, TQ.UI.price_to);
+            var min_price = Math.min(TQ.UI.price_from, TQ.UI.price_to);
             // 价格设定为跟盘价格
-            var price_field = (UI.direction === 'SELL') ? 'ask_price1' : 'bid_price1';
-            // 价格设定为对手价
-            // var price_field = (UI.direction === 'BUY') ? 'ask_price1' : 'bid_price1';
+            var price_field = (TQ.UI.direction === 'SELL') ? 'ask_price1' : 'bid_price1';
 
             var order_params = {
                 exchange_id: exchange_id,
                 instrument_id: instrument_id,
-                direction: UI.direction,
-                offset: UI.offset,
+                direction: TQ.UI.direction,
+                offset: TQ.UI.offset,
             };
 
             while (true) {
                 var pending_volume = 0; // 挂单手数
                 var traded_sum = 0; // 已成交的总金额
                 var traded_volume = 0; // 已成交的总手数
-                var orders = C.GET_ORDER();
+                var orders = TQ.GET_ORDER();
+                console.log(orders)
                 for (var order_id in orders) {
                     var ord = orders[order_id];
                     var vol = ord.volume_orign - ord.volume_left;
@@ -269,33 +259,38 @@
                 }
                 // 成交均价
                 traded_avgprice = traded_volume == 0 ? 0 : Math.round(traded_sum / traded_volume * 100) / 100;
-                UI({ traded_volume, traded_avgprice }); // 更新显示已成交手数、已成交均价
-                if (UI.all_volume - traded_volume == 0) break; // Task结束
+                TQ.UI({ traded_volume, traded_avgprice }); // 更新显示已成交手数、已成交均价
+                if (TQ.UI.all_volume - traded_volume == 0) break; // Task结束
                 if (quote[price_field] <= max_price && quote[price_field] >= min_price) {
-                    order_params.volume = Math.min(UI.max_one_volume, UI.all_volume - traded_volume) - pending_volume; // 设置手数
+                    order_params.volume = Math.min(TQ.UI.max_one_volume, TQ.UI.all_volume - traded_volume) - pending_volume; // 设置手数
                     if (order_params.volume > 0) {
                         order_params.limit_price = quote[price_field]; // 设置价格
-                        var ord = C.INSERT_ORDER(order_params);
+                        TQ.INSERT_ORDER(order_params);
                     }
                 }
+                console.log(order_params)
                 var result = yield {
-                    ORDER_CHANGED: function () { return C.GET_ORDER(null, C.LAST_UPDATED_DATA); },
+                    ORDER_CHANGED: function () { return TQ.GET_ORDER(null, TQ.LAST_UPDATED_DATA); },
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
-                    USER_CLICK_STOP: C.ON_CLICK('STOP')
+                    USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                 }
                 if (result.PRICE_CHANGED || result.USER_CLICK_STOP) {
-                    C.CANCEL_ORDER();
+                    TQ.CANCEL_ORDER();
                     if (result.USER_CLICK_STOP) break;
                 }
             }
             // 任务结束
-            C.SET_STATE('STOP');
-            STOP_TASK(task_trade);
-            task_trade = START_TASK(TaskSplit);
+            TQ.SET_STATE('STOP');
             return;
         }
-        START_TASK(TaskQuote);
-        var task_trade = START_TASK(TaskSplit); // 执行交易任务
+
+        $(function () {
+            TQ.START_TASK(TaskQuote);
+            // 开始交易按钮
+            $('button.START').on('click', function () {
+                TQ.START_TASK(TaskSplit);
+            });
+        });
     </script>
 </body>
 
