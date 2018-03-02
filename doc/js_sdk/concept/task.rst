@@ -86,7 +86,7 @@ Generator 函数是 ES6 提供的一种异步编程解决方案，执行 Generat
     function* TaskQuote(C) {
         while (true) {
             var result = yield {
-                UPDATED_QUOTE: function () { return C.GET_QUOTE(UI.instrument, C.LAST_UPDATED_DATA) },
+                UPDATED_QUOTE: function () { return C.GET_QUOTE(UI.instrument) },
                 CHANGED: C.ON_CHANGE('instrument')
             };
             var quote = C.GET_QUOTE(UI.instrument);
@@ -114,7 +114,7 @@ Task的启动和停止
 ===========  =====
 function     操作
 ===========  =====
-START_TASK:    开始
+START_TASK   开始
 PAUSE_TASK   暂停
 RESUME_TASK  恢复
 STOP_TASK    结束
@@ -127,55 +127,21 @@ STOP_TASK    结束
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. code-block:: javascript
 
-    function* TaskCombine(C) {
-        var weights = C.GET_COMBINE(UI.combine_id);
-        if (!weights) return;
-        C.SET_STATE('START');
-
-        var TaskList = []; // 子级 Task 列表
-        for (var ins_id in weights) {
-            if (!ins_id) continue;
-            var volume = Math.abs(Math.round(UI.volume * weights[ins_id])); 
-            if (volume > 0) {
-                var [exchange_id, instrument_id] = ins_id.split('.'); 
-                var direction = weights[ins_id] > 0 ? UI.direction : (UI.direction === 'SELL' ? 'BUY' : 'SELL'); 
-                var offset = UI.offset; 
-                var price_field = direction === 'SELL' ? 'bid_price1' : 'ask_price1'; 
-                var order_param = { ins_id, exchange_id, instrument_id, direction, volume, offset, price_field };
-                // 依次添加 Task 至 TaskList
-                TaskList.push(START_TASK(TaskSingleOrder, order_param));
-            }
-        }
-
-        var result = yield {
-            SUBTASK_COMPLETED: TaskList, // 子 Task 的完成情况
-            COMBINE_CHANGED: function () { C.GET_COMBINE(UI.combine_id, C.LAST_UPDATED_DATA) }, 
-            USER_CLICK_STOP: C.ON_CLICK('STOP')
+    function* TaskParent() {
+        // do something
+        // ...
+        // start two child task
+        let task_child_1 = START_TASK(TaskChild);
+        let task_child_2 = START_TASK(TaskChild);
+        // wait until child tasks finish or user clicked stop
+        let wait_result = yield {
+            SUBTASK_COMPLETED: [task_child_1, task_child_2],  //All sub task finished
+            USER_CLICK_STOP: C.ON_CLICK('STOP') //User clicked stop button
         };
-
-        // 任务结束
-        C.SET_STATE('STOP');
-        return;
     }
 
-    function* TaskSingleOrder(C, order_param) {
-        var quote = C.GET_QUOTE(order_param.ins_id);
-        var rest_volume = order_param.volume;
-        while (rest_volume > 0) {
-            order_param.limit_price = quote[order_param.price_field];
-            var order = C.INSERT_ORDER(order_param);
-            var result = yield {
-                UPDATED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA); },
-                USER_CLICK_STOP: C.ON_CLICK('STOP'),
-            };
-            if (order.status != "FINISHED") C.CANCEL_ORDER(order);
-            rest_volume -= (order.volume_orign - order.volume_left);
-            if (result.USER_CLICK_STOP) {
-                C.CANCEL_ORDER(order);
-                break;
-            }
-        }
-        return;
+    function* TaskChild() {
+        // do something
     }
 
 .. hint::

@@ -1,6 +1,6 @@
 .. _s_insert_order:
 
-方法 C.INSERT_ORDER
+方法 TQ.INSERT_ORDER
 ==================================
 
 根据传入参数下单。
@@ -28,19 +28,17 @@ limit_price       number    限价价格               96
 
 .. code-block:: javascript
 
-    function * Task(C){
-        ...
-        var order_param = {
-            exchange_id: "CFFEX",
-            instrument_id: "TF1803",
-            direction: "BUY",
-            offset: "OPEN",
-            volume: 4,
-            limit_price: 96
-        }
-        var order = C.INSERT_ORDER(order_param);
-        // 下单不成功，退出
-        if(!order) return;
-        // 下单成功，继续执行后续代码
-        ...
+    var order_param = {
+        exchange_id: "CFFEX",
+        instrument_id: "TF1803",
+        direction: "BUY",
+        offset: "OPEN",
+        volume: 4,
+        limit_price: 96
     }
+    var order = C.INSERT_ORDER(order_param);
+    // 下单不成功，退出
+    if(!order)
+        return;
+    // 下单成功，继续执行后续代码
+    ...

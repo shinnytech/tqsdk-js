@@ -96,7 +96,7 @@ tq_sdk 使用 javascript dict 在内存中存放所有当前用到的 行情/交
     },
     "notify": {                                           //通知信息
       "2010": {
-      "type": "MESSAGE",                                //MESSAGE TEXT
+      "type": "MESSAGE",                                  //MESSAGE TEXT
       "code": 1000,
       "content": "abcd",
       }
@@ -110,12 +110,12 @@ tq_sdk 使用 javascript dict 在内存中存放所有当前用到的 行情/交
         },
         "accounts": {                                     //账户资金信息
           "CNY": {                                        //account_key, 通常为币种代码
-                                    //核心字段
+                                                          //核心字段
             "account_id": "423423",                       //账号
             "currency": "CNY",                            //币种
             "balance": 9963216.550000003,                 //账户权益
             "available": 9480176.150000002,               //可用资金
-                                    //参考字段
+                                                          //参考字段
             "pre_balance": 12345,                         //上一交易日结算时的账户权益
             "deposit": 42344,                             //本交易日内的入金金额
             "withdraw": 42344,                            //本交易日内的出金金额
@@ -162,7 +162,7 @@ tq_sdk 使用 javascript dict 在内存中存放所有当前用到的 行情/交
         },
         "orders": {                                       //委托单
           "abc|123": {                                    //order_key, 用于唯一标识一个委托单
-                                    //核心字段
+                                                          //核心字段
             "order_type": "TRADE",                        //指令类型
             "session_id": "abc",                          //会话ID
             "order_id": "123",                            //委托单ID, 在每个会话中唯一
@@ -180,7 +180,7 @@ tq_sdk 使用 javascript dict 在内存中存放所有当前用到的 行情/交
             "min_volume": 0,
             "hedge_flag": "SPECULATION",                  //保值标志
             "status": "ALIVE",                            //委托单状态, ALIVE=有效, FINISHED=已完
-                                    //参考字段
+                                                          //参考字段
             "last_msg": "",                               //最后操作信息
             "force_close": "NOT",                         //强平原因
             "frozen_money": 15750,                        //冻结金额
@@ -250,15 +250,15 @@ TQSDK 中有一个全局变量 DATA 指向整个数据集. 由于这数据集是
         }
         subgraph cluster_level1{
             store [label="Data Centre"];
-            api [label="{<f0> C.LATEST_DATA|<f2> C.LAST_UPDATED_DATA}"];
+            api [label="{<f0> C.DATA|<f2> C.CHANGING_DATA}"];
         }
 
-        enti1 -> store [label="发送数据集 LAST_UPDATED_DATA"];
-        store -> store [label="数据集 LAST_UPDATED_DATA 合并到 LATEST_DATA"];
+        enti1 -> store [label="发送数据集 CHANGING_DATA"];
+        store -> store [label="数据集 CHANGING_DATA 合并到 DATA"];
         store -> api [label="提供可访问数据"];
     }
 
-如上图所示，客户端在运行过程中不断从服务器接受最新的数据，在每次接受到数据之后，将 C.LAST_UPDATED_DATA 合并到 C.LATEST_DATA。
+如上图所示，客户端在运行过程中不断从服务器接受最新的数据，在每次接受到数据之后，将 CHANGING_DATA 合并到 DATA。
 
 通过两个数据集，可以方便的访问到不同的数据内容。
 

@@ -183,7 +183,7 @@ button     direction  offset
         while (order && !completed) {
             var result = yield {
                 // 4. 如果挂单交易完成，结束程序；
-                CHANGED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA) },
+                CHANGED: function () { return C.GET_ORDER(order.exchange_order_id, C.CHANGING_DATA) },
                 // 4. 如果用户单击结束按钮，撤单后结束程序
                 USER_CLICK_STOP: C.ON_CLICK('STOP'),
             };

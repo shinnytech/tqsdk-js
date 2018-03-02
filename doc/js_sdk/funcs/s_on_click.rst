@@ -1,9 +1,9 @@
 .. _s_on_click:
 
-方法 C.ON_CLICK
+TQ.ON_CLICK
 ==================================
 
-.. js:function:: ON_CHANGED(data_object)
+.. js:function:: TQ.ON_CHANGED(data_object)
 
    页面组件 onclick 事件触发此条件。
 

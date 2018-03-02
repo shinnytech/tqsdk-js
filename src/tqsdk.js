@@ -68,12 +68,12 @@ const GenOrderId = GenerateSequence();
 // }
 
 const TQ = {
-    LATEST_DATA: new Proxy(DM.datas, {
+    DATA: new Proxy(DM.datas, {
         get: function (target, key, receiver) {
             return Reflect.get(target, key, receiver);
         }
     }),
-    LAST_UPDATED_DATA: new Proxy(DM.last_changed_data, {
+    CHANGING_DATA: new Proxy(DM.last_changed_data, {
         get: function (target, key, receiver) {
             return Reflect.get(target, key, receiver);
         }

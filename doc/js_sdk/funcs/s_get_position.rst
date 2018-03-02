@@ -1,22 +1,15 @@
 .. _s_get_position:
 
-方法 C.GET_POSITION
+TQ.GET_POSITION
 ==================================
 
 获取持仓信息
 
-.. js:function:: GET_POSITION(from)
+.. js:function:: TQ.GET_POSITION(from)
 
-    :param object from: 数据源。
+    :param object from: 数据源 (TQ.DATA 或 TQ.CHANGING_DATA)。
     :returns: 返回账户全部持仓对象。
 
-
-数据源
-----------------------------------
-
-C.LATEST_DATA
-
-C.LAST_UPDATED_DATA 
 
 示例
 ----------------------------------
@@ -25,21 +18,13 @@ C.LAST_UPDATED_DATA
 
 .. code-block:: javascript
 
-    function * Task(C){
-        ...
-        var position = C.GET_POSITION();
-        ...
-    }
+    var position = TQ.GET_POSITION();
 
 查看最近一次账户持仓的更新信息：
 
 .. code-block:: javascript
 
-    function * Task(C){
-        ...
-        var position = C.GET_POSITION(C.LAST_UPDATED_DATA );
-        ...
-    }
+    var position = TQ.GET_POSITION(TQ.CHANGING_DATA);
 
 返回数据结构示例
 ----------------------------------
@@ -49,7 +34,7 @@ C.LAST_UPDATED_DATA
 .. code-block:: javascript
 
     {
-        "SHFE.cu1801": { //position_key, 合约对应的持仓
+        "SHFE.cu1801": {                                  //position_key, 合约对应的持仓
             //核心字段
             "exchange_id": "SHFE",                        //交易所
             "instrument_id": "cu1801",                    //合约代码

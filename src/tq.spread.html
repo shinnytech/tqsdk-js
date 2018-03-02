@@ -45,10 +45,10 @@
                     </div>
                     <div class="row">
                         <div class="col col-xs-3">
-                            <span class="pull-right">买开</span>
+                            <span class="pull-right">卖平</span>
                         </div>
                         <div class="col col-xs-3">
-                            <input type="number" class="form-control input-sm" placeholder="买开" value="154" id="price_buy_open">
+                            <input type="number" class="form-control input-sm" placeholder="卖平" value="160" id="price_sell_close">
                         </div>
                         <div class="col col-xs-3">
                             <span class="pull-right">卖开</span>
@@ -59,10 +59,10 @@
                     </div>
                     <div class="row">
                         <div class="col col-xs-3">
-                            <span class="pull-right">卖平</span>
+                            <span class="pull-right">买开</span>
                         </div>
                         <div class="col col-xs-3">
-                            <input type="number" class="form-control input-sm" placeholder="卖平" value="160" id="price_sell_close">
+                            <input type="number" class="form-control input-sm" placeholder="买开" value="154" id="price_buy_open">
                         </div>
                         <div class="col col-xs-3">
                             <span class="pull-right">买平</span>
@@ -116,7 +116,7 @@
             <div class="panel-heading" role="tab" id="headingOne">
                 <h4 class="panel-title">
                     <a role="button" data-toggle="collapse" href="#collapse" aria-expanded="true" aria-controls="collapse">
-                        说明：本下单策略适用于跟随市场价差变化
+                        说明：本策略为一组合套利策略. 指定两个合约构成组合, 当组合价差低于指定值时, 买入; 当组合价差高于指定值时, 卖出.
                         <span id='collapse_arrow' class="glyphicon glyphicon-menu-down pull-right"></span>
                     </a>
                 </h4>
@@ -187,8 +187,8 @@
         function* TaskQuote(C) {
             while (true) {
                 var result = yield {
-                    UPDATED_A: function () { return TQ.GET_QUOTE(TQ.UI.insA, TQ.LAST_UPDATED_DATA); },
-                    UPDATED_B: function () { return TQ.GET_QUOTE(TQ.UI.insB, TQ.LAST_UPDATED_DATA); },
+                    UPDATED_A: function () { return TQ.GET_QUOTE(TQ.UI.insA, TQ.CHANGING_DATA); },
+                    UPDATED_B: function () { return TQ.GET_QUOTE(TQ.UI.insB, TQ.CHANGING_DATA); },
                     CHANGED_A: TQ.ON_CHANGE('insA'),
                     CHANGED_B: TQ.ON_CHANGE('insB'),
                 };
@@ -262,7 +262,7 @@
             var order = TQ.INSERT_ORDER(order_param);
             while (true) {
                 var result = yield {
-                    UPDATED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.LAST_UPDATED_DATA); },
+                    UPDATED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.CHANGING_DATA); },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
                 if (order.volume_left == 0) break;

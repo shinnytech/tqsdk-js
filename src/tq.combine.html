@@ -105,7 +105,7 @@
             <div class="panel-heading" role="tab" id="headingOne">
                 <h4 class="panel-title">
                     <a role="button" data-toggle="collapse" href="#collapse" aria-expanded="true" aria-controls="collapse">
-                        说明：本下单策略适用于自定义组合下单
+                        说明：本策略针对自定义组合执行组合下单.
                         <span id='collapse_arrow' class="glyphicon glyphicon-menu-down pull-right"></span>
                     </a>
                 </h4>
@@ -211,7 +211,7 @@
             // 设定为当前对手价
             while (true) {
                 var result = yield {
-                    UPDATED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.LAST_UPDATED_DATA); },
+                    UPDATED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.CHANGING_DATA); },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
                 if (order.volume_left == 0) break;

@@ -149,7 +149,7 @@
             <div class="panel-heading" role="tab" id="headingOne">
                 <h4 class="panel-title">
                     <a role="button" data-toggle="collapse" href="#collapse" aria-expanded="true" aria-controls="collapse">
-                        说明：本下单策略适用于跟随市场波动
+                        说明：本策略将一个较大的下单手数分解为多笔下单, 每笔挂单都按照当前挂单价格报出, 一旦有部分手数成交, 会继续挂出新的委托单, 直至达到预期手数为止.
                         <span id='collapse_arrow' class="glyphicon glyphicon-menu-down pull-right"></span>
                     </a>
                 </h4>
@@ -221,7 +221,7 @@
         function* TaskQuote() {
             while (true) {
                 var result = yield {
-                    UPDATED_QUOTE: function () { return TQ.GET_QUOTE(TQ.UI.instrument, TQ.LAST_UPDATED_DATA) },
+                    UPDATED_QUOTE: function () { return TQ.GET_QUOTE(TQ.UI.instrument, TQ.CHANGING_DATA) },
                     CHANGED: TQ.ON_CHANGE('instrument')
                 };
                 var quote = TQ.GET_QUOTE(TQ.UI.instrument);
@@ -273,7 +273,7 @@
                 }
                 
                 var result = yield {
-                    ORDER_CHANGED: function () { return TQ.GET_ORDER(null, TQ.LAST_UPDATED_DATA); },
+                    ORDER_CHANGED: function () { return TQ.GET_ORDER(null, TQ.CHANGING_DATA); },
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                 }

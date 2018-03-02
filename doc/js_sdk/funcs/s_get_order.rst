@@ -1,26 +1,15 @@
 .. _s_get_order:
 
-方法 C.GET_ORDER 
+TQ.GET_ORDER
 ==================================
 
 获取指定 id 的订单对象
 
-.. js:function:: GET_ORDER(order_id, from)
+.. js:function:: GET_ORDER(order_id, from=TQ.DATA)
 
     :param string order_id: 订单id。
-    :param object from: 数据源。
+    :param object from: 数据源 (TQ.DATA 或 TQ.CHANGING_DATA)。
     :returns: 返回指定 id 的订单对象。
-
-数据源
-----------------------------------
-
-C.LATEST_DATA
-
-C.LAST_UPDATED_DATA 
-
-.. hint::
-    这里 C 表示 Task 函数的第一个参数。
-
 
 示例
 ----------------------------------
@@ -29,41 +18,25 @@ C.LAST_UPDATED_DATA
 
 .. code-block:: javascript
 
-    function * Task(C){
-        ...
-        var order = C.GET_ORDER(id);
-        ...
-    }
+    var order = TQ.GET_ORDER(order_id);
 
 该函数有一个简便用法，如果您想知道当前 Task 已经下的全部订单，可以这样查询：
 
 .. code-block:: javascript
 
-    function * Task(C){
-        ...
-        var orders = C.GET_ORDER();
-        ...
-    }
+    var orders = TQ.GET_ORDER();
 
 如果您想知道最近一次数据包中，包含某个 order_id 的订单，可以这样写：
 
 .. code-block:: javascript
 
-    function * Task(C){
-        ...
-        var order = C.GET_ORDER(order_id, C.LAST_UPDATED_DATE);
-        ...
-    }
+    var order = TQ.GET_ORDER(order_id, C.CHANGING_DATA);
 
 如果您想知道最近一次数据包中，包含的当前 Task 下的订单，可以这样写：
 
 .. code-block:: javascript
 
-    function * Task(C){
-        ...
-        var orders = C.GET_ORDER(null, C.LAST_UPDATED_DATE);
-        ...
-    }
+    var orders = C.GET_ORDER(null, C.CHANGING_DATA);
 
 返回数据结构示例
 ----------------------------------

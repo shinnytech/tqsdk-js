@@ -151,7 +151,7 @@
 
             while (order && !completed) {
                 var result = yield {
-                    CHANGED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.LAST_UPDATED_DATA) },
+                    CHANGED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.CHANGING_DATA) },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
                 if (order.status === "FINISHED") completed = true;
