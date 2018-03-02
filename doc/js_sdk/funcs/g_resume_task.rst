@@ -1,13 +1,13 @@
 .. _g_resume_task:
 
-RESUME_TASK 恢复
+TQ.RESUME_TASK
 ==============================
 恢复运行一个被暂停的任务。
 
-.. js:function:: RESUME_TASK(task)
+.. js:function:: TQ.RESUME_TASK(task)
 
-   :param object task: 调用 START_TASK() 时返回的对象。
-   :returns: task 对象 
+   :param object task: task 对象
+   :returns: null
 
 示例
 ----------------------------------

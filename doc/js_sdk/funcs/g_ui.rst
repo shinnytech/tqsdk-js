@@ -1,17 +1,17 @@
 .. _g_ui:
 
-UI
+TQ.UI
 ==================================
 
-UI 部分，UI 用于读取页面填写的参数，或者在页面上填写指定数据。需要在 html 标签的 class 属性添加 tq-datas。
+UI 部分，UI 用于读取页面填写的参数，或者在页面上填写指定数据。
 
 .. code-block:: html
 
-    <input type="text" class="form-control tq-datas" id="instrument" placeholder="合约代码" value='SHFE.rb1801'>
-    <input type="number" class="form-control tq-datas" id='volume' value="60">
+    <input type="text" class="form-control" id="instrument" placeholder="合约代码" value='SHFE.rb1801'>
+    <input type="number" class="form-control" id='volume' value="60">
 
-    <input type="radio" class="tq-datas" name="direction" value="BUY" checked>
-    <input type="radio" class="tq-datas" name="direction" value="SELL">
+    <input type="radio" name="direction" value="BUY" checked>
+    <input type="radio" name="direction" value="SELL">
 
 
 UI 读、写一组参数对象

@@ -59,33 +59,20 @@ Pros:
 Cons:
 
 * 较老的编程语言对此机制缺乏支持
-* 程序员经验较少
 
 我们推荐使用这种模型, 并在 TQSDK 中对这种方式给予了专门支持
 
 
-Task 概念
+任务概念
 ----------------------------------------
-我们将一个任务称为一个 task. 在实现上, 每个task是一个 javascript generator function.
-
-Generator 函数是 ES6 提供的一种异步编程解决方案，执行 Generator 函数会返回一个遍历器对象。返回的遍历器对象，可以依次遍历 Generator 函数内部的每一个状态。
-
-形式上，Generator 函数有两个特征。一是，function关键字与函数名之间有一个星号；二是，函数体内部使用 yield 表达式，定义不同的内部状态（yield在英语里的意思就是“产出”）。
+我们将一个任务称为一个 Task. 在实现上, 每个 Task 是一个 `Javascript Generator Function <https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Generator>`_.
 
 .. code-block:: javascript
+    :caption: 一个Task的例子
 
-    function* TaskName(C [, options] ) {
-        ...
-        var result = yield {}
-        ...
-        return;
-    }
-
-.. code-block:: javascript
-
-    function* TaskQuote(C) {
+    function* TaskQuote() {              //与普通函数不同, Task的关键字 ``function`` 和函数名中间必须有一个 ``*``
         while (true) {
-            var result = yield {
+            var result = yield {         //关键字 ``yield`` 表示，函数在执行到这里时，会检查后面对象表示出的条件，并以对象形式返回，后面代码中就可以根据返回的内容执行不同的逻辑。
                 UPDATED_QUOTE: function () { return C.GET_QUOTE(UI.instrument) },
                 CHANGED: C.ON_CHANGE('instrument')
             };
@@ -94,73 +81,49 @@ Generator 函数是 ES6 提供的一种异步编程解决方案，执行 Generat
         }
     }
 
-.. note::
-- 形式上，关键字 ``function`` 和函数名中间必须有一个 ``*``。
-    - 函数的参数，第一个参数为系统提供的环境，以及生成任务时传入的参数。
-    - 关键字 ``yield`` 表示，函数在执行到这里时，会检查后面对象表示出的条件，并以对象形式返回，后面代码中就可以根据返回的内容执行不同的逻辑。
-    - 关键字 ``return`` 表示函数执行完毕。
-
-上面代码展示了一个简单的task.
-
 
 任务管理器与任务调度
 ----------------------------------------
-TQSDK 中实现了一个任务管理器, 来负责管理task的生存周期和CPU切换.
+TQSDK 中实现了一个任务管理器, 来负责管理Task的生存周期和CPU切换.
 
 Task的启动和停止
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-系统提供了 4 个函数操作 Task
+系统提供了 4 个函数操作 Task:
 
-===========  =====
-function     操作
-===========  =====
-START_TASK   开始
-PAUSE_TASK   暂停
-RESUME_TASK  恢复
-STOP_TASK    结束
-===========  =====
+* :ref:`g_start_task`
+* :ref:`g_pause_task`
+* :ref:`g_resume_task`
+* :ref:`g_stop_task`
 
 可以在任意位置开始、结束、暂停、恢复一个 Task，但是已经结束的 Task 无法恢复运行。可以选择重新开始一个 Task。
 
 
-在Task的嵌套调用
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: javascript
-
-    function* TaskParent() {
-        // do something
-        // ...
-        // start two child task
-        let task_child_1 = START_TASK(TaskChild);
-        let task_child_2 = START_TASK(TaskChild);
-        // wait until child tasks finish or user clicked stop
-        let wait_result = yield {
-            SUBTASK_COMPLETED: [task_child_1, task_child_2],  //All sub task finished
-            USER_CLICK_STOP: C.ON_CLICK('STOP') //User clicked stop button
-        };
-    }
-
-    function* TaskChild() {
-        // do something
-    }
-
-.. hint::
-
-    yield 后面如果是 Task 对象的话，返回的内容会是 true / false 。
-
-    如果子 Task 已经执行完毕，返回 true， 否则返回 false。
-
-
 在Task中实现异步等待
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-在天勤交易语法中，yield 后面返回的对象表示程序交易的状态。
+在Task中使用 yield 实现异步等待. yield 后跟一个object, 列出需要等待的条件. TQSDK在每次收到服务器发来的数据包时，都会检查 yield 后面的条件，只要其中某个条件成立，程序即会继续运行, 直到遇到下一个 yield为止。
 
-客户端在每次收到服务器发来的数据包时，都会检查 yield 后面的条件，只要其中某个条件成立，程序即会继续运行到下一个 yield。
+.. code-block:: javascript
+    :caption: 用yield实现异步等待
 
+    function* SomeTask() {
+        // do something...
+        let quote = TQ.GET_QUOTE("SHFE.cu1801");
+        var wait_result = yield {         //关键字 ``yield`` 表示，函数在执行到这里时，会检查后面对象表示出的条件，并以对象形式返回，后面代码中就可以根据返回的内容执行不同的逻辑。
+            PRICE_HIGH: function () { return quote.last_price > 50000 },   // 当行情价格>50000时满足条件
+            STOPPED: TQ.ON_CLICKED('stop'),  //当用户点击 stop 按钮时满足条件
+            TIMEOUT: 5000,                   //等待时间超过5000毫秒时满足条件
+        };
+        // 只有以上三个条件任意一个的返回值不是false或null时, yield才会返回一个object, 记录了各条件的计算结果
+        /*
+          wait_result = {
+            PRICE_HIGH: false,
+            STOPPED: true,
+            TIMEOUT: false,
+          }
+        */
+    }
 
-yield 返回数据的说明
-
-yield 返回的是一个对象，根据不同对象的类型，返回不同结果。
+yield 返回的object，根据不同对象的类型，返回不同结果。
 
 + Function 返回函数执行结果
 
@@ -199,15 +162,16 @@ yield 返回的是一个对象，根据不同对象的类型，返回不同结�
                 ONE: START_TASK(TaskSingleOrder),
                 TWO: TaskList,
             };
-            /** js code **/
+            /*
+            // 得到返回的对象的数据结构, Task 对象返回 true/false
+            result = {
+                ONE: false,
+                TWO: [true, false]
+            }
+            */
         }
     }
 
-    // 得到返回的对象的数据结构, Task 对象返回 true/false
-    result = {
-        ONE: false,
-        TWO: [true, false]
-    }
 
 + Array 返回数组，对应输入数组的位置
 
@@ -221,12 +185,13 @@ yield 返回的是一个对象，根据不同对象的类型，返回不同结�
                     function condB(){}
                 ],
             };
-            /** js code **/
+            /*
+            // 得到返回的对象的数据结构, 数组顺序与传入的检查条件一一对应
+            result.QUOTE = [true, false]
+            */
         }
     }
 
-    // 得到返回的对象的数据结构, 数组顺序与传入的检查条件一一对应
-    result.QUOTE = [,]
 
 + Object 返回对象，对应输入对象的键值
 
@@ -240,12 +205,34 @@ yield 返回的是一个对象，根据不同对象的类型，返回不同结�
                     condB: function (){},
                 },
             };
-            /** js code **/
+            /*
+            // 得到返回的对象的数据结构
+            result.QUOTE = {
+                condA: ... ,
+                condB: ...
+            }
+            */
         }
     }
 
-    // 得到返回的对象的数据结构
-    result.QUOTE = {
-        condA: ... ,
-        condB: ...
+
+Task的嵌套调用
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: javascript
+
+    function* TaskParent() {
+        // do something
+        // ...
+        // start two child task
+        let task_child_1 = START_TASK(TaskChild);
+        let task_child_2 = START_TASK(TaskChild);
+        // wait until child tasks finish or user clicked stop
+        let wait_result = yield {
+            SUBTASK_COMPLETED: [task_child_1, task_child_2],  //All sub task finished
+            USER_CLICK_STOP: C.ON_CLICK('STOP') //User clicked stop button
+        };
+    }
+
+    function* TaskChild() {
+        // do something
     }

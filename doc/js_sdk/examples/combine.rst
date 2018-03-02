@@ -18,5 +18,6 @@
 
 源码
 ---------------------------------------
-.. literalinclude:: ../../../src/tq.combine.html
+.. literalinclude:: ../../../../../sdk/src/tq.combine.html
     :language: html
+    :linenos:

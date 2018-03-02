@@ -35,5 +35,4 @@ SEND_MESSAGE 函数也可以发送任何其它指令, 参见 :ref:`wsapi`
 
 * :ref:`s_insert_order`
 * :ref:`s_cancel_order`
-* :ref:`s_set_unit_id`
 

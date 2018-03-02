@@ -16,5 +16,6 @@
 
 源码
 ---------------------------------------
-.. literalinclude:: ../../../src/tq.split.html
+.. literalinclude:: ../../../../../sdk/src/tq.split.html
     :language: html
+    :linenos:

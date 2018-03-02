@@ -2,16 +2,16 @@
 
 Data Access 数据访问
 ========================================
-扩展模块运行时, tq_sdk 将负责从主程序接收数据流, 并在内存中维护行情与交易数据集. 
+扩展模块运行时, TQSDK 将负责从主程序接收数据流, 并在内存中维护行情与交易数据集.
 
 内存数据结构
 ----------------------------------------
-tq_sdk 使用 javascript dict 在内存中存放所有当前用到的 行情/交易 数据, 数据结构如下:
+TQSDK 在内存中以 javascript object 存放所有当前用到的 行情/交易 数据, 数据结构如下:
 
 .. code-block:: javascript
 
   { 
-    "quotes": {                                         //实时行情数据
+    "quotes": {                                           //实时行情数据
       "cu1612": {
         "instrument_id": "cu1612",                        //合约代码
         "datetime": "2016-12-30 13:21:32.500000",         //时间
@@ -39,18 +39,18 @@ tq_sdk 使用 javascript dict 在内存中存放所有当前用到的 行情/交
     },
     "klines": {                                           //K线数据
       "cu1601": {                                         //合约代码
-      180000000000: {                                   //K线周期, 单位为纳秒, 180000000000纳秒 = 3分钟
-        "last_id": 3435,                                //整个序列最后一个记录的序号
+      180000000000: {                                     //K线周期, 单位为纳秒, 180000000000纳秒 = 3分钟
+        "last_id": 3435,                                  //整个序列最后一个记录的序号
         "data": {
         3384: {
-          "datetime": 192837400000000,                //UnixNano 北京时间，如果是日线，则是交易日的 UnixNano
-          "open": 3432.33,                            //开
-          "high": 3432.33,                            //高
-          "low": 3432.33,                             //低
-          "close": 3432.33,                           //收
-          "volume": 2,                                //成交量
-          "open_oi": 1632,                            //起始持仓量
-          "close_oi": 1621,                           //结束持仓量
+          "datetime": 192837400000000,                    //UnixNano 北京时间，如果是日线，则是交易日的 UnixNano
+          "open": 3432.33,                                //开
+          "high": 3432.33,                                //高
+          "low": 3432.33,                                 //低
+          "close": 3432.33,                               //收
+          "volume": 2,                                    //成交量
+          "open_oi": 1632,                                //起始持仓量
+          "close_oi": 1621,                               //结束持仓量
         },
         3385: {
           ...
@@ -59,7 +59,7 @@ tq_sdk 使用 javascript dict 在内存中存放所有当前用到的 行情/交
         },
         "binding": {
         "cu1709": {
-          3384: 2900,                                 //本合约K线所对应的另一个合约的K线号
+          3384: 2900,                                     //本合约K线所对应的另一个合约的K线号
           3385: 2950,
           ...
         }
@@ -71,7 +71,7 @@ tq_sdk 使用 javascript dict 在内存中存放所有当前用到的 行情/交
     },
     "ticks": {
       "cu1601": {
-      "last_id": 3550,                                  //整个序列最后一个元素的编号
+      "last_id": 3550,                                   //整个序列最后一个元素的编号
       "data": {
         3384: {
         "datetime": 1928374000000000,                 //UnixNano 北京时间
@@ -211,12 +211,12 @@ tq_sdk 使用 javascript dict 在内存中存放所有当前用到的 行情/交
   
 直接访问内存数据集中的数据
 ----------------------------------------
-TQSDK 中有一个全局变量 DATA 指向整个数据集. 由于这数据集是一个标准的 javascript object, 因此可以使用简单的 javascript 语法来直接访问其中的任意数据, 像这样
+TQSDK 中有一个全局变量 TQ.DATA 指向整个数据集. 由于这数据集是一个标准的 javascript object, 因此可以使用简单的 javascript 语法来直接访问其中的任意数据, 像这样
 
 .. code-block:: javascript
   :caption: 获取 SHFE.cu1801 合约的最新价
   
-  let last_price = LAST_DATA["quotes"]["SHFE.cu1801"]["last_price"];
+  let last_price = TQ.DATA["quotes"]["SHFE.cu1801"]["last_price"];
   /*
       last_price = 3540.5
   */
@@ -225,7 +225,7 @@ TQSDK 中有一个全局变量 DATA 指向整个数据集. 由于这数据集是
 .. code-block:: javascript
   :caption: 获取 SHFE.cu1801 合约的持仓信息
   
-  let position = LAST_DATA["trade"]["user1"]["positions"]["SHFE.cu1801"];
+  let position = TQ.DATA["trade"]["user1"]["positions"]["SHFE.cu1801"];
   /*
       position = {
         exchange_id: "SHFE",
@@ -235,42 +235,35 @@ TQSDK 中有一个全局变量 DATA 指向整个数据集. 由于这数据集是
       }
   */
 
-除 LAST_DATA 外, TQSDK 还维护了另一个数据集 CHANGING_DATA, 其结构与 DATA 相同, 仅包含了最近一次更新的数据内容
-
-:ref:`s_latest_data` 表示的是内存接受到的全部数据集，与服务器同步更新。可以访问到全部数据。
-
-:ref:`s_late_updated_date` 表示服务器最新一次更新的数据集。
+除 TQ.DATA 外, TQSDK 还维护了另一个数据集 TQ.CHANGING_DATA, 其结构与 DATA 相同, 但仅包含最近一次更新的数据内容
 
 .. graphviz::
 
     digraph dfd2{
         node[shape=record]
         subgraph level0{
-            enti1 [label="服务器" shape=box];
+            enti1 [label="服务器", shape=box, fontname="SimSun" size="20,20"];
         }
         subgraph cluster_level1{
             store [label="Data Centre"];
-            api [label="{<f0> C.DATA|<f2> C.CHANGING_DATA}"];
+            api [label="{<f0> TQ.DATA|<f2> TQ.CHANGING_DATA}"];
         }
 
-        enti1 -> store [label="发送数据集 CHANGING_DATA"];
-        store -> store [label="数据集 CHANGING_DATA 合并到 DATA"];
-        store -> api [label="提供可访问数据"];
+        enti1 -> store [label="发送数据集 CHANGING_DATA", fontname="SimSun" size="20,20"];
+        store -> store [label="数据集 CHANGING_DATA 合并到 DATA", fontname="SimSun" size="20,20"];
+        store -> api [label="提供可访问数据", fontname="SimSun" size="20,20"];
     }
 
 如上图所示，客户端在运行过程中不断从服务器接受最新的数据，在每次接受到数据之后，将 CHANGING_DATA 合并到 DATA。
 
-通过两个数据集，可以方便的访问到不同的数据内容。
-
-
 
 通过数据访问函数访问数据
 ----------------------------------------
-直接访问数据集时, 用户需要自行负责错误处理. 为简化用户策略代码, sdk封装了几个简单的数据访问函数:
+直接访问数据集时, 用户需要自行负责错误处理. 为简化用户代码, TQSDK 封装了几个简单的数据访问函数:
 
 * :ref:`s_get_quote`
 * :ref:`s_get_account`
 * :ref:`s_get_position`
 * :ref:`s_get_order`
 
-这些函数在成功时都返回对应的object, 失败时返回 undefined
+这些函数在成功时都返回对应的object, 失败时返回 null

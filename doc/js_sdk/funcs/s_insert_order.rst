@@ -1,6 +1,6 @@
 .. _s_insert_order:
 
-方法 TQ.INSERT_ORDER
+TQ.INSERT_ORDER
 ==================================
 
 根据传入参数下单。

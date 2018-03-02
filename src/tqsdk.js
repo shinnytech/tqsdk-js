@@ -156,6 +156,9 @@ const TQ = {
             return false;
         }
     },
+    SEND_MESSAGE(obj) {
+        WS.sendJson(obj);
+    },
     INSERT_ORDER(ord) {
         if (!DM.get_account_id()) {
             Notify.error('未登录，请在软件中登录后重试。');
@@ -294,9 +297,6 @@ const TaskManager = (function (task) {
             }
             status[cond] = checkItem(task.waitConditions[cond])
         }
-
-
-
         return status;
     }
 
@@ -313,7 +313,6 @@ const TaskManager = (function (task) {
                 if (ret.done) {
                     task.stopped = true;
                     TaskManager.any_task_stopped = true;
-                    // remove(task);
                 } else {
                     if (task.timeout) task.endTime = getEndTime(task.timeout);
                     task.waitConditions = ret.value;

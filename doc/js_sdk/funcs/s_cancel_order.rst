@@ -1,6 +1,6 @@
 .. _s_cancel_order:
 
-方法 TQ.CANCEL_ORDER
+TQ.CANCEL_ORDER
 ==================================
  
 撤销下单。
