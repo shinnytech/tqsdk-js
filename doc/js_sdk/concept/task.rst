@@ -73,11 +73,11 @@ Cons:
     function* TaskQuote() {              //与普通函数不同, Task的关键字 ``function`` 和函数名中间必须有一个 ``*``
         while (true) {
             var result = yield {         //关键字 ``yield`` 表示，函数在执行到这里时，会检查后面对象表示出的条件，并以对象形式返回，后面代码中就可以根据返回的内容执行不同的逻辑。
-                UPDATED_QUOTE: function () { return C.GET_QUOTE(UI.instrument) },
-                CHANGED: C.ON_CHANGE('instrument')
+                UPDATED_QUOTE: function () { return TQ.GET_QUOTE(TQ.UI.instrument) },
+                CHANGED: TQ.ON_CHANGE('instrument')
             };
-            var quote = C.GET_QUOTE(UI.instrument);
-            UI(quote); // 更新界面
+            var quote = TQ.GET_QUOTE(TQ.UI.instrument);
+            TQ.UI(quote); // 更新界面
         }
     }
 
@@ -129,10 +129,10 @@ yield 返回的object，根据不同对象的类型，返回不同结果。
 
 .. code-block:: javascript
 
-    function* TaskQuote(C) {
+    function* TaskQuote() {
         while (true) {
             var result = yield {
-                QUOTE: function () { return C.GET_QUOTE(UI.instrument) },
+                QUOTE: function () { return TQ.GET_QUOTE(UI.instrument) },
             };
             /** js code **/
         }
@@ -153,13 +153,13 @@ yield 返回的object，根据不同对象的类型，返回不同结果。
 
 .. code-block:: javascript
 
-    function* TaskQuote(C) {
+    function* TaskQuote() {
         TaskList = [];
-        TaskList.push(START_TASK(TaskSingleOrder));
-        TaskList.push(START_TASK(TaskSingleOrder));
+        TaskList.push(TQ.START_TASK(TaskSingleOrder));
+        TaskList.push(TQ.START_TASK(TaskSingleOrder));
         while (true) {
             var result = yield {
-                ONE: START_TASK(TaskSingleOrder),
+                ONE: TQ.START_TASK(TaskSingleOrder),
                 TWO: TaskList,
             };
             /*
@@ -177,7 +177,7 @@ yield 返回的object，根据不同对象的类型，返回不同结果。
 
 .. code-block:: javascript
 
-    function* TaskQuote(C) {
+    function* TaskQuote() {
         while (true) {
             var result = yield {
                 QUOTE: [
@@ -197,7 +197,7 @@ yield 返回的object，根据不同对象的类型，返回不同结果。
 
 .. code-block:: javascript
 
-    function* TaskQuote(C) {
+    function* TaskQuote() {
         while (true) {
             var result = yield {
                 QUOTE: {
@@ -224,12 +224,12 @@ Task的嵌套调用
         // do something
         // ...
         // start two child task
-        let task_child_1 = START_TASK(TaskChild);
-        let task_child_2 = START_TASK(TaskChild);
+        let task_child_1 = TQ.START_TASK(TaskChild);
+        let task_child_2 = TQ.START_TASK(TaskChild);
         // wait until child tasks finish or user clicked stop
         let wait_result = yield {
             SUBTASK_COMPLETED: [task_child_1, task_child_2],  //All sub task finished
-            USER_CLICK_STOP: C.ON_CLICK('STOP') //User clicked stop button
+            USER_CLICK_STOP: TQ.ON_CLICK('STOP') //User clicked stop button
         };
     }
 

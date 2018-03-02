@@ -12,16 +12,17 @@ TQ.INSERT_ORDER
 
 order_param 中必须包括的字段有（多余的字段不会影响下单）：
 
-================  ========  ===================  =========
-name              type      memo                 example
-================  ========  ===================  =========
-exchange_id       string    交易所代码             CFFEX
-instrument_id     string    合约代码               TF1803
-direction         string    买卖 "BUY"|"SELL"     SELL              
-offset            string    方向 "OPEN"|"CLOSE"   OPEN           
-volume            number    手数                  4
-limit_price       number    限价价格               96
-================  ========  ===================  =========
+================  ========  =========================  =========
+name              type      memo                       example
+================  ========  =========================  =========
+unit_id           string    可选，任意字符串              mytrader
+exchange_id       string    必填，交易所代码              CFFEX
+instrument_id     string    必填，合约代码                TF1803
+direction         string    必填，买卖 "BUY"|"SELL"      SELL              
+offset            string    必填，方向 "OPEN"|"CLOSE"    OPEN           
+volume            number    必填，手数                   4
+limit_price       number    必填，限价价格                96
+================  ========  =========================  =========
 
 示例
 ----------------------------------
@@ -36,7 +37,7 @@ limit_price       number    限价价格               96
         volume: 4,
         limit_price: 96
     }
-    var order = C.INSERT_ORDER(order_param);
+    var order = TQ.INSERT_ORDER(order_param);
     // 下单不成功，退出
     if(!order)
         return;

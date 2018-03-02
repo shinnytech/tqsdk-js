@@ -23,7 +23,7 @@ UI 作为函数调用，可以直接读、写一组参数对象。
 
 .. code-block:: javascript
 
-    var params = UI();
+    var params = TQ.UI();
     /** 
     params = {
         instrument: 'SHFE.rb1801',
@@ -41,7 +41,7 @@ UI 作为函数调用，可以直接读、写一组参数对象。
         "direction" : "SELL",
         "volume" : 100
     }
-    UI(params); // 可以更新页面对应控件的内容
+    TQ.UI(params); // 可以更新页面对应控件的内容
 
 
 UI 读、写指定参数
@@ -53,19 +53,19 @@ UI 用点操作符可以直接读写到对应控件的内容。
 
 .. code-block:: javascript
 
-    var instrument = UI.instrument;
+    var instrument = TQ.UI.instrument;
     // instrument = 'SHFE.rb1801'
-    var volume = UI.volume;
+    var volume = TQ.UI.volume;
     // volume = 20
-    var direction = UI.direction;
+    var direction = TQ.UI.direction;
     // direction = 'BUY'
 
 + 写某个参数
 
 .. code-block:: javascript
 
-    UI.instrument = 'SHFE.rb1805';
-    UI.volume = 30;
-    UI.direction = 'SELL';
+    TQ.UI.instrument = 'SHFE.rb1805';
+    TQ.UI.volume = 30;
+    TQ.UI.direction = 'SELL';
     // 页面对应数据更新
     

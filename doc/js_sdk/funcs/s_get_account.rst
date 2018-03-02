@@ -25,7 +25,7 @@ TQ.GET_ACCOUNT
 
 .. code-block:: javascript
 
-    let account = TQ.GET_ACCOUNT(C.CHANGING_DATA);
+    let account = TQ.GET_ACCOUNT(TQ.CHANGING_DATA);
 
 
 返回数据结构示例

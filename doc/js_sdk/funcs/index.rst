@@ -23,6 +23,6 @@
     s_insert_order.rst
     s_cancel_order.rst
 
-    s_on_changed.rst
+    s_on_change.rst
     s_on_click.rst
 

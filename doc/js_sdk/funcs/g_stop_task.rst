@@ -14,7 +14,7 @@ TQ.STOP_TASK
 
 .. code-block:: javascript
 
-    function *TaskOrder(C){
+    function *TaskOrder(){
         ......
     }
 

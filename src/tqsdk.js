@@ -58,15 +58,6 @@ const PageId = (() => {
 const GenTaskId = GenerateSequence();
 const GenOrderId = GenerateSequence();
 
-// class TaskCtx {
-//     constructor() {
-//         this.unit_id = null;
-//         this.unit_mode = true;
-//         this.account_id = '';
-//         this.orders = {};
-//     }
-// }
-
 const TQ = {
     DATA: new Proxy(DM.datas, {
         get: function (target, key, receiver) {
@@ -166,9 +157,10 @@ const TQ = {
         }
 
         var order_id = BrowserId + '-' + PageId + '-' + GenOrderId.next().value;
+        var unit_id = ord.unit_id ? ord.unit_id : TaskManager.runningTask.unit_id;
         var send_obj = {
             "aid": "insert_order",
-            "unit_id": TaskManager.runningTask.unit_id,
+            "unit_id": unit_id,
             "order_id": order_id,
             "exchange_id": ord.exchange_id,
             "instrument_id": ord.instrument_id,
@@ -180,12 +172,12 @@ const TQ = {
         };
         WS.sendJson(send_obj);
 
-        var id = TaskManager.runningTask.unit_id + '|' + order_id;
+        var id = unit_id + '|' + order_id;
         if (!TQ.GET_ORDER(id)) {
             var orders = {};
             orders[id] = {
                 order_id: order_id,
-                unit_id: TaskManager.runningTask.unit_id,
+                unit_id: unit_id,
                 status: "UNDEFINED",
                 volume_orign: ord.volume,
                 volume_left: ord.volume,

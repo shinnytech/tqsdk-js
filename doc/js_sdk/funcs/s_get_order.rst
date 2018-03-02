@@ -30,13 +30,13 @@ TQ.GET_ORDER
 
 .. code-block:: javascript
 
-    var order = TQ.GET_ORDER(order_id, C.CHANGING_DATA);
+    var order = TQ.GET_ORDER(order_id, TQ.CHANGING_DATA);
 
 如果您想知道最近一次数据包中，包含的当前 Task 下的订单，可以这样写：
 
 .. code-block:: javascript
 
-    var orders = C.GET_ORDER(null, C.CHANGING_DATA);
+    var orders = TQ.GET_ORDER(null, TQ.CHANGING_DATA);
 
 返回数据结构示例
 ----------------------------------

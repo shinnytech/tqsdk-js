@@ -26,7 +26,7 @@ UI 用户界面
         var wait = yield {
             'START': TQ.ON_CLICK('START'),
         }
-        var params = UI();
+        var params = TQ.UI();
         params.direction = wait.START.direction; // "BUY"
         params.offset = wait.START.offset; // "OPEN"
         ......

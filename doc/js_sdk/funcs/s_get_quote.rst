@@ -28,7 +28,7 @@ TQ.GET_QUOTE
 
 .. code-block:: javascript
 
-    var quote = TQ.GET_QUOTE("SHFE.cu1805", C.CHANGING_DATA);
+    var quote = TQ.GET_QUOTE("SHFE.cu1805", TQ.CHANGING_DATA);
 
 
 返回数据结构示例

@@ -266,4 +266,4 @@ TQSDK 中有一个全局变量 TQ.DATA 指向整个数据集. 由于这数据集
 * :ref:`s_get_position`
 * :ref:`s_get_order`
 
-这些函数在成功时都返回对应的object, 失败时返回 null
+这些函数在成功时都返回对应的object, 失败时返回 undefined
