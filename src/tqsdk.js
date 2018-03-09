@@ -118,11 +118,11 @@ const TQ = {
             $('input').attr('disabled', true);
             $('button.START').attr('disabled', true);
         } else if (cmd === 'PAUSE') {
-            $('.panel-title .STATE').html('<span class="label label-warning">暂停</span>');
+            $('.panel-title .STATE').html('<span class="label label-warning">已暂停</span>');
             $('input').attr('disabled', true);
             $('button.START').attr('disabled', true);
         } else if (cmd === 'STOP') {
-            $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
+            $('.panel-title .STATE').html('<span class="label label-danger">已停止</span>');
             $('input').attr('disabled', false);
             $('button.START').attr('disabled', false);
         }
