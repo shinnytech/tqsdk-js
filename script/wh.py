@@ -2,10 +2,9 @@
 #coding=utf-8
 
 import logging
-import json
+
 import ply.lex as lex
 import ply.yacc as yacc
-
 
 logger = logging.getLogger()
 
@@ -360,7 +359,7 @@ def p_statement_with_color(p):
     statement : statement COMMA COLOR
     """
     logger.debug("p_statement_with_color: %s, %s", p[1], p[3])
-    set_output_color(p[1])
+    set_output_color(p[3])
     p[0] = p[1]
 
 def p_line_background_style(p):
@@ -641,7 +640,7 @@ if __name__ == "__main__":
         -EXPECTED--------------------------------
         """ % (f["src"], ret))
 
-    from cases.dmi import case
+    from cases.userfail.not_supported.draw_color_line import case
     tryconvert(case)
 
 """
