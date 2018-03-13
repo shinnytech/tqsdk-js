@@ -244,14 +244,18 @@
                             SUBTASK: [task_a, task_b],
                             USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                         }
+                        if (result.USER_CLICK_STOP){
+                            // 任务结束
+                            TQ.SET_STATE('STOP');
+                            return;
+                        } 
                         if (result.SUBTASK.reduce((a, b) => a && b)) {
                             if (param_a == buy_open && long_volume == 0) { long_volume = volume; }
                             if (param_a == sell_close && long_volume > 0) { long_volume = 0; }
                             if (param_a == sell_open && short_volume == 0) { short_volume = volume; }
                             if (param_a == buy_close && short_volume > 0) { short_volume = 0; }
                             break;
-                        }
-                        if (result.USER_CLICK_STOP) break;
+                        }  
                     }
                 }
             }
@@ -271,16 +275,16 @@
                     UPDATED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.CHANGING_DATA); },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
+                if (result.USER_CLICK_STOP) {
+                    TQ.CANCEL_ORDER(order);
+                    break;
+                }
                 if (order.volume_left == 0) break;
                 if (order.status == "ALIVE" && order.volume_left > 0) {
                     TQ.CANCEL_ORDER(order);
                     order_param.limit_price = (order_param.direction === 'SELL') ? quote.bid_price1 : quote.ask_price1;
                     order_param.volume = order.volume_left;
                     order = TQ.INSERT_ORDER(order_param);
-                }
-                if (result.USER_CLICK_STOP) {
-                    TQ.CANCEL_ORDER(order);
-                    break;
                 }
             }
             return;

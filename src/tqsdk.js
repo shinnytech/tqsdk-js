@@ -131,7 +131,6 @@ const TQ = {
         return function () {
             if (TaskManager.events['click'] && TaskManager.events['click'][id]) {
                 var d = Object.assign({}, TaskManager.events['click'][id]);
-                delete TaskManager.events['click'][id];
                 return d;
             }
             return false;
@@ -141,7 +140,6 @@ const TQ = {
         return function () {
             if (TaskManager.events['change'] && TaskManager.events['change'][id]) {
                 var d = Object.assign({}, TaskManager.events['change'][id]);
-                delete TaskManager.events['change'][id];
                 return d;
             }
             return false;
@@ -328,6 +326,9 @@ const TaskManager = (function (task) {
                 if (err == 'not logined') Notify.error('未登录，请在软件中登录后重试。');
                 else console.log(err)
             }
+        }
+        if (obj) {
+            delete TaskManager.events[obj.type][obj.id];
         }
         if (TaskManager.any_task_stopped) TaskManager.run();
     }
