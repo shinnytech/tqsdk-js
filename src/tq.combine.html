@@ -8,9 +8,9 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <title>天勤-交易</title>
     <!-- base ui && js -->
-    <link href="/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/highlight/styles/atom-one-light.css">
-    <link rel="stylesheet" href="index.css">
+    <link href="assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/highlight/styles/atom-one-light.css">
+    <link rel="stylesheet" href="tq.css">
 </head>
 
 <body>
@@ -105,7 +105,7 @@
             <div class="panel-heading" role="tab" id="headingOne">
                 <h4 class="panel-title">
                     <a role="button" data-toggle="collapse" href="#collapse" aria-expanded="true" aria-controls="collapse">
-                        说明：本下单策略适用于自定义组合下单
+                        说明：本策略针对自定义组合执行组合下单.
                         <span id='collapse_arrow' class="glyphicon glyphicon-menu-down pull-right"></span>
                     </a>
                 </h4>
@@ -158,17 +158,20 @@
         </div>
     </div>
 
-    <script type="text/javascript" src="/assets/jquery.min.js"></script>
-    <script type="text/javascript" src="/assets/bootstrap/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="/assets/jquery.autocomplete.min.js"></script>
-
-    <script type="text/javascript" src="/assets/highlight/highlight.pack.js"></script>
-    <script type="text/javascript" src="/assets/noty.js"></script>
-
-    <script type="text/javascript" src="/js/worker/datamanager.js"></script>
-    <script type="text/javascript" src="/js/worker/websocket.js"></script>
-    <script type="text/javascript" src="/js/utils.js"></script>
-    <script type="text/javascript" src="trader_sdk.js"></script>
+     <!-- concat:start -->
+     <script type="text/javascript" src="assets/jquery.min.js"></script>
+     <script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
+     <script type="text/javascript" src="assets/jquery.autocomplete.min.js"></script>
+ 
+     <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
+     <script type="text/javascript" src="assets/noty.js"></script>
+ 
+     <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
+     <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
+     <script type="text/javascript" src="/ta/js/utils.js"></script>
+     <!-- concat:end -->
+ 
+     <script type="text/javascript" src="tqsdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
         function* TaskCombine() {
             var weights = TQ.GET_COMBINE(TQ.UI.combine_id);
@@ -180,7 +183,9 @@
                 if (!ins_id) continue; // 等价于 ins_id == ''
                 var volume = Math.abs(Math.round(TQ.UI.volume * weights[ins_id])); // 手数(四舍五入至整数)
                 if (volume > 0) {
-                    var [exchange_id, instrument_id] = ins_id.split('.'); // 交易所代码，合约代码
+                    var match_arr = ins_id.match(/([^\.]+)\.(.*)/);
+                    var exchange_id = match_arr[1]; // 交易所代码
+                    var instrument_id = match_arr[2]; // 合约代码
                     var direction = weights[ins_id] > 0 ? TQ.UI.direction : (TQ.UI.direction === 'SELL' ? 'BUY' : 'SELL'); // 交易方向
                     var offset = TQ.UI.offset; // 交易开平
                     var price_field = direction === 'SELL' ? 'bid_price1' : 'ask_price1'; // 价格字段(选择对手价的字段)
@@ -208,7 +213,7 @@
             // 设定为当前对手价
             while (true) {
                 var result = yield {
-                    UPDATED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.LAST_UPDATED_DATA); },
+                    UPDATED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.CHANGING_DATA); },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
                 if (order.volume_left == 0) break;

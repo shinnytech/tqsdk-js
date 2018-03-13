@@ -1,12 +1,12 @@
 .. _g_stop_task:
 
-STOP_TASK 停止
+TQ.STOP_TASK
 ==============================
 停止运行一个任务。
 
-.. js:function:: STOP_TASK(task)
+.. js:function:: TQ.STOP_TASK(task)
 
-   :param object task: 调用 START_TASK() 时返回的对象。
+   :param object task: task 对象
    :returns: null
 
 示例
@@ -14,7 +14,7 @@ STOP_TASK 停止
 
 .. code-block:: javascript
 
-    function *TaskOrder(C){
+    function *TaskOrder(){
         ......
     }
 

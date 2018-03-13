@@ -58,22 +58,13 @@ const PageId = (() => {
 const GenTaskId = GenerateSequence();
 const GenOrderId = GenerateSequence();
 
-// class TaskCtx {
-//     constructor() {
-//         this.unit_id = null;
-//         this.unit_mode = true;
-//         this.account_id = '';
-//         this.orders = {};
-//     }
-// }
-
 const TQ = {
-    LATEST_DATA: new Proxy(DM.datas, {
+    DATA: new Proxy(DM.datas, {
         get: function (target, key, receiver) {
             return Reflect.get(target, key, receiver);
         }
     }),
-    LAST_UPDATED_DATA: new Proxy(DM.last_changed_data, {
+    CHANGING_DATA: new Proxy(DM.last_changed_data, {
         get: function (target, key, receiver) {
             return Reflect.get(target, key, receiver);
         }
@@ -127,11 +118,11 @@ const TQ = {
             $('input').attr('disabled', true);
             $('button.START').attr('disabled', true);
         } else if (cmd === 'PAUSE') {
-            $('.panel-title .STATE').html('<span class="label label-warning">暂停</span>');
+            $('.panel-title .STATE').html('<span class="label label-warning">已暂停</span>');
             $('input').attr('disabled', true);
             $('button.START').attr('disabled', true);
         } else if (cmd === 'STOP') {
-            $('.panel-title .STATE').html('<span class="label label-danger">停止</span>');
+            $('.panel-title .STATE').html('<span class="label label-danger">已停止</span>');
             $('input').attr('disabled', false);
             $('button.START').attr('disabled', false);
         }
@@ -140,7 +131,6 @@ const TQ = {
         return function () {
             if (TaskManager.events['click'] && TaskManager.events['click'][id]) {
                 var d = Object.assign({}, TaskManager.events['click'][id]);
-                delete TaskManager.events['click'][id];
                 return d;
             }
             return false;
@@ -150,11 +140,13 @@ const TQ = {
         return function () {
             if (TaskManager.events['change'] && TaskManager.events['change'][id]) {
                 var d = Object.assign({}, TaskManager.events['change'][id]);
-                delete TaskManager.events['change'][id];
                 return d;
             }
             return false;
         }
+    },
+    SEND_MESSAGE(obj) {
+        WS.sendJson(obj);
     },
     INSERT_ORDER(ord) {
         if (!DM.get_account_id()) {
@@ -163,9 +155,10 @@ const TQ = {
         }
 
         var order_id = BrowserId + '-' + PageId + '-' + GenOrderId.next().value;
+        var unit_id = ord.unit_id ? ord.unit_id : TaskManager.runningTask.unit_id;
         var send_obj = {
             "aid": "insert_order",
-            "unit_id": TaskManager.runningTask.unit_id,
+            "unit_id": unit_id,
             "order_id": order_id,
             "exchange_id": ord.exchange_id,
             "instrument_id": ord.instrument_id,
@@ -177,12 +170,12 @@ const TQ = {
         };
         WS.sendJson(send_obj);
 
-        var id = TaskManager.runningTask.unit_id + '|' + order_id;
+        var id = unit_id + '|' + order_id;
         if (!TQ.GET_ORDER(id)) {
             var orders = {};
             orders[id] = {
                 order_id: order_id,
-                unit_id: TaskManager.runningTask.unit_id,
+                unit_id: unit_id,
                 status: "UNDEFINED",
                 volume_orign: ord.volume,
                 volume_left: ord.volume,
@@ -294,9 +287,6 @@ const TaskManager = (function (task) {
             }
             status[cond] = checkItem(task.waitConditions[cond])
         }
-
-
-
         return status;
     }
 
@@ -313,7 +303,6 @@ const TaskManager = (function (task) {
                 if (ret.done) {
                     task.stopped = true;
                     TaskManager.any_task_stopped = true;
-                    // remove(task);
                 } else {
                     if (task.timeout) task.endTime = getEndTime(task.timeout);
                     task.waitConditions = ret.value;
@@ -337,6 +326,9 @@ const TaskManager = (function (task) {
                 if (err == 'not logined') Notify.error('未登录，请在软件中登录后重试。');
                 else console.log(err)
             }
+        }
+        if (obj) {
+            delete TaskManager.events[obj.type][obj.id];
         }
         if (TaskManager.any_task_stopped) TaskManager.run();
     }

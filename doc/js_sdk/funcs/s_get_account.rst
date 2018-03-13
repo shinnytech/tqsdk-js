@@ -1,50 +1,35 @@
 .. _s_get_account:
 
-方法 C.GET_ACCOUNT
+TQ.GET_ACCOUNT
 ==================================
 
 获取账户信息
 
-.. js:function:: GET_ACCOUNT(from)
+.. js:function:: GET_ACCOUNT(from=TQ.DATA)
 
-    :param object from: 数据源。
+    :param object from: 数据源 (TQ.DATA 或 TQ.CHANGING_DATA)。
     :returns: 返回当前登录的账户对象。
 
-数据源
+
+用法示例
 ----------------------------------
 
-C.LATEST_DATA
-
-C.LAST_UPDATED_DATA 
-
-示例
-----------------------------------
-
-查看当前账户持仓信息：
+查看当前账户信息：
 
 .. code-block:: javascript
 
-    function * Task(C){
-        ...
-        var account = C.GET_ACCOUNT();
-        ...
-    }
+    let account = TQ.GET_ACCOUNT();
 
-查看最近一次账户持仓的更新信息：
+
+查看最近一次更新中的账户信息：
 
 .. code-block:: javascript
 
-    function * Task(C){
-        ...
-        var account = C.GET_ACCOUNT(C.LAST_UPDATED_DATA );
-        ...
-    }
+    let account = TQ.GET_ACCOUNT(TQ.CHANGING_DATA);
 
 
 返回数据结构示例
 ----------------------------------
-
-默认返回人民币账户
 
 .. code-block:: javascript
 

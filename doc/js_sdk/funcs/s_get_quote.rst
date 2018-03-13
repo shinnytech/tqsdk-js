@@ -1,25 +1,16 @@
 .. _s_get_quote:
 
-方法 C.GET_QUOTE 
+TQ.GET_QUOTE
 ==================================
 
 获取指定合约对象
 
-.. js:function:: GET_QUOTE(instrument_id, from)
+.. js:function:: TQ.GET_QUOTE(instrument_id, from=TQ.DATA)
 
     :param string instrument_id: 合约代码。
-    :param object from: 数据源。
+    :param object from: 数据源 (TQ.DATA 或 TQ.CHANGING_DATA)。
     :returns: 返回指定合约对象。
 
-数据源
-----------------------------------
-
-C.LATEST_DATA //默认
-
-C.LAST_UPDATED_DATA 
-
-.. hint::
-    这里 C 表示 Task 函数的第一个参数。
 
 用法示例
 ----------------------------------
@@ -28,27 +19,17 @@ C.LAST_UPDATED_DATA
 
 .. code-block:: javascript
 
-    function * Task(C){
-        ...
-        var quote = C.GET_QUOTE("SHFE.cu1805");
-        if(quote.last_price > 3680) {
-            // 执行操作
-        }
-        ...
+    var quote = TQ.GET_QUOTE("SHFE.cu1805");
+    if(quote.last_price > 3680) {
+        // 执行操作
     }
 
 如果您想知道最近一次数据包中，该合约所更新的字段信息，可以这样写：
 
 .. code-block:: javascript
 
-    function * Task(C){
-        ...
-        var quote = C.GET_QUOTE("SHFE.cu1805", C.LAST_UPDATED_DATE);
-        if(quote.last_price > 3680) {
-            // 执行操作
-        }
-        ...
-    }
+    var quote = TQ.GET_QUOTE("SHFE.cu1805", TQ.CHANGING_DATA);
+
 
 返回数据结构示例
 ----------------------------------

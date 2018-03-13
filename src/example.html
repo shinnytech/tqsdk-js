@@ -8,9 +8,9 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <title>天勤-交易</title>
     <!-- base ui && js -->
-    <link href="/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/highlight/styles/atom-one-light.css">
-    <link rel="stylesheet" href="index.css">
+    <link href="assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/highlight/styles/atom-one-light.css">
+    <link rel="stylesheet" href="tq.css">
 </head>
 
 <body>
@@ -113,17 +113,21 @@
         </div>
     </div>
 
-    <script type="text/javascript" src="/assets/jquery.min.js"></script>
-    <script type="text/javascript" src="/assets/bootstrap/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="/assets/jquery.autocomplete.min.js"></script>
+    <!-- concat:start -->
+    <script type="text/javascript" src="assets/jquery.min.js"></script>
+    <script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="assets/jquery.autocomplete.min.js"></script>
 
-    <script type="text/javascript" src="/assets/highlight/highlight.pack.js"></script>
-    <script type="text/javascript" src="/assets/noty.js"></script>
+    <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
+    <script type="text/javascript" src="assets/noty.js"></script>
 
-    <script type="text/javascript" src="/js/worker/datamanager.js"></script>
-    <script type="text/javascript" src="/js/worker/websocket.js"></script>
-    <script type="text/javascript" src="/js/utils.js"></script>
-    <script type="text/javascript" src="trader_sdk.js"></script>
+    <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
+    <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="/ta/js/utils.js"></script>
+    <!-- concat:end -->
+
+    <script type="text/javascript" src="tqsdk.js"></script>
+    
     <script type="text/javascript" id='TRADE-CODE'>
 
         function* TaskOrder() {
@@ -137,7 +141,10 @@
             params.direction = wait.START.direction;
             params.offset = wait.START.offset;
 
-            var [exchange_id, instrument_id] = params.instrument.split('.');
+            var match_arr = params.instrument.match(/([^\.]+)\.(.*)/);
+            var exchange_id = match_arr[1]; // 交易所代码
+            var instrument_id = match_arr[2]; // 合约代码
+
             Object.assign(params, { exchange_id, instrument_id });
 
             console.log(params)
@@ -147,7 +154,7 @@
 
             while (order && !completed) {
                 var result = yield {
-                    CHANGED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.LAST_UPDATED_DATA) },
+                    CHANGED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.CHANGING_DATA) },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
                 if (order.status === "FINISHED") completed = true;

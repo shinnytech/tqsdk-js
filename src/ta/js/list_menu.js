@@ -382,7 +382,7 @@ CMenu.updateAttachUI = function () {
 
 CMenu.initSysIndicators = function () {
     return new Promise((resolve, reject) => {
-        $.get('/defaults/defaults.json').then(function (response) {
+        $.get('defaults/defaults.json').then(function (response) {
             for (let name in response) {
                 if (name === 'template') {
                     CMenu.codeTemplate = response[name];

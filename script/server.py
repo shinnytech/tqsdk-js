@@ -72,4 +72,3 @@ if __name__ == "__main__":
     application = Application()
     application.listen(8000, **server_settings)
     tornado.ioloop.IOLoop.instance().start()
-

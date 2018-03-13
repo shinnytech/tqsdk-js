@@ -158,52 +158,51 @@ button     direction  offset
 
 .. code-block:: javascript
 
-    function* TaskOrder(C) {
-
+    function* TaskOrder() {
         // 1. 监听用户单击事件，  
         var wait = yield {
-            'START': C.ON_CLICK('START'),
+            'START': TQ.ON_CLICK('START'),
         }
-        C.SET_STATE('START');
+        TQ.SET_STATE('START');
 
         // 1. 获取用户交易买卖、开平的参数  
         params.direction = wait.START.direction;
         params.offset = wait.START.offset;
         
         // 2. 读取用户中页面上填写的其他参数
-        var params = UI(); 
+        var params = TQ.UI(); 
 
         var [exchange_id, instrument_id] = params.instrument.split('.');
         Object.assign(params, { exchange_id, instrument_id });
 
         var completed = false;
         // 3. 根据这些参数，下单
-        var order = C.INSERT_ORDER(params);
+        var order = TQ.INSERT_ORDER(params);
 
         while (order && !completed) {
             var result = yield {
                 // 4. 如果挂单交易完成，结束程序；
-                CHANGED: function () { return C.GET_ORDER(order.exchange_order_id, C.LAST_UPDATED_DATA) },
+                CHANGED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.CHANGING_DATA) },
                 // 4. 如果用户单击结束按钮，撤单后结束程序
-                USER_CLICK_STOP: C.ON_CLICK('STOP'),
+                USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
             };
             // 4. 如果挂单交易完成，结束程序；
             if (order.status === "FINISHED") completed = true;
             // 4. 如果用户单击结束按钮，撤单后结束程序
             if (result.USER_CLICK_STOP) {
                 // 撤单后结束程序
-                C.CANCEL_ORDER(order);
+                TQ.CANCEL_ORDER(order);
                 completed = true;
             }
         }
         // 任务结束
-        C.SET_STATE('STOP');
-        START_TASK(TaskOrder);
+        TQ.SET_STATE('STOP');
+        TQ.START_TASK(TaskOrder);
         return;
     }
     
     // 开始运行一个 Task
-    START_TASK(TaskOrder);
+    TQ.START_TASK(TaskOrder);
 
 .. note:: 
     - 当设置 SET_STATE('START') 后，界面显示任务运行中，任务运行过程中不可以修改界面参数。

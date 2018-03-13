@@ -8,9 +8,9 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <title>天勤-交易</title>
     <!-- base ui && js -->
-    <link href="/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/highlight/styles/atom-one-light.css">
-    <link rel="stylesheet" href="index.css">
+    <link href="assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/highlight/styles/atom-one-light.css">
+    <link rel="stylesheet" href="tq.css">
 </head>
 
 <body>
@@ -45,10 +45,10 @@
                     </div>
                     <div class="row">
                         <div class="col col-xs-3">
-                            <span class="pull-right">买开</span>
+                            <span class="pull-right">卖平</span>
                         </div>
                         <div class="col col-xs-3">
-                            <input type="number" class="form-control input-sm" placeholder="买开" value="154" id="price_buy_open">
+                            <input type="number" class="form-control input-sm" placeholder="卖平" value="160" id="price_sell_close">
                         </div>
                         <div class="col col-xs-3">
                             <span class="pull-right">卖开</span>
@@ -59,10 +59,10 @@
                     </div>
                     <div class="row">
                         <div class="col col-xs-3">
-                            <span class="pull-right">卖平</span>
+                            <span class="pull-right">买开</span>
                         </div>
                         <div class="col col-xs-3">
-                            <input type="number" class="form-control input-sm" placeholder="卖平" value="160" id="price_sell_close">
+                            <input type="number" class="form-control input-sm" placeholder="买开" value="154" id="price_buy_open">
                         </div>
                         <div class="col col-xs-3">
                             <span class="pull-right">买平</span>
@@ -116,7 +116,7 @@
             <div class="panel-heading" role="tab" id="headingOne">
                 <h4 class="panel-title">
                     <a role="button" data-toggle="collapse" href="#collapse" aria-expanded="true" aria-controls="collapse">
-                        说明：本下单策略适用于跟随市场价差变化
+                        说明：本策略为一组合套利策略. 指定两个合约构成组合, 当组合价差低于指定值时, 买入; 当组合价差高于指定值时, 卖出.
                         <span id='collapse_arrow' class="glyphicon glyphicon-menu-down pull-right"></span>
                     </a>
                 </h4>
@@ -169,23 +169,26 @@
         </div>
     </div>
 
-    <script type="text/javascript" src="/assets/jquery.min.js"></script>
-    <script type="text/javascript" src="/assets/bootstrap/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="/assets/jquery.autocomplete.min.js"></script>
+    <!-- concat:start -->
+    <script type="text/javascript" src="assets/jquery.min.js"></script>
+    <script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="assets/jquery.autocomplete.min.js"></script>
 
-    <script type="text/javascript" src="/assets/highlight/highlight.pack.js"></script>
-    <script type="text/javascript" src="/assets/noty.js"></script>
+    <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
+    <script type="text/javascript" src="assets/noty.js"></script>
 
-    <script type="text/javascript" src="/js/worker/datamanager.js"></script>
-    <script type="text/javascript" src="/js/worker/websocket.js"></script>
-    <script type="text/javascript" src="/js/utils.js"></script>
-    <script type="text/javascript" src="trader_sdk.js"></script>
+    <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
+    <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="/ta/js/utils.js"></script>
+    <!-- concat:end -->
+
+    <script type="text/javascript" src="tqsdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
         function* TaskQuote(C) {
             while (true) {
                 var result = yield {
-                    UPDATED_A: function () { return TQ.GET_QUOTE(TQ.UI.insA, TQ.LAST_UPDATED_DATA); },
-                    UPDATED_B: function () { return TQ.GET_QUOTE(TQ.UI.insB, TQ.LAST_UPDATED_DATA); },
+                    UPDATED_A: function () { return TQ.GET_QUOTE(TQ.UI.insA, TQ.CHANGING_DATA); },
+                    UPDATED_B: function () { return TQ.GET_QUOTE(TQ.UI.insB, TQ.CHANGING_DATA); },
                     CHANGED_A: TQ.ON_CHANGE('insA'),
                     CHANGED_B: TQ.ON_CHANGE('insB'),
                 };
@@ -204,8 +207,14 @@
             TQ.SET_STATE('START');
             var short_volume = 0, long_volume = 0;
             // 参数设定
-            var [exchange_id_a, instrument_id_a] = TQ.UI.insA.split('.');
-            var [exchange_id_b, instrument_id_b] = TQ.UI.insB.split('.');
+            var match_arr_a = TQ.UI.insA.match(/([^\.]+)\.(.*)/);
+            var exchange_id_a = match_arr_a[1]; // 交易所代码
+            var instrument_id_a = match_arr_a[2]; // 合约代码
+
+            var match_arr_b = TQ.UI.insB.match(/([^\.]+)\.(.*)/);
+            var exchange_id_b = match_arr_b[1]; // 交易所代码
+            var instrument_id_b = match_arr_b[2]; // 合约代码
+
             var volume = parseInt(TQ.UI.volume);
             var order_a = { ins_id: TQ.UI.insA, exchange_id: exchange_id_a, instrument_id: instrument_id_a, volume: volume };
             var order_b = { ins_id: TQ.UI.insB, exchange_id: exchange_id_b, instrument_id: instrument_id_b, volume: volume };
@@ -235,14 +244,18 @@
                             SUBTASK: [task_a, task_b],
                             USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                         }
+                        if (result.USER_CLICK_STOP){
+                            // 任务结束
+                            TQ.SET_STATE('STOP');
+                            return;
+                        } 
                         if (result.SUBTASK.reduce((a, b) => a && b)) {
                             if (param_a == buy_open && long_volume == 0) { long_volume = volume; }
                             if (param_a == sell_close && long_volume > 0) { long_volume = 0; }
                             if (param_a == sell_open && short_volume == 0) { short_volume = volume; }
                             if (param_a == buy_close && short_volume > 0) { short_volume = 0; }
                             break;
-                        }
-                        if (result.USER_CLICK_STOP) break;
+                        }  
                     }
                 }
             }
@@ -259,19 +272,19 @@
             var order = TQ.INSERT_ORDER(order_param);
             while (true) {
                 var result = yield {
-                    UPDATED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.LAST_UPDATED_DATA); },
+                    UPDATED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.CHANGING_DATA); },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
+                if (result.USER_CLICK_STOP) {
+                    TQ.CANCEL_ORDER(order);
+                    break;
+                }
                 if (order.volume_left == 0) break;
                 if (order.status == "ALIVE" && order.volume_left > 0) {
                     TQ.CANCEL_ORDER(order);
                     order_param.limit_price = (order_param.direction === 'SELL') ? quote.bid_price1 : quote.ask_price1;
                     order_param.volume = order.volume_left;
                     order = TQ.INSERT_ORDER(order_param);
-                }
-                if (result.USER_CLICK_STOP) {
-                    TQ.CANCEL_ORDER(order);
-                    break;
                 }
             }
             return;

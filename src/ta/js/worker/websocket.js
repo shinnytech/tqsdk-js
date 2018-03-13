@@ -17,7 +17,7 @@ TqWebSocket.prototype.STATUS = {
     CLOSED: 3,
 };
 
-TqWebSocket.prototype.sendJson = function (obj) {
+TqWebSocket.prototype.SEND_MESSAGE = TqWebSocket.prototype.sendJson = function (obj) {
     function jsonToStr(obj) {
         return JSON.stringify(obj);
     }
