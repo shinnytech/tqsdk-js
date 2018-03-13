@@ -141,7 +141,10 @@
             params.direction = wait.START.direction;
             params.offset = wait.START.offset;
 
-            var [exchange_id, instrument_id] = params.instrument.split('.');
+            var match_arr = params.instrument.match(/([^\.]+)\.(.*)/);
+            var exchange_id = match_arr[1]; // 交易所代码
+            var instrument_id = match_arr[2]; // 合约代码
+
             Object.assign(params, { exchange_id, instrument_id });
 
             console.log(params)

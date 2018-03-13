@@ -183,7 +183,9 @@
                 if (!ins_id) continue; // 等价于 ins_id == ''
                 var volume = Math.abs(Math.round(TQ.UI.volume * weights[ins_id])); // 手数(四舍五入至整数)
                 if (volume > 0) {
-                    var [exchange_id, instrument_id] = ins_id.split('.'); // 交易所代码，合约代码
+                    var match_arr = ins_id.match(/([^\.]+)\.(.*)/);
+                    var exchange_id = match_arr[1]; // 交易所代码
+                    var instrument_id = match_arr[2]; // 合约代码
                     var direction = weights[ins_id] > 0 ? TQ.UI.direction : (TQ.UI.direction === 'SELL' ? 'BUY' : 'SELL'); // 交易方向
                     var offset = TQ.UI.offset; // 交易开平
                     var price_field = direction === 'SELL' ? 'bid_price1' : 'ask_price1'; // 价格字段(选择对手价的字段)

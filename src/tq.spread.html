@@ -169,20 +169,20 @@
         </div>
     </div>
 
-     <!-- concat:start -->
-     <script type="text/javascript" src="assets/jquery.min.js"></script>
-     <script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
-     <script type="text/javascript" src="assets/jquery.autocomplete.min.js"></script>
- 
-     <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
-     <script type="text/javascript" src="assets/noty.js"></script>
- 
-     <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
-     <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
-     <script type="text/javascript" src="/ta/js/utils.js"></script>
-     <!-- concat:end -->
- 
-     <script type="text/javascript" src="tqsdk.js"></script>
+    <!-- concat:start -->
+    <script type="text/javascript" src="assets/jquery.min.js"></script>
+    <script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="assets/jquery.autocomplete.min.js"></script>
+
+    <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
+    <script type="text/javascript" src="assets/noty.js"></script>
+
+    <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
+    <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="/ta/js/utils.js"></script>
+    <!-- concat:end -->
+
+    <script type="text/javascript" src="tqsdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
         function* TaskQuote(C) {
             while (true) {
@@ -207,8 +207,14 @@
             TQ.SET_STATE('START');
             var short_volume = 0, long_volume = 0;
             // 参数设定
-            var [exchange_id_a, instrument_id_a] = TQ.UI.insA.split('.');
-            var [exchange_id_b, instrument_id_b] = TQ.UI.insB.split('.');
+            var match_arr_a = TQ.UI.insA.match(/([^\.]+)\.(.*)/);
+            var exchange_id_a = match_arr_a[1]; // 交易所代码
+            var instrument_id_a = match_arr_a[2]; // 合约代码
+
+            var match_arr_b = TQ.UI.insB.match(/([^\.]+)\.(.*)/);
+            var exchange_id_b = match_arr_b[1]; // 交易所代码
+            var instrument_id_b = match_arr_b[2]; // 合约代码
+
             var volume = parseInt(TQ.UI.volume);
             var order_a = { ins_id: TQ.UI.insA, exchange_id: exchange_id_a, instrument_id: instrument_id_a, volume: volume };
             var order_b = { ins_id: TQ.UI.insB, exchange_id: exchange_id_b, instrument_id: instrument_id_b, volume: volume };
