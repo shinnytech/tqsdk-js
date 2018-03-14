@@ -15,13 +15,12 @@ order_param 中必须包括的字段有（多余的字段不会影响下单）�
 ================  ========  =========================  =========
 name              type      memo                       example
 ================  ========  =========================  =========
-unit_id           string    可选，任意字符串              mytrader
-exchange_id       string    必填，交易所代码              CFFEX
-instrument_id     string    必填，合约代码                TF1803
-direction         string    必填，买卖 "BUY"|"SELL"      SELL              
-offset            string    必填，方向 "OPEN"|"CLOSE"    OPEN           
-volume            number    必填，手数                   4
-limit_price       number    必填，限价价格                96
+exchange_id       string    必填，交易所代码           CFFEX
+instrument_id     string    必填，合约代码             TF1803
+direction         string    必填，买卖 "BUY"|"SELL"    SELL              
+offset            string    必填，方向 "OPEN"|"CLOSE"  OPEN           
+volume            number    必填，手数                 4
+limit_price       number    必填，限价价格             96.250
 ================  ========  =========================  =========
 
 示例

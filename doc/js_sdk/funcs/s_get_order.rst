@@ -20,12 +20,14 @@ TQ.GET_ORDER
 
     var order = TQ.GET_ORDER(order_id);
 
-该函数有一个简便用法，如果您想知道当前 Task 已经下的全部订单，可以这样查询：
+
+获取当前页面已经下的全部订单(错单及未成交的已撤销单不包含)：
 
 .. code-block:: javascript
 
     var orders = TQ.GET_ORDER();
-
+    
+    
 如果您想知道最近一次数据包中，包含某个 order_id 的订单，可以这样写：
 
 .. code-block:: javascript
