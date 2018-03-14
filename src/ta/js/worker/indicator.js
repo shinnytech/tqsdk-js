@@ -24,8 +24,8 @@ IndicatorInstance.prototype.resetByInstance = function (obj) {
 
 IndicatorInstance.prototype.updateRange = function () {
     var ds = DM.get_kdata_obj(this.ins_id, this.dur_nano);
-    var id_arr = Object.keys(ds).map(x => parseInt(x)).sort((a, b) => a - b);
     if (ds && this.view_left > -1 && this.view_right > -1) {
+        var id_arr = Object.keys(ds).map(x => parseInt(x)).sort((a, b) => a - b);
         var start_id = -1;
         var i = 0;
         for (; i < id_arr.length; i++) {
@@ -145,7 +145,6 @@ IndicatorInstance.prototype.postEndMessage = function () {
 IndicatorInstance.prototype.exec = function () {
     //执行计算calculateRight
     var [left, right] = [this.calculateLeft, this.calculateRight];
-    console.log(left, right)
     try {
         for (; this.calculateLeft <= this.calculateRight; this.calculateLeft++) {
             this.func.next(this.calculateLeft);
