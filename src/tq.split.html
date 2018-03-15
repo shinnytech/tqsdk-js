@@ -256,7 +256,7 @@
                 var pending_volume = 0; // 挂单手数
                 var traded_sum = 0; // 已成交的总金额
                 var traded_volume = 0; // 已成交的总手数
-            
+
                 for (var order of orders) {
                     if (order.status == 'FINISHED' && order.volume_orign == order.volume_left) {
                         // 已撤单且未成交的不考虑
@@ -285,6 +285,15 @@
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                 }
+                
+                for (var order of orders) {
+                    if (order.status == 'FINISHED' && order.exchange_order_id == '') {
+                        // 发生错单， 直接退出 - 任务结束
+                        TQ.SET_STATE('STOP');
+                        return;
+                    }
+                }
+
                 if (result.PRICE_CHANGED || result.USER_CLICK_STOP) {
                     // 撤单
                     for (var order of orders) {
