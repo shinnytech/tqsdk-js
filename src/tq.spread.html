@@ -258,6 +258,16 @@
                             if (param_a == buy_close && short_volume > 0) { short_volume = 0; }
                             break;
                         }
+                        var orders = TQ.GET_ORDER();
+                        for (var order_id in orders) {
+                            if (order[order_id].status == 'FINISHED' && order[order_id].exchange_order_id == '') {
+                                // 发生错单， 结束 subtasks 直接退出 - 任务结束
+                                TQ.STOP_TASK(task_a);
+                                TQ.STOP_TASK(task_b);
+                                TQ.SET_STATE('STOP');
+                                return;
+                            }
+                        }
                     }
                 }
             }
@@ -281,11 +291,6 @@
                     TQ.CANCEL_ORDER(order);
                     break;
                 }
-                if (order.status == 'FINISHED' && order.exchange_order_id == '') {
-                    // 发生错单， 直接退出 - 任务结束
-                    break;
-                }
-
                 if (order.volume_left == 0) break;
                 if (order.status == "ALIVE" && order.volume_left > 0) {
                     TQ.CANCEL_ORDER(order);
