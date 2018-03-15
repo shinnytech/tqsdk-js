@@ -30,35 +30,13 @@ const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
 
 WS.init();
 
-/**
- * 浏览器 - BrowserId
- * 页面 - PageId
- */
-const BrowserId = (() => {
-    let b_id = localStorage.getItem('TianqinBrowserId');
-    if (!b_id) {
-        b_id = RandomStr(4);
-        localStorage.setItem('TianqinBrowserId', b_id);
-    }
-    return b_id;
-})();
-
-const PageId = (() => {
-    let p_id = localStorage.getItem('TianqinPageId');
-    p_id = p_id ? (parseInt(p_id, 36) + 1).toString(36) : '0';
-    localStorage.setItem('TianqinPageId', p_id);
-    return p_id;
-})();
-
-/**
- * unit_id = [TaskId]
- * order_id = [BrowserId]-[PageId]-[OrderId] 
- */
-
+const RandomId = RandomStr(8);
 const GenTaskId = GenerateSequence();
 const GenOrderId = GenerateSequence();
 
 const TQ = {
+    ORDER_ID_PREFIX: "EXT." + RandomId + ".",
+    SELF_ORDERS: {},
     DATA: new Proxy(DM.datas, {
         get: function (target, key, receiver) {
             return Reflect.get(target, key, receiver);
@@ -81,35 +59,36 @@ const TQ = {
     GET_SESSION(from = DM.datas) {
         return DM.get_data('trade/' + DM.get_account_id() + '/session', from);
     },
-    GET_QUOTE(id, from = DM.datas) {
+    GET_QUOTE(symbol, from = DM.datas) {
         // 订阅行情
         var ins_list = DM.datas.ins_list;
-        if (ins_list && !ins_list.includes(id)) {
-            id = (ins_list.substr(-1, 1) === ',') ? id : (',' + id);
-            var s = ins_list + id;
+        if (ins_list && !ins_list.includes(symbol)) {
+            var s = ins_list + "," + symbol;
             WS.sendJson({
                 aid: "subscribe_quote",
                 ins_list: s
             });
         }
-        return DM.get_data('quotes/' + id, from);
+        return DM.get_data('quotes/' + symbol, from);
     },
-    GET_ORDER(id, from = DM.datas) {
-        if (type(id) == 'String') {
-            return DM.get_data('trade/' + DM.get_account_id() + '/orders/' + id, from);
-        } else {
-            var orders = {};
-            var all_orders = DM.get_data('trade/' + DM.get_account_id() + '/orders', from);
-            for (var ex_or_id in all_orders) {
-                var ord = all_orders[ex_or_id];
-                if (ord.status == 'FINISHED' && ord.volume_orign == ord.volume_left) continue;
-                if (ex_or_id.includes(BrowserId+'-'+PageId) && ord.unit_id == TaskManager.runningTask.unit_id) orders[ex_or_id] = ord;
-            }
-            return orders;
+    GET_ORDER(order_id, from = DM.datas) {
+      if (type(order_id) == 'String') {
+        return DM.get_data('trade/' + DM.get_account_id() + '/orders/' + order_id, from);
+      } else {
+        var orders = {};
+        var all_orders = DM.get_data('trade/' + DM.get_account_id() + '/orders', from);
+        for (var ex_or_id in all_orders) {
+            var ord = all_orders[ex_or_id];
+            if (ord.status == 'FINISHED' && ord.volume_orign == ord.volume_left) 
+              continue;
+            if (ex_or_id in TQ.SELF_ORDERS)
+                orders[ex_or_id] = ord;
         }
+        return orders;
+      }
     },
-    GET_COMBINE(id, from = DM.datas) {
-        return DM.get_data('combines/USER.' + id, from);
+    GET_COMBINE(ins_id, from = DM.datas) {
+        return DM.get_data('combines/USER.' + ins_id, from);
     },
     SET_STATE(cmd) {
         cmd = cmd.toUpperCase();
@@ -127,19 +106,19 @@ const TQ = {
             $('button.START').attr('disabled', false);
         }
     },
-    ON_CLICK(id) {
+    ON_CLICK(dom_id) {
         return function () {
-            if (TaskManager.events['click'] && TaskManager.events['click'][id]) {
-                var d = Object.assign({}, TaskManager.events['click'][id]);
+            if (TaskManager.events['click'] && TaskManager.events['click'][dom_id]) {
+                var d = Object.assign({}, TaskManager.events['click'][dom_id]);
                 return d;
             }
             return false;
         }
     },
-    ON_CHANGE(id) {
+    ON_CHANGE(dom_id) {
         return function () {
-            if (TaskManager.events['change'] && TaskManager.events['change'][id]) {
-                var d = Object.assign({}, TaskManager.events['change'][id]);
+            if (TaskManager.events['change'] && TaskManager.events['change'][dom_id]) {
+                var d = Object.assign({}, TaskManager.events['change'][dom_id]);
                 return d;
             }
             return false;
@@ -148,17 +127,17 @@ const TQ = {
     SEND_MESSAGE(obj) {
         WS.sendJson(obj);
     },
+    SET_ORDER_ID_PREFIX(order_id_prefix){
+      TQ.ORDER_ID_PREFIX = order_id_prefix + "." + RandomId + ".";
+    },
     INSERT_ORDER(ord) {
         if (!DM.get_account_id()) {
             Notify.error('未登录，请在软件中登录后重试。');
             return false;
         }
-
-        var order_id = BrowserId + '-' + PageId + '-' + GenOrderId.next().value;
-        var unit_id = ord.unit_id ? ord.unit_id : TaskManager.runningTask.unit_id;
+        var order_id = ord.order_id ? ord.order_id : TQ.ORDER_ID_PREFIX + GenOrderId.next().value;
         var send_obj = {
             "aid": "insert_order",
-            "unit_id": unit_id,
             "order_id": order_id,
             "exchange_id": ord.exchange_id,
             "instrument_id": ord.instrument_id,
@@ -170,12 +149,10 @@ const TQ = {
         };
         WS.sendJson(send_obj);
 
-        var id = unit_id + '|' + order_id;
-        if (!TQ.GET_ORDER(id)) {
+        if (!TQ.GET_ORDER(order_id)) {
             var orders = {};
-            orders[id] = {
+            orders[order_id] = {
                 order_id: order_id,
-                unit_id: unit_id,
                 status: "UNDEFINED",
                 volume_orign: ord.volume,
                 volume_left: ord.volume,
@@ -190,7 +167,9 @@ const TQ = {
                 }
             }, 'local');
         }
-        return TQ.GET_ORDER(id);
+        order = TQ.GET_ORDER(order_id);
+        TQ.SELF_ORDERS[order_id] = order;
+        return order;
     },
 
     CANCEL_ORDER(order) {
@@ -198,7 +177,6 @@ const TQ = {
             WS.sendJson({
                 "aid": "cancel_order",
                 "order_id": order.order_id,
-                "unit_id": TaskManager.runningTask.unit_id
             });
         } else if (TaskManager.runningTask.unit_mode) {
             var orders = TQ.GET_ORDER();
@@ -207,7 +185,6 @@ const TQ = {
                     WS.sendJson({
                         "aid": "cancel_order",
                         "order_id": orders[order].order_id,
-                        "unit_id": TaskManager.runningTask.unit_id
                     });
             }
         }
@@ -215,8 +192,8 @@ const TQ = {
 }
 
 class Task {
-    constructor(id, func, waitConditions = null) {
-        this.id = id;
+    constructor(task_id, func, waitConditions = null) {
+        this.id = task_id;
         this.func = func;
         this.paused = false;
         this.waitConditions = waitConditions;
@@ -349,10 +326,9 @@ const TaskManager = (function (task) {
     }, intervalTime);
 
     function add(func) {
-        var id = GenTaskId.next().value;
-        var task = new Task(id, func);
-        task.unit_id = id;
-        aliveTasks[id] = task;
+        var task_id = GenTaskId.next().value;
+        var task = new Task(task_id, func);
+        aliveTasks[task_id] = task;
         TaskManager.runningTask = task;
         var ret = task.func.next();
         if (ret.done) {

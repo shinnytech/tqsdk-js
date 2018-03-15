@@ -194,8 +194,10 @@
                 };
                 var quoteA = TQ.GET_QUOTE(TQ.UI.insA);
                 var quoteB = TQ.GET_QUOTE(TQ.UI.insB);
-                if (quoteA) TQ.UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
-                if (quoteB) TQ.UI.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
+                if (quoteA && quoteB) {
+                    TQ.UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
+                    TQ.UI.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
+                }
             }
         }
 
@@ -226,10 +228,10 @@
             while (true) {
                 var result = yield {
                     PRARM: function () {
-                        if (quoteA.ask_price1 - quoteB.bid_price1 <= TQ.UI.price_buy_open && long_volume == 0) return [buy_open, sell_open];
-                        if (quoteA.bid_price1 - quoteB.ask_price1 >= TQ.UI.price_sell_close && long_volume > 0) return [sell_close, buy_close];
-                        if (quoteA.bid_price1 - quoteB.ask_price1 >= TQ.UI.price_sell_open && short_volume == 0) return [sell_open, buy_open];
-                        if (quoteA.ask_price1 - quoteB.bid_price1 <= TQ.UI.price_buy_close && short_volume > 0) return [buy_close, sell_close];
+                        if (quoteA.ask_price1 - quoteB.bid_price1 < TQ.UI.price_buy_open + 0.00001 && long_volume == 0) return [buy_open, sell_open];
+                        if (quoteA.bid_price1 - quoteB.ask_price1 > TQ.UI.price_sell_close - 0.00001 && long_volume > 0) return [sell_close, buy_close];
+                        if (quoteA.bid_price1 - quoteB.ask_price1 > TQ.UI.price_sell_open - 0.00001 && short_volume == 0) return [sell_open, buy_open];
+                        if (quoteA.ask_price1 - quoteB.bid_price1 < TQ.UI.price_buy_close + 0.00001 && short_volume > 0) return [buy_close, sell_close];
                         return [false, false];
                     },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
@@ -244,18 +246,18 @@
                             SUBTASK: [task_a, task_b],
                             USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                         }
-                        if (result.USER_CLICK_STOP){
+                        if (result.USER_CLICK_STOP) {
                             // 任务结束
                             TQ.SET_STATE('STOP');
                             return;
-                        } 
+                        }
                         if (result.SUBTASK.reduce((a, b) => a && b)) {
                             if (param_a == buy_open && long_volume == 0) { long_volume = volume; }
                             if (param_a == sell_close && long_volume > 0) { long_volume = 0; }
                             if (param_a == sell_open && short_volume == 0) { short_volume = volume; }
                             if (param_a == buy_close && short_volume > 0) { short_volume = 0; }
                             break;
-                        }  
+                        }
                     }
                 }
             }
@@ -272,13 +274,18 @@
             var order = TQ.INSERT_ORDER(order_param);
             while (true) {
                 var result = yield {
-                    UPDATED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.CHANGING_DATA); },
+                    UPDATED: function () { return TQ.GET_ORDER(order.order_id, TQ.CHANGING_DATA); },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
                 if (result.USER_CLICK_STOP) {
                     TQ.CANCEL_ORDER(order);
                     break;
                 }
+                if (order.status == 'FINISHED' && order.exchange_order_id == '') {
+                    // 发生错单， 直接退出 - 任务结束
+                    break;
+                }
+
                 if (order.volume_left == 0) break;
                 if (order.status == "ALIVE" && order.volume_left > 0) {
                     TQ.CANCEL_ORDER(order);

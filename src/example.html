@@ -127,7 +127,7 @@
     <!-- concat:end -->
 
     <script type="text/javascript" src="tqsdk.js"></script>
-    
+
     <script type="text/javascript" id='TRADE-CODE'>
 
         function* TaskOrder() {
@@ -147,20 +147,19 @@
 
             Object.assign(params, { exchange_id, instrument_id });
 
-            console.log(params)
-
-            var completed = false;
             var order = TQ.INSERT_ORDER(params);
 
-            while (order && !completed) {
+            while (order) {
                 var result = yield {
-                    CHANGED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.CHANGING_DATA) },
+                    CHANGED: function () { return TQ.GET_ORDER(order.order_id, TQ.CHANGING_DATA) },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
-                if (order.status === "FINISHED") completed = true;
                 if (result.USER_CLICK_STOP) {
                     TQ.CANCEL_ORDER(order);
-                    completed = true;
+                    break;
+                }
+                if (order.status === "FINISHED") {
+                    break;
                 }
             }
             // 任务结束
