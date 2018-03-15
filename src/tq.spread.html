@@ -228,10 +228,10 @@
             while (true) {
                 var result = yield {
                     PRARM: function () {
-                        if (quoteA.ask_price1 - quoteB.bid_price1 <= TQ.UI.price_buy_open && long_volume == 0) return [buy_open, sell_open];
-                        if (quoteA.bid_price1 - quoteB.ask_price1 >= TQ.UI.price_sell_close && long_volume > 0) return [sell_close, buy_close];
-                        if (quoteA.bid_price1 - quoteB.ask_price1 >= TQ.UI.price_sell_open && short_volume == 0) return [sell_open, buy_open];
-                        if (quoteA.ask_price1 - quoteB.bid_price1 <= TQ.UI.price_buy_close && short_volume > 0) return [buy_close, sell_close];
+                        if (quoteA.ask_price1 - quoteB.bid_price1 < TQ.UI.price_buy_open + 0.00001 && long_volume == 0) return [buy_open, sell_open];
+                        if (quoteA.bid_price1 - quoteB.ask_price1 > TQ.UI.price_sell_close - 0.00001 && long_volume > 0) return [sell_close, buy_close];
+                        if (quoteA.bid_price1 - quoteB.ask_price1 > TQ.UI.price_sell_open - 0.00001 && short_volume == 0) return [sell_open, buy_open];
+                        if (quoteA.ask_price1 - quoteB.bid_price1 < TQ.UI.price_buy_close + 0.00001 && short_volume > 0) return [buy_close, sell_close];
                         return [false, false];
                     },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
