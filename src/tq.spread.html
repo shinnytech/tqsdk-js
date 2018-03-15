@@ -84,10 +84,10 @@
                             <span class="pull-right">当前价格</span>
                         </div>
                         <div class="col col-xs-9">
-                            <span>买入价差： </span>
+                            <span>SpreadAsk: </span>
                             <span id="spread_ask"></span>
                             <span>；</span>
-                            <span>卖出价差： </span>
+                            <span>SpreadBid: </span>
                             <span id="spread_bid"></span>
                             <span>；</span>
                         </div>
@@ -195,8 +195,8 @@
                 var quoteA = TQ.GET_QUOTE(TQ.UI.insA);
                 var quoteB = TQ.GET_QUOTE(TQ.UI.insB);
                 if (quoteA && quoteB){
-                    TQ.UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
                     TQ.UI.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
+                    TQ.UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
                 } 
             }
         }
@@ -228,10 +228,12 @@
             while (true) {
                 var result = yield {
                     PRARM: function () {
-                        if (quoteA.ask_price1 - quoteB.bid_price1 <= TQ.UI.price_buy_open && long_volume == 0) return [buy_open, sell_open];
-                        if (quoteA.bid_price1 - quoteB.ask_price1 >= TQ.UI.price_sell_close && long_volume > 0) return [sell_close, buy_close];
-                        if (quoteA.bid_price1 - quoteB.ask_price1 >= TQ.UI.price_sell_open && short_volume == 0) return [sell_open, buy_open];
-                        if (quoteA.ask_price1 - quoteB.bid_price1 <= TQ.UI.price_buy_close && short_volume > 0) return [buy_close, sell_close];
+                        let spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
+                        let spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
+                        if (spread_ask <= TQ.UI.price_buy_open && long_volume == 0) return [buy_open, sell_open];
+                        if (spread_bid >= TQ.UI.price_sell_close && long_volume > 0) return [sell_close, buy_close];
+                        if (spread_ask <= TQ.UI.price_buy_close && short_volume > 0) return [buy_close, sell_close];
+                        if (spread_bid >= TQ.UI.price_sell_open && short_volume == 0) return [sell_open, buy_open];
                         return [false, false];
                     },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
