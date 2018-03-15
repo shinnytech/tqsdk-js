@@ -213,19 +213,23 @@
             // 设定为当前对手价
             while (true) {
                 var result = yield {
-                    UPDATED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.CHANGING_DATA); },
+                    UPDATED: function () { return TQ.GET_ORDER(order.order_id, TQ.CHANGING_DATA); },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
+                if (result.USER_CLICK_STOP) {
+                    TQ.CANCEL_ORDER(order);
+                    break;
+                }
+                if (order.status == 'FINISHED' && order.exchange_order_id == '') {
+                    // 发生错单， 直接退出 - 任务结束
+                    break;
+                }
                 if (order.volume_left == 0) break;
                 if (order.status == "ALIVE" && order.volume_left > 0) {
                     TQ.CANCEL_ORDER(order);
                     order_param.limit_price = quote[order_param.price_field];
                     order_param.volume = order.volume_left;
                     order = TQ.INSERT_ORDER(order_param);
-                }
-                if (result.USER_CLICK_STOP) {
-                    TQ.CANCEL_ORDER(order);
-                    break;
                 }
             }
             return;

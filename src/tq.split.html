@@ -234,7 +234,6 @@
             if (!quote) return;
             TQ.SET_STATE('START');
 
-
             var match_arr = TQ.UI.instrument.match(/([^\.]+)\.(.*)/);
             var exchange_id = match_arr[1]; // 交易所代码
             var instrument_id = match_arr[2]; // 合约代码
@@ -251,19 +250,24 @@
                 offset: TQ.UI.offset,
             };
 
+            var orders = []; // 记录这个 Task 下的单
+
             while (true) {
                 var pending_volume = 0; // 挂单手数
                 var traded_sum = 0; // 已成交的总金额
                 var traded_volume = 0; // 已成交的总手数
-                var orders = TQ.GET_ORDER();
 
-                for (var order_id in orders) {
-                    var ord = orders[order_id];
-                    var vol = ord.volume_orign - ord.volume_left;
+                for (var order of orders) {
+                    if (order.status == 'FINISHED' && order.volume_orign == order.volume_left) {
+                        // 已撤单且未成交的不考虑
+                        continue;
+                    }
+                    var vol = order.volume_orign - order.volume_left;
                     traded_volume += vol;
-                    pending_volume += ord.volume_left;
-                    traded_sum += ord.limit_price * vol;
+                    pending_volume += order.volume_left;
+                    traded_sum += order.limit_price * vol;
                 }
+
                 // 成交均价
                 traded_avgprice = traded_volume == 0 ? 0 : Math.round(traded_sum / traded_volume * 100) / 100;
                 TQ.UI({ traded_volume, traded_avgprice }); // 更新显示已成交手数、已成交均价
@@ -272,7 +276,7 @@
                     order_params.volume = Math.min(TQ.UI.max_one_volume, TQ.UI.all_volume - traded_volume) - pending_volume; // 设置手数
                     if (order_params.volume > 0) {
                         order_params.limit_price = quote[price_field]; // 设置价格
-                        TQ.INSERT_ORDER(order_params);
+                        orders.push(TQ.INSERT_ORDER(order_params)); // 记录这个 Task 下的单
                     }
                 }
 
@@ -281,8 +285,20 @@
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                 }
+                
+                for (var order of orders) {
+                    if (order.status == 'FINISHED' && order.exchange_order_id == '') {
+                        // 发生错单， 直接退出 - 任务结束
+                        TQ.SET_STATE('STOP');
+                        return;
+                    }
+                }
+
                 if (result.PRICE_CHANGED || result.USER_CLICK_STOP) {
-                    TQ.CANCEL_ORDER();
+                    // 撤单
+                    for (var order of orders) {
+                        if (order.status == 'ALIVE' || order.status == "UNDEFINED") TQ.CANCEL_ORDER(order);
+                    }
                     if (result.USER_CLICK_STOP) break;
                 }
             }
