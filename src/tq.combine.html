@@ -158,20 +158,20 @@
         </div>
     </div>
 
-     <!-- concat:start -->
-     <script type="text/javascript" src="assets/jquery.min.js"></script>
-     <script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
-     <script type="text/javascript" src="assets/jquery.autocomplete.min.js"></script>
- 
-     <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
-     <script type="text/javascript" src="assets/noty.js"></script>
- 
-     <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
-     <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
-     <script type="text/javascript" src="/ta/js/utils.js"></script>
-     <!-- concat:end -->
- 
-     <script type="text/javascript" src="tqsdk.js"></script>
+    <!-- concat:start -->
+    <script type="text/javascript" src="assets/jquery.min.js"></script>
+    <script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="assets/jquery.autocomplete.min.js"></script>
+
+    <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
+    <script type="text/javascript" src="assets/noty.js"></script>
+
+    <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
+    <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="/ta/js/utils.js"></script>
+    <!-- concat:end -->
+
+    <script type="text/javascript" src="tqsdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
         function* TaskCombine() {
             var weights = TQ.GET_COMBINE(TQ.UI.combine_id);
@@ -199,6 +199,15 @@
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                 };
                 if (result.USER_CLICK_STOP || result.SUBTASK.reduce((a, b) => a && b)) break;
+                var orders = TQ.GET_ORDER();
+                for (var order_id in orders) {
+                    if (order[order_id].status == 'FINISHED' && order[order_id].exchange_order_id == '') {
+                        // 发生错单， 结束 subtasks 直接退出 - 任务结束
+                        for (var task in TaskList) TQ.STOP_TASK(task);
+                        TQ.SET_STATE('STOP');
+                        return;
+                    }
+                }
             }
             // 任务结束
             TQ.SET_STATE('STOP');
@@ -218,10 +227,6 @@
                 };
                 if (result.USER_CLICK_STOP) {
                     TQ.CANCEL_ORDER(order);
-                    break;
-                }
-                if (order.status == 'FINISHED' && order.exchange_order_id == '') {
-                    // 发生错单， 直接退出 - 任务结束
                     break;
                 }
                 if (order.volume_left == 0) break;
