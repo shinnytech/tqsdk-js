@@ -194,8 +194,10 @@
                 };
                 var quoteA = TQ.GET_QUOTE(TQ.UI.insA);
                 var quoteB = TQ.GET_QUOTE(TQ.UI.insB);
-                if (quoteA) TQ.UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
-                if (quoteB) TQ.UI.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
+                if (quoteA && quoteB){
+                    TQ.UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
+                    TQ.UI.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
+                } 
             }
         }
 
