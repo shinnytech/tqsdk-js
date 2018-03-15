@@ -232,6 +232,7 @@ const TaskManager = (function (task) {
         if (typeof node == 'function') {
             return node();
         } else if (node instanceof Task) {
+            if(node.stopped) return node.return;
             return node.stopped;
         } else if (node instanceof Array) {
             // array &&
@@ -279,6 +280,7 @@ const TaskManager = (function (task) {
                 var ret = task.func.next(waitResult);
                 if (ret.done) {
                     task.stopped = true;
+                    task.return = ret.value;
                     TaskManager.any_task_stopped = true;
                 } else {
                     if (task.timeout) task.endTime = getEndTime(task.timeout);
@@ -333,6 +335,7 @@ const TaskManager = (function (task) {
         var ret = task.func.next();
         if (ret.done) {
             task.stopped = true;
+            task.return = ret.value;
         } else {
             for (var cond in ret.value) {
                 if (cond.toUpperCase() === 'TIMEOUT') {
