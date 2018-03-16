@@ -198,16 +198,17 @@
                     SUBTASK: TaskList,
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                 };
-                if (result.USER_CLICK_STOP || result.SUBTASK.reduce((a, b) => a && b)) break;
-                var orders = TQ.GET_ORDER();
-                for (var order_id in orders) {
-                    if (order[order_id].status == 'FINISHED' && order[order_id].exchange_order_id == '') {
-                        // 发生错单， 结束 subtasks 直接退出 - 任务结束
-                        for (var task in TaskList) TQ.STOP_TASK(task);
+                if (result.USER_CLICK_STOP) break;
+
+                for (var task of result.SUBTASK) {
+                    if (task == 'error') {
+                        // 任务结束
+                        for(var task of TaskList) TQ.STOP_TASK(task);
                         TQ.SET_STATE('STOP');
                         return;
                     }
                 }
+                if (result.SUBTASK.reduce((a, b) => a && b)) break;
             }
             // 任务结束
             TQ.SET_STATE('STOP');
@@ -223,21 +224,28 @@
             while (true) {
                 var result = yield {
                     UPDATED: function () { return TQ.GET_ORDER(order.order_id, TQ.CHANGING_DATA); },
+                    PRICE_CHANGED: function () { return quote[order_param.price_field] !== order_param.limit_price },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                 };
                 if (result.USER_CLICK_STOP) {
                     TQ.CANCEL_ORDER(order);
                     break;
                 }
+                // 错单
+                if (order.status == 'FINISHED' && order.exchange_order_id == '') return 'error';
                 if (order.volume_left == 0) break;
-                if (order.status == "ALIVE" && order.volume_left > 0) {
-                    TQ.CANCEL_ORDER(order);
-                    order_param.limit_price = quote[order_param.price_field];
-                    order_param.volume = order.volume_left;
-                    order = TQ.INSERT_ORDER(order_param);
+                if (result.PRICE_CHANGED) {
+                    if (order.status == "ALIVE" && order.volume_left > 0) {
+                        TQ.CANCEL_ORDER(order);
+                    }
+                    if (order.status == "FINISHED" && order.volume_left > 0) {
+                        order_param.limit_price = quote[order_param.price_field];
+                        order_param.volume = order.volume_left;
+                        order = TQ.INSERT_ORDER(order_param);
+                    }
                 }
             }
-            return;
+            return 'success';
         }
 
         $(function () {
