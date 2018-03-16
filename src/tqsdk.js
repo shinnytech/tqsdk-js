@@ -157,8 +157,10 @@ const TQ = {
                 volume_orign: ord.volume,
                 volume_left: ord.volume,
                 exchange_id: ord.exchange_id,
-                instrument_id: ord.instrument_id
-            }
+                instrument_id: ord.instrument_id,
+                limit_price: ord.limit_price,
+                price_type: "LIMIT",
+            };
             DM.update_data({
                 "trade": {
                     [DM.get_account_id()]: {
