@@ -203,7 +203,7 @@
                 for (var task of result.SUBTASK) {
                     if (task == 'error') {
                         // 任务结束
-                        for(var task of TaskList) TQ.STOP_TASK(task);
+                        for (var task of TaskList) TQ.STOP_TASK(task);
                         TQ.SET_STATE('STOP');
                         return;
                     }
@@ -234,14 +234,20 @@
                 // 错单
                 if (order.status == 'FINISHED' && order.exchange_order_id == '') return 'error';
                 if (order.volume_left == 0) break;
-                if (result.PRICE_CHANGED) {
-                    if (order.status == "ALIVE" && order.volume_left > 0) {
-                        TQ.CANCEL_ORDER(order);
-                    }
-                    if (order.status == "FINISHED" && order.volume_left > 0) {
-                        order_param.limit_price = quote[order_param.price_field];
-                        order_param.volume = order.volume_left;
-                        order = TQ.INSERT_ORDER(order_param);
+                if (result.PRICE_CHANGED && order.status == "ALIVE" && order.volume_left > 0) {
+                    TQ.CANCEL_ORDER(order);
+                }
+                while (true) {
+                    var wait_cancel = yield {
+                        FINISHED: function () { return order.status == 'FINISHED'; },
+                    };
+                    if (wait_cancel.FINISHED) {
+                        if (order.volume_left > 0) {
+                            order_param.limit_price = quote[order_param.price_field];
+                            order_param.volume = order.volume_left;
+                            order = TQ.INSERT_ORDER(order_param);
+                        }
+                        break;
                     }
                 }
             }
