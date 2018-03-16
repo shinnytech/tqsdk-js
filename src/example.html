@@ -30,7 +30,7 @@
                             <span class="pull-right">合约代码</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control input-sm" placeholder="合约代码" value="CFFEX.TF1803" id="instrument">
+                            <input type="text" class="form-control input-sm" placeholder="合约代码" value="CFFEX.TF1803" id="symbol">
                         </div>
                     </div>
                     <div class="row">
@@ -136,8 +136,8 @@
             var params = TQ.UI(); // 读取页面参数
             params.direction = direction;
             params.offset = offset;
-            params.exchange_id = ParseInstrument(TQ.UI.instrument).exchange_id;
-            params.instrument_id = ParseInstrument(TQ.UI.instrument).instrument_id;
+            params.exchange_id = ParseSymbol(TQ.UI.symbol).exchange_id;
+            params.instrument_id = ParseSymbol(TQ.UI.symbol).instrument_id;
             
             var order = TQ.INSERT_ORDER(params);
             var result = yield {
