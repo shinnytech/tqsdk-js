@@ -221,7 +221,7 @@
         function* TaskQuote() {
             while (true) {
                 var result = yield {
-                    UPDATED_QUOTE: function () { return TQ.GET_QUOTE(TQ.UI.instrument, TQ.CHANGING_DATA) },
+                    UPDATED_QUOTE: function () { return !!TQ.GET_QUOTE(TQ.UI.instrument, TQ.CHANGING_DATA) },
                     CHANGED: TQ.ON_CHANGE('instrument')
                 };
                 var quote = TQ.GET_QUOTE(TQ.UI.instrument);
@@ -231,7 +231,8 @@
 
         function* TaskSplit() {
             var quote = TQ.GET_QUOTE(TQ.UI.instrument);
-            if (!quote) return;
+            if (!quote)
+                return;
             TQ.SET_STATE('START');
 
             var match_arr = TQ.UI.instrument.match(/([^\.]+)\.(.*)/);
@@ -258,10 +259,8 @@
                 var traded_volume = 0; // 已成交的总手数
 
                 for (var order of orders) {
-                    if (order.status == 'FINISHED' && order.volume_orign == order.volume_left) {
-                        // 已撤单且未成交的不考虑
-                        continue;
-                    }
+                    // 已撤单且未成交的不考虑
+                    if (order.status == 'FINISHED' && order.volume_orign == order.volume_left) continue;
                     var vol = order.volume_orign - order.volume_left;
                     traded_volume += vol;
                     pending_volume += order.volume_left;
@@ -281,11 +280,11 @@
                 }
 
                 var result = yield {
-                    ORDER_CHANGED: function () { return TQ.GET_ORDER(null, TQ.CHANGING_DATA); },
+                    ORDER_CHANGED: function () { return !!TQ.GET_ORDER(null, TQ.CHANGING_DATA); },
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                 }
-                
+
                 for (var order of orders) {
                     if (order.status == 'FINISHED' && order.exchange_order_id == '') {
                         // 发生错单， 直接退出 - 任务结束

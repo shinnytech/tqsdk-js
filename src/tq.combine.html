@@ -158,26 +158,26 @@
         </div>
     </div>
 
-     <!-- concat:start -->
-     <script type="text/javascript" src="assets/jquery.min.js"></script>
-     <script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
-     <script type="text/javascript" src="assets/jquery.autocomplete.min.js"></script>
- 
-     <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
-     <script type="text/javascript" src="assets/noty.js"></script>
- 
-     <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
-     <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
-     <script type="text/javascript" src="/ta/js/utils.js"></script>
-     <!-- concat:end -->
- 
-     <script type="text/javascript" src="tqsdk.js"></script>
+    <!-- concat:start -->
+    <script type="text/javascript" src="assets/jquery.min.js"></script>
+    <script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="assets/jquery.autocomplete.min.js"></script>
+
+    <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
+    <script type="text/javascript" src="assets/noty.js"></script>
+
+    <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
+    <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="/ta/js/utils.js"></script>
+    <!-- concat:end -->
+
+    <script type="text/javascript" src="tqsdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
         function* TaskCombine() {
             var weights = TQ.GET_COMBINE(TQ.UI.combine_id);
-            if (!weights) return;
+            if (!weights)
+                return;
             TQ.SET_STATE('START');
-
             var TaskList = [];
             for (var ins_id in weights) { // 对成分乘数表中的每一个合约, 开启一个任务去下单
                 if (!ins_id) continue; // 等价于 ins_id == ''
@@ -193,46 +193,43 @@
                     TaskList.push(TQ.START_TASK(TaskSingleOrder, order_param));
                 }
             }
-            while (true) {
-                var result = yield {
-                    SUBTASK: TaskList,
-                    USER_CLICK_STOP: TQ.ON_CLICK('STOP')
-                };
-                if (result.USER_CLICK_STOP || result.SUBTASK.reduce((a, b) => a && b)) break;
-            }
-            // 任务结束
+            var result = yield {
+                USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
+                ALL_TASK_FINISH: function(){return TaskList.reduce((a, b) => a.stopped && b.stopped);},
+            };
+            for (var task of TaskList)
+                TQ.STOP_TASK(task);
+            TQ.CANCEL_ORDER();
             TQ.SET_STATE('STOP');
-            return;
         }
 
-        // 修改为追单模式
         function* TaskSingleOrder(order_param) {
-            var quote = TQ.GET_QUOTE(order_param.ins_id);
-            order_param.limit_price = quote[order_param.price_field];
-            var order = TQ.INSERT_ORDER(order_param);
+            let quote = TQ.GET_QUOTE(order_param.ins_id);
             // 设定为当前对手价
+            let price_field = order_param.price_field;
+            order_param.limit_price = quote[price_field];
+            let order = TQ.INSERT_ORDER(order_param);
             while (true) {
-                var result = yield {
-                    UPDATED: function () { return TQ.GET_ORDER(order.order_id, TQ.CHANGING_DATA); },
-                    USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
+                let result = yield {
+                    ORDER_UPDATED: function () { return !!TQ.GET_ORDER(order.order_id, TQ.CHANGING_DATA); },
+                    PRICE_CHANGED: function () { return quote[price_field] !== order_param.limit_price },
                 };
-                if (result.USER_CLICK_STOP) {
-                    TQ.CANCEL_ORDER(order);
+                // 错单
+                if (order.status == 'FINISHED' && order.exchange_order_id == '')
+                    return 'error';
+                if (order.volume_left == 0)
                     break;
-                }
-                if (order.status == 'FINISHED' && order.exchange_order_id == '') {
-                    // 发生错单， 直接退出 - 任务结束
-                    break;
-                }
-                if (order.volume_left == 0) break;
-                if (order.status == "ALIVE" && order.volume_left > 0) {
+                if (result.PRICE_CHANGED && order.status == "ALIVE")
                     TQ.CANCEL_ORDER(order);
-                    order_param.limit_price = quote[order_param.price_field];
+                let wait_cancel = yield {
+                    ORDER_CANCELED: function () { return order.status == 'FINISHED'; },
+                };
+                if (order.volume_left > 0) {
+                    order_param.limit_price = quote[price_field];
                     order_param.volume = order.volume_left;
                     order = TQ.INSERT_ORDER(order_param);
                 }
             }
-            return;
         }
 
         $(function () {
