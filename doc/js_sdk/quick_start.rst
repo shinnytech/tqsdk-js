@@ -42,12 +42,13 @@ Quick Start
 
 1. UI 界面，用来展示信息和用户交互。UI 界面就是普通的 HTML。如果您还不熟悉，可以参考 `Html 教程`_。
 
-2. JavaScript 逻辑部分，主要负责实现交易逻辑。本篇教程主要针对这一部分。为了方便书写，我们把负责交易逻辑的 js 代码添加到页面的 script 标签里。
+2. JavaScript 逻辑部分，主要负责实现交易逻辑。本篇教程主要针对这一部分。为了方便书写，我们把负责交易逻辑的 javascript 代码添加到页面的 script 标签里。
 
-本章示例程序为 ``trader_example.html`` 文件，它完整实现本示例的 demo。
+本章示例程序为 ``example.html`` 文件，它完整实现本示例的 demo。
 
 .. tip::
-    当您自己编写新的交易程序时，可以复制 ``trader_example.html``，直接修改文件名和内容。
+    - 软件自带的交易页面存储的位置在安装目录下的 ``extension`` 文件夹中。
+    - 当您自己编写新的交易程序时，可以复制 ``example.html``，直接修改文件名和内容。
 
 
 查看界面
@@ -57,7 +58,10 @@ Quick Start
 
 方式一、在天勤客户端中打开
 *******************************************************
-选择 “添加板块” --> “扩展板块”，右击新添加的板块，右键菜单中选择配置，在配置界面中 [文件名] 字段中，填入 trader_example.html
+选择 “添加板块” --> “扩展板块”，右击新添加的板块，右键菜单中选择配置，在配置界面中添加文件名 ``example.html``。 
+
+.. note::
+    配置面板上填写的文件名就是 ``extension`` 文件夹下的文件名。
 
 这时候软件中应该能够显示以下界面：
 
@@ -88,7 +92,7 @@ Quick Start
 +------------+------------+--------------+
 | name       | id         | default      |
 +============+============+==============+
-| 合约       | instrument | CFFEX.TF1803 |
+| 合约       | symbol     | CFFEX.TF1803 |
 +------------+------------+--------------+
 | 手数       | volume     | 3            |
 +------------+------------+--------------+
@@ -110,7 +114,7 @@ button     direction  offset
 
 .. code-block:: html
 
-    <input type="text" placeholder="合约代码" value="CFFEX.TF1803" id="instrument">
+    <input type="text" placeholder="合约代码" value="CFFEX.TF1803" id="symbol">
     <input type="number" placeholder="手数" value="3" id="volume">
     <input type="number" placeholder="价格" value="96" id="limit_price">
 
@@ -118,7 +122,7 @@ button     direction  offset
     <button type="button" class="START" data-direction="SELL" data-offset="OPEN">卖开</button>
     <button type="button" class="START" data-direction="BUY" data-offset="CLOSE">买平</button>
     <button type="button" class="START" data-direction="SELL" data-offset="CLOSE">卖平</button>
-    <button type="button" class="STOP">停止</button>
+    <button type="button" id="STOP">停止</button>
 
 .. hint::
 
@@ -158,68 +162,60 @@ button     direction  offset
 
 .. code-block:: javascript
 
-    function* TaskOrder() {
-        // 1. 监听用户单击事件，  
-        var wait = yield {
-            'START': TQ.ON_CLICK('START'),
-        }
+    function* TaskOrder(direction, offset) {
         TQ.SET_STATE('START');
 
-        // 1. 获取用户交易买卖、开平的参数  
-        params.direction = wait.START.direction;
-        params.offset = wait.START.offset;
-        
-        // 2. 读取用户中页面上填写的其他参数
+        // 读取页面参数
         var params = TQ.UI(); 
-
-        var [exchange_id, instrument_id] = params.instrument.split('.');
-        Object.assign(params, { exchange_id, instrument_id });
-
-        var completed = false;
-        // 3. 根据这些参数，下单
+        params.direction = direction;
+        params.offset = offset;
+        params.exchange_id = ParseSymbol(TQ.UI.symbol).exchange_id;
+        params.instrument_id = ParseSymbol(TQ.UI.symbol).instrument_id;
+        
+        // 根据参数，下单
         var order = TQ.INSERT_ORDER(params);
-
-        while (order && !completed) {
-            var result = yield {
-                // 4. 如果挂单交易完成，结束程序；
-                CHANGED: function () { return TQ.GET_ORDER(order.exchange_order_id, TQ.CHANGING_DATA) },
-                // 4. 如果用户单击结束按钮，撤单后结束程序
-                USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
-            };
-            // 4. 如果挂单交易完成，结束程序；
-            if (order.status === "FINISHED") completed = true;
-            // 4. 如果用户单击结束按钮，撤单后结束程序
-            if (result.USER_CLICK_STOP) {
-                // 撤单后结束程序
-                TQ.CANCEL_ORDER(order);
-                completed = true;
-            }
-        }
+        var result = yield {
+            FINISHED: function () { return order.status === "FINISHED" }, // 如果挂单交易完成，结束程序
+            USER_CLICK_STOP: TQ.ON_CLICK('STOP'), // 如果用户单击结束按钮，撤单后结束程序
+        };
+        if (result.USER_CLICK_STOP)
+            TQ.CANCEL_ORDER(order); // 如果用户单击结束按钮，撤单后结束程序
         // 任务结束
         TQ.SET_STATE('STOP');
-        TQ.START_TASK(TaskOrder);
-        return;
     }
-    
-    // 开始运行一个 Task
-    TQ.START_TASK(TaskOrder);
+
+    // 监听用户单击事件， 读取单击按钮上的参数
+    $('button.START').on('click', function (e) {
+        var data = e.target.dataset;
+        TQ.START_TASK(TaskOrder, data.direction, data.offset);
+    });
 
 .. note:: 
-    - 当设置 SET_STATE('START') 后，界面显示任务运行中，任务运行过程中不可以修改界面参数。
+    - 当设置 TQ.SET_STATE('START') 后，界面显示任务运行中，任务运行过程中不可以修改界面参数。
        要想修改参数，需要停止任务 => 修改参数 => 重新开始任务。
-    - UI() 函数不传入参数，可以读取用户在页面填入全部的参数。
+
+    - TQ.UI() 函数不传入参数，可以读取用户在页面填入全部的参数。
        本例中有 3 个参数：合约代码，下单手数，下单价格。
+
     - 下单方向和开平是根据用户单击不同的按钮，传入不同的参数 direction（买卖），offset（开平）
+
     - GET_QUOTE 方法可以获得指定的合约对象。
+
     - ON_CLICK 函数可以监听页面按钮的单击事件，返回被监听对象绑定的 data-xxx 数据。
+
     - 根据 INSERT_ORDER 下单函数需要的参数，我们为 params 添加需要的字段
+
     - 程序每收到一个数据包，就会运行到关键字 yield 位置，检查 yield 之后的对象的真值，本例中检查 2 个条件：
         CHANGED：最近一次数据包中是否包含所下单 order 的信息。
         
         USER_CLICK_STOP：用户时候提前单击了结束按钮
+
     - 检查到某个条件值为真时，会返回 result
+
     - 当 order.status === "FINISHED" 成立时，completed 置为真，任务完成
+
     - 当用户提前单击结束按钮时，撤掉发出的订单，completed 置为真，任务完成
+    
     - 界面显示任务结束，任务运行结束可以修改界面参数
 
 
@@ -228,8 +224,8 @@ button     direction  offset
 
 到此，我们就可以正式运行任务下单了。
 
-+ 方式一、在天勤客户端中，右击刚刚添加的板块，右键菜单中选择刷新。
-+ 方式二、在 Chrome 浏览器中打开，刷新页面，http://taide.tq18.cn/trader/trader_user.html。
++ 方式一、在天勤客户端中，右击刚刚添加的板块，右键菜单中选择 ``重新加载``。
++ 方式二、在 Chrome 浏览器中打开，刷新页面。
 
 单击买开或者卖开按钮，即可开始运行下单任务。试试吧。
 

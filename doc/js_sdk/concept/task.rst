@@ -70,17 +70,16 @@ Cons:
 .. code-block:: javascript
     :caption: 一个Task的例子
 
-    function* TaskQuote() {              //与普通函数不同, Task的关键字 ``function`` 和函数名中间必须有一个 ``*``
+    function* TaskQuote() {              // 与普通函数不同, Task的关键字 ``function`` 和函数名中间必须有一个 ``*``
         while (true) {
-            var result = yield {         //关键字 ``yield`` 表示，函数在执行到这里时，会检查后面对象表示出的条件，并以对象形式返回，后面代码中就可以根据返回的内容执行不同的逻辑。
-                UPDATED_QUOTE: function () { return TQ.GET_QUOTE(TQ.UI.instrument) },
-                CHANGED: TQ.ON_CHANGE('instrument')
+            var result = yield {         // 关键字 ``yield`` 表示，函数在异步执行的等待条件
+                UPDATED_QUOTE: function () { return !!TQ.GET_QUOTE(TQ.UI.instrument) },
+                CHANGED: TQ.ON_CHANGE('symbol')
             };
             var quote = TQ.GET_QUOTE(TQ.UI.instrument);
             TQ.UI(quote); // 更新界面
         }
     }
-
 
 任务管理器与任务调度
 ----------------------------------------
@@ -98,12 +97,19 @@ Task的启动和停止
 可以在任意位置开始、结束、暂停、恢复一个 Task，但是已经结束的 Task 无法恢复运行。可以选择重新开始一个 Task。
 
 
-在Task中实现异步等待
+在 Task 中实现异步等待
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-在Task中使用 yield 实现异步等待. yield 后跟一个object, 列出需要等待的条件. TQSDK在每次收到服务器发来的数据包时，都会检查 yield 后面的条件，只要其中某个条件成立，程序即会继续运行, 直到遇到下一个 yield为止。
+在 Task 中使用 yield 实现异步等待. yield 后跟一个 object, 列出需要等待的条件。
+
+object 的每个 Key 值对应一个条件，Key 值有两种情况：
+
++ TIMEOUT： 后面直接跟等待超时的毫秒数。
++ 其余 Key 值，根据用户习惯定义，值必须是一个返回 ``true`` 或者 ``false`` 函数， TQSDK 在每次收到服务器发来的数据包时，都会检查 yield 后面的条件，其中至少有一个条件返回为 ``true`` 时，程序才会继续运行, 直到遇到下一个 yield 为止。
+
+通过这样的机制，就可以在 yield 后面添加任意条件，等待下单机会。
 
 .. code-block:: javascript
-    :caption: 用yield实现异步等待
+    :caption: 用 yield 实现异步等待
 
     function* SomeTask() {
         // do something...
@@ -111,9 +117,9 @@ Task的启动和停止
         var wait_result = yield {         //关键字 ``yield`` 表示，函数在执行到这里时，会检查后面对象表示出的条件，并以对象形式返回，后面代码中就可以根据返回的内容执行不同的逻辑。
             PRICE_HIGH: function () { return quote.last_price > 50000 },   // 当行情价格>50000时满足条件
             STOPPED: TQ.ON_CLICKED('stop'),  //当用户点击 stop 按钮时满足条件
-            TIMEOUT: 5000,                   //等待时间超过5000毫秒时满足条件
+            TIMEOUT: 5000,                   //等待时间超过 5000 毫秒时满足条件
         };
-        // 只有以上三个条件任意一个的返回值不是false或null时, yield才会返回一个object, 记录了各条件的计算结果
+        // 只有以上三个条件至少有一个返回值是 true 时, yield 才会返回一个 object, 记录了各条件的计算结果
         /*
           wait_result = {
             PRICE_HIGH: false,
@@ -123,101 +129,17 @@ Task的启动和停止
         */
     }
 
-yield 返回的object，根据不同对象的类型，返回不同结果。
-
-+ Function 返回函数执行结果
-
-.. code-block:: javascript
-
-    function* TaskQuote() {
-        while (true) {
-            var result = yield {
-                QUOTE: function () { return TQ.GET_QUOTE(UI.instrument) },
-            };
-            /** js code **/
-        }
-    }
-
-    // 如果传入条件是可执行的普通，则直接返回函数执行结果。在这里就是指定合约的行情。
-    result.QUOTE = {
-        instrument_id: ... ,
-        ask_price1: ... , // 卖1价
-        ask_volume1: ... , // 卖1量
-        bid_price1: ... , // 买1价
-        bid_volume1: ... , // 买1量
-        last_price: ... // 最新价
-        ....
-    }
-
-+ Task 返回 true / false， 返回 Task 是否已经执行完毕
-
-.. code-block:: javascript
-
-    function* TaskQuote() {
-        TaskList = [];
-        TaskList.push(TQ.START_TASK(TaskSingleOrder));
-        TaskList.push(TQ.START_TASK(TaskSingleOrder));
-        while (true) {
-            var result = yield {
-                ONE: TQ.START_TASK(TaskSingleOrder),
-                TWO: TaskList,
-            };
-            /*
-            // 得到返回的对象的数据结构, Task 对象返回 true/false
-            result = {
-                ONE: false,
-                TWO: [true, false]
-            }
-            */
-        }
-    }
-
-
-+ Array 返回数组，对应输入数组的位置
-
-.. code-block:: javascript
-
-    function* TaskQuote() {
-        while (true) {
-            var result = yield {
-                QUOTE: [
-                    function condA(){},
-                    function condB(){}
-                ],
-            };
-            /*
-            // 得到返回的对象的数据结构, 数组顺序与传入的检查条件一一对应
-            result.QUOTE = [true, false]
-            */
-        }
-    }
-
-
-+ Object 返回对象，对应输入对象的键值
-
-.. code-block:: javascript
-
-    function* TaskQuote() {
-        while (true) {
-            var result = yield {
-                QUOTE: {
-                    condA: function (){},
-                    condB: function (){},
-                },
-            };
-            /*
-            // 得到返回的对象的数据结构
-            result.QUOTE = {
-                condA: ... ,
-                condB: ...
-            }
-            */
-        }
-    }
-
-
 Task的嵌套调用
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+调用 TQ.START_TASK(TaskChild) 可以返回一个 Task 对象。
+
+Task 对象可以提供的属性：
+
+``task_child.stopped`` 可以获取 Task 对象是否运行结束。
+
+``task_child.return`` 可以获取 Task 对象运行结束后返回的值。
+
 .. code-block:: javascript
 
     function* TaskParent() {
@@ -228,11 +150,17 @@ Task的嵌套调用
         let task_child_2 = TQ.START_TASK(TaskChild);
         // wait until child tasks finish or user clicked stop
         let wait_result = yield {
-            SUBTASK_COMPLETED: [task_child_1, task_child_2],  //All sub task finished
+            SUBTASK_ERROR: function (){ return task_child_1.return == 'error' && task_child_2.return == 'error'; },  //Any sub task occur errors
+            SUBTASK_COMPLETED: function (){ return task_child_1.stopped && task_child_2.stopped; },  //All sub task finished
             USER_CLICK_STOP: TQ.ON_CLICK('STOP') //User clicked stop button
         };
     }
 
     function* TaskChild() {
         // do something
+        if(...){
+            return 'error';
+        }else{
+            return 'success';    
+        }
     }
