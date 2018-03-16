@@ -71,7 +71,16 @@ function* GenerateSequence(start = 0) {
     }
 }
 
-
+/**
+ * 解析字符串，读取交易所和交易代码
+ */
+function ParseInstrument(str) {
+    var match_arr = str.match(/([^\.]+)\.(.*)/);
+    return {
+        exchange_id: match_arr ? match_arr[1] : '',// 交易所代码
+        instrument_id: match_arr ? match_arr[2] : ''// 合约代码
+    }
+}
 
 
 
