@@ -221,7 +221,7 @@
         function* TaskQuote() {
             while (true) {
                 var result = yield {
-                    UPDATED_QUOTE: function () { return TQ.GET_QUOTE(TQ.UI.instrument, TQ.CHANGING_DATA) },
+                    UPDATED_QUOTE: function () { return !!TQ.GET_QUOTE(TQ.UI.instrument, TQ.CHANGING_DATA) },
                     CHANGED: TQ.ON_CHANGE('instrument')
                 };
                 var quote = TQ.GET_QUOTE(TQ.UI.instrument);
@@ -231,7 +231,8 @@
 
         function* TaskSplit() {
             var quote = TQ.GET_QUOTE(TQ.UI.instrument);
-            if (!quote) return;
+            if (!quote)
+                return;
             TQ.SET_STATE('START');
 
             var match_arr = TQ.UI.instrument.match(/([^\.]+)\.(.*)/);
@@ -279,7 +280,7 @@
                 }
 
                 var result = yield {
-                    ORDER_CHANGED: function () { return TQ.GET_ORDER(null, TQ.CHANGING_DATA); },
+                    ORDER_CHANGED: function () { return !!TQ.GET_ORDER(null, TQ.CHANGING_DATA); },
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                 }

@@ -110,7 +110,7 @@ const TQ = {
         return function () {
             if (TaskManager.events['click'] && TaskManager.events['click'][dom_id]) {
                 var d = Object.assign({}, TaskManager.events['click'][dom_id]);
-                return d;
+                return true;
             }
             return false;
         }
@@ -119,7 +119,7 @@ const TQ = {
         return function () {
             if (TaskManager.events['change'] && TaskManager.events['change'][dom_id]) {
                 var d = Object.assign({}, TaskManager.events['change'][dom_id]);
-                return d;
+                return true;
             }
             return false;
         }
@@ -228,31 +228,6 @@ const TaskManager = (function (task) {
         return (new Date()).getTime() + t;
     }
 
-    function checkItem(node) {
-        if (typeof node == 'function') {
-            return node();
-        } else if (node instanceof Task) {
-            if(node.stopped) return node.return;
-            return node.stopped;
-        } else if (node instanceof Array) {
-            // array &&
-            var status = [];
-            for (var i in node) {
-                status[i] = checkItem(node[i]);
-            }
-            return status;
-        } else if (node instanceof Object) {
-            // object ||
-            var status = {};
-            for (var k in node) {
-                status[k] = checkItem(node[k]);
-            }
-            return status;
-        } else {
-            return node;
-        }
-    }
-
     function checkTask(task) {
         var status = {};
         task.timeout = undefined;
@@ -263,7 +238,7 @@ const TaskManager = (function (task) {
                 else status['TIMEOUT'] = false;
                 continue;
             }
-            status[cond] = checkItem(task.waitConditions[cond])
+            status[cond] = task.waitConditions[cond]();
         }
         return status;
     }
@@ -275,7 +250,7 @@ const TaskManager = (function (task) {
          * ret: { value, done }
          */
         for (var r in waitResult) {
-            if (waitResult[r]) {
+            if (waitResult[r] === true) {
                 // waitConditions 中某个条件为真才执行 next
                 var ret = task.func.next(waitResult);
                 if (ret.done) {
@@ -386,7 +361,8 @@ TQ.START_TASK = function (func) {
 }
 
 TQ.STOP_TASK = function (task) {
-    if (task) task.stop();
+    if (task)
+        task.stop();
     return null;
 }
 
