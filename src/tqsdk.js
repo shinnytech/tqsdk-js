@@ -240,7 +240,15 @@ const TaskManager = (function (task) {
                 else status['TIMEOUT'] = false;
                 continue;
             }
-            status[cond] = task.waitConditions[cond]();
+
+            try {
+                status[cond] = task.waitConditions[cond]();
+            } catch (err) {
+                console.log(err)
+                status[cond] = false;
+            }
+
+            
         }
         return status;
     }
