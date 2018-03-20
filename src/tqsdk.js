@@ -484,7 +484,7 @@ $(() => {
  */
 TQ.GET_KLINE = function ({ kline_id = RandomStr(), symbol, duration, width = 100 } = {}) {
     if (!symbol || !duration) return undefined;
-    var dur_nano = duration + "000000000";
+    var dur_nano = duration * 1000000000;
     WS.sendJson({
         "aid": "set_chart",
         "chart_id": kline_id,
