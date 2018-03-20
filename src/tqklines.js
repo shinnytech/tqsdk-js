@@ -1,29 +1,30 @@
 // 不同的 kline 手动设置 kline_id
-TQ.GET_KSequence = function ({ kline_id = RandomId, ins_id, duration, width = 100 } = {}) {
+TQ.GET_KSequence = function ({ kline_id = RandomStr(), ins_id, duration, width = 100 } = {}) {
     if (!ins_id || !duration) return undefined;
     WS.sendJson({
         "aid": "set_chart",
-        "chart_id": kline_id, // 必填, 默认为 page 的 RandomId
+        "chart_id": kline_id,
         "ins_list": ins_id,
         "duration": duration,
         "view_width": width, // 默认为 100
     });
-    function getKlineIds(data) {
-        let id_arr = Object.keys(data).map(x => parseInt(x)).sort((a, b) => a - b);
-        return id_arr.slice(0 - width);
-    }
     return new Proxy({ kline_id, ins_id, duration, width }, {
         get: function (target, key, receiver) {
             if (key in target) return target[key];
             let kdata = DM.get_kdata_obj(ins_id, duration);
-            if (kdata) {
-                let ids = getKlineIds(kdata);
+            var chart = DM.datas.charts[kline_id];
+            if (kdata && chart && chart.left_id > -1 && chart.right_id > -1) {
                 if (['datetime', 'open', 'high', 'low', 'close', 'volume', 'open_oi', 'close_oi'].includes(key)) {
-                    return ids.map(x => kdata[x][key]);
+                    var list = [];
+                    for (var i = chart.left_id; i <= chart.right_id; i++) {
+                        list.push(kdata[i][key]);
+                    }
+                    return list;
                 } else if (!isNaN(key)) {
-                    if (key < 0) return kdata[ids.slice(key)[0]];
-                    return kdata[ids[key]];
+                    if (key < 0) return kdata[chart.right_id + 1 + Number(key)];
+                    return kdata[chart.left_id + Number(key)];
                 }
+
             }
             return undefined;
         }
@@ -153,7 +154,7 @@ TQ.GET_Indicator = function (id, kseq, ta_class_name, params) {
 
 class Indicator {
     constructor(config) {
-        
+
         this.ctx = {
             DEFINE: () => { },
             PARAM: (defaultValue, name) => this.params[name].value,
