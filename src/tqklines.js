@@ -1,4 +1,3 @@
-// 不同的 kline 手动设置 kline_id
 TQ.GET_KSequence = function ({ kline_id = RandomStr(), ins_id, duration, width = 100 } = {}) {
     if (!ins_id || !duration) return undefined;
     WS.sendJson({
@@ -11,20 +10,19 @@ TQ.GET_KSequence = function ({ kline_id = RandomStr(), ins_id, duration, width =
     return new Proxy({ kline_id, ins_id, duration, width }, {
         get: function (target, key, receiver) {
             if (key in target) return target[key];
-            let kdata = DM.get_kdata_obj(ins_id, duration);
-            var chart = DM.datas.charts[kline_id];
-            if (kdata && chart && chart.left_id > -1 && chart.right_id > -1) {
+            var kobj = DM.get_data('klines/' + ins_id + '/' + duration);
+            if (kobj && kobj.data && kobj.last_id) {
                 if (['datetime', 'open', 'high', 'low', 'close', 'volume', 'open_oi', 'close_oi'].includes(key)) {
                     var list = [];
-                    for (var i = chart.left_id; i <= chart.right_id; i++) {
-                        list.push(kdata[i][key]);
+                    for (var i = (kobj.last_id - width + 1); i <= kobj.last_id; i++) {
+                        if (kobj.data[i]) list.push(kobj.data[i][key]);
+                        else list.push(undefined);
                     }
                     return list;
                 } else if (!isNaN(key)) {
-                    if (key < 0) return kdata[chart.right_id + 1 + Number(key)];
-                    return kdata[chart.left_id + Number(key)];
+                    if (key < 0) return kobj.data[kobj.last_id + 1 + Number(key)];
+                    return kobj.data[kobj.last_id - width + 1 + Number(key)];
                 }
-
             }
             return undefined;
         }
