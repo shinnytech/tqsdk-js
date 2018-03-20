@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>天勤-交易</title>
+    <!-- base ui && js -->
+    <link href="assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/highlight/styles/atom-one-light.css">
+    <link rel="stylesheet" href="tq.css">
+</head>
+
+<body>
+    <div class="container-fluid main-container">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">持仓量变化示例
+                    <span class="pull-right STATE">
+                        <span class="label label-danger">停止</span>
+                    </span>
+                </h3>
+            </div>
+            <ul class="list-group inputs" style="font-size:12px;">
+                <li class="list-group-item tq-container">
+                    <div class="row">
+                        <div class="col col-xs-3">
+                            <span class="pull-right">合约代码</span>
+                        </div>
+                        <div class="col col-xs-9">
+                            <input type="text" class="form-control input-sm" placeholder="合约代码" value="SHFE.cu1805" id="symbol">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col col-xs-3">
+                            <span class="pull-right">K线间隔</span>
+                        </div>
+                        <div class="col col-xs-9">
+                            <input type="number" class="form-control input-sm" placeholder="手数" value="20" id="duration">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col col-xs-3">
+                            <span class="pull-right">持仓量变化</span>
+                        </div>
+                        <div class="col col-xs-9">
+                            <span id='oi'> </span>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+            <li class="list-group-item">
+                <div class="row">
+                    <div class="col col-xs-12">
+                        <div class="btn-toolbar" role="toolbar">
+                            <div class="btn-group btn-group-xs">
+                                <button type="button" class="btn btn-default START" id="START">开始</button>
+                            </div>
+                            <div class="btn-group btn-group-xs">
+                                <button type="button" class="btn btn-default STOP" id='STOP'>停止</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </li>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-heading" role="tab" id="headingOne">
+                <h4 class="panel-title">
+                    <a role="button" data-toggle="collapse" href="#collapse" aria-expanded="true" aria-controls="collapse">
+                        说明：K 线使用示例
+                        <span id='collapse_arrow' class="glyphicon glyphicon-menu-down pull-right"></span>
+                    </a>
+                </h4>
+            </div>
+            <div id="collapse" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne">
+                <ul class="list-group" style="font-size:12px;">
+                    <li class="list-group-item">
+                        <div class="row">
+                            <div class="col col-xs-12">
+                                <b>详细说明：</b>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-xs-12">
+                                <p>显示最近一个 K 线柱子，结束持仓量和开始持仓量的差。</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="row">
+                            <div class="col col-xs-12">
+                                <b>源代码：</b>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-xs-12" id="code_container">
+                                <pre><code class="javascript"></code></pre>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- concat:start -->
+    <script type="text/javascript" src="assets/jquery.min.js"></script>
+    <script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="assets/jquery.autocomplete.min.js"></script>
+
+    <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
+    <script type="text/javascript" src="assets/noty.js"></script>
+
+    <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
+    <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
+    <script type="text/javascript" src="/ta/js/utils.js"></script>
+    <script type="text/javascript" src="/ta/defaults/basefuncs.js"></script>
+    <script type="text/javascript" src="/ta/defaults/ma.js"></script>
+    <!-- concat:end -->
+
+    <script type="text/javascript" src="tqsdk.js"></script>
+    <script type="text/javascript" src="tqklines.js"></script>
+
+    <script type="text/javascript" id='TRADE-CODE'>
+
+        function* TaskKLine() {
+            var quote = TQ.GET_QUOTE(TQ.UI.symbol);
+            if (!quote) return;
+
+            TQ.SET_STATE('START');
+            
+            var kseq = TQ.GET_KLINE({
+                kline_id: 'abcdefg',
+                symbol: TQ.UI.symbol,
+                duration: TQ.UI.duration,
+                width: 100
+            });
+
+            while (true) {
+                var result = yield {
+                    USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
+                    SHOW: function () {
+                        if (kseq[-1]) {
+                            TQ.UI.oi = kseq[-1].close_oi - kseq[-1].open_oi;
+                        }
+                        return false;
+                    }
+                };
+                if (result.USER_CLICK_STOP) break;
+            }
+
+            TQ.SET_STATE('STOP');
+            return;
+        }
+
+        $('button#START').on('click', function (e) {
+            TQ.START_TASK(TaskKLine);
+        });
+    </script>
+</body>
+
+</html>

@@ -21,6 +21,7 @@
     s_get_order.rst
     s_get_combine.rst
     s_get_position.rst
+    s_get_kline.rst
 
     s_insert_order.rst
     s_cancel_order.rst

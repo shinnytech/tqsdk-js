@@ -117,7 +117,7 @@ gulp.task('trader', ['traderjs', 'copy_tq'], function () {
     var files = fs.readdirSync('./src/');
     var obj = {};
     files.forEach(function (filename) {
-        if (filename.endsWith('.html'))
+        if (filename.endsWith('.html') && filename != 'example.ma.html')
             delKeywordWarpContent('./src/' + filename, dist_tq + filename, 'concat');
     });
     return gulp.src(['./src/*.css'], { base: 'src' })

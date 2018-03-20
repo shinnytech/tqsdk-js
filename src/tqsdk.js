@@ -478,3 +478,38 @@ $(() => {
         TaskManager.run({ type: e.type, id: e.target.id, data: dataSet });
     });
 });
+
+/**
+ * 获取 k线序列
+ */
+TQ.GET_KLINE = function ({ kline_id = RandomStr(), symbol, duration, width = 100 } = {}) {
+    if (!symbol || !duration) return undefined;
+    var dur_nano = duration + "000000000";
+    WS.sendJson({
+        "aid": "set_chart",
+        "chart_id": kline_id,
+        "ins_list": symbol,
+        "duration": dur_nano,
+        "view_width": width, // 默认为 100
+    });
+    return new Proxy({ kline_id, symbol, duration, width }, {
+        get: function (target, key, receiver) {
+            if (key in target) return target[key];
+            var kobj = DM.get_data('klines/' + symbol + '/' + dur_nano);
+            if (kobj && kobj.data && kobj.last_id) {
+                if (['datetime', 'open', 'high', 'low', 'close', 'volume', 'open_oi', 'close_oi'].includes(key)) {
+                    var list = [];
+                    for (var i = (kobj.last_id - width + 1); i <= kobj.last_id; i++) {
+                        if (kobj.data[i]) list.push(kobj.data[i][key]);
+                        else list.push(undefined);
+                    }
+                    return list;
+                } else if (!isNaN(key)) {
+                    if (key < 0) return kobj.data[kobj.last_id + 1 + Number(key)];
+                    return kobj.data[kobj.last_id - width + 1 + Number(key)];
+                }
+            }
+            return undefined;
+        }
+    });
+}
