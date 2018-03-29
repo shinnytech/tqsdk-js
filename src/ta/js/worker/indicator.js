@@ -42,9 +42,8 @@ IndicatorInstance.prototype.updateRange = function () {
         }
         var end_id = start_id;
         for (; i < id_arr.length; i++) {
-            if (id_arr[i] != end_id + 1) break;
-            end_id = id_arr[i];
-            if (end_id >= this.view_right) break;
+            if (id_arr[i] > this.view_right) break;
+            else end_id = id_arr[i];
         }
         if (this.BEGIN == -1 || this.BEGIN > this.view_left) {
             this.BEGIN = start_id;
