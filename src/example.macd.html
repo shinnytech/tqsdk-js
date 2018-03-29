@@ -39,7 +39,7 @@
                             <span class="pull-right">K线间隔</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control input-sm" placeholder="手数" value="3" id="duration">
+                            <input type="number" class="form-control input-sm" placeholder="手数" value="20" id="duration">
                         </div>
                     </div>
                     <div class="row">
@@ -56,11 +56,14 @@
                             <span class="pull-right">当前价格</span>
                         </div>
                         <div class="col col-xs-9">
-                            <span>ma3: </span>
-                            <span id="ma3"></span>
+                            <span>diff: </span>
+                            <span id="diff"></span>
                             <span>；</span>
-                            <span>ma20: </span>
-                            <span id="ma20"></span>
+                            <span>dea: </span>
+                            <span id="dea"></span>
+                            <span>；</span>
+                            <span>bar: </span>
+                            <span id="bar"></span>
                             <span>；</span>
                         </div>
                     </div>
@@ -133,7 +136,7 @@
     <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
     <script type="text/javascript" src="/ta/js/utils.js"></script>
     <script type="text/javascript" src="/ta/defaults/basefuncs.js"></script>
-    <script type="text/javascript" src="/ta/defaults/ma.js"></script>
+    <script type="text/javascript" src="/ta/defaults/macd.js"></script>
     <!-- concat:end -->
 
     <script type="text/javascript" src="tqsdk.js"></script>
@@ -151,7 +154,6 @@
             var { exchange_id, instrument_id } = ParseSymbol(TQ.UI.symbol).exchange_id;
             params.exchange_id = ParseSymbol(TQ.UI.symbol).exchange_id;
             params.instrument_id = ParseSymbol(TQ.UI.symbol).instrument_id;
-            params.offset = 'OPEN';
 
             var kseq = TQ.GET_KLINE({
                 symbol: TQ.UI.symbol,
@@ -159,77 +161,57 @@
                 width: 100
             });
 
-            var ma_params = {
-                "N1": { "value": 3 },
-                "N2": { "value": 5 },
-                "N3": { "value": 10 },
-                "N4": { "value": 20 },
+            var macd_params = {
+                "SHORT": { "value": 20 },
+                "LONG": { "value": 35 },
+                "M": { "value": 10 }
             }
 
-            var ma = TQ.GET_Indicator('myindicator', kseq, 'ma', ma_params);
+            var macd = TQ.GET_Indicator('myindicator', kseq, 'macd', macd_params);
 
-            while (true) {
-                var result = yield {
-                    USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
-                    SHOW: function () {
-                        if (ma[-1]) {
-                            TQ.UI.ma3 = ma[-1].ma3;
-                            TQ.UI.ma20 = ma[-1].ma20;
-                        }
-                        return false;
-                    },
-                    BUY: function () {
-                        if (ma[-1] && ma[-2]) {
-                            if (params.offset == 'OPEN')
-                                return ma[-2].ma3 < ma[-2].ma20 && ma[-1].ma3 > ma[-1].ma20;
-                            else if (params.direction == 'SELL')
-                                return ma[-2].ma3 < ma[-2].ma20 && ma[-1].ma3 > ma[-1].ma20;
-
-                        }
-                        return false;
-                    },
-                    SELL: function () {
-                        if (ma[-1] && ma[-2]) {
-                            if (params.offset == 'OPEN')
-                                return ma[-2].ma3 > ma[-2].ma20 && ma[-1].ma3 < ma[-1].ma20;
-                            else if (params.direction == 'BUY')
-                                return ma[-2].ma3 > ma[-2].ma20 && ma[-1].ma3 < ma[-1].ma20;
-                        }
-                        return false;
+            var result = yield {
+                USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
+                SHOW: function () {
+                    if (macd[-1]) {
+                        TQ.UI.diff = macd[-1].diff;
+                        TQ.UI.dea = macd[-1].dea;
+                        TQ.UI.bar = macd[-1].bar;
                     }
-                };
+                    return false;
+                },
+                BUY: function () {
+                    // if (ma[-1] && ma[-2]) {
+                    //     return ma[-2].ma3 < ma[-2].ma20 && ma[-1].ma3 > ma[-1].ma20;
+                    // }
+                    return false;
+                },
+            };
 
-                if (result.USER_CLICK_STOP) break;
-
-                if (result.BUY) {
-                    params.direction = 'BUY';
-                    params.limit_price = quote.ask_price1;
-                }
-
-                if (result.SELL) {
-                    params.direction = 'SELL';
-                    params.limit_price = quote.bid_price1;
-                }
-
-                var order = TQ.INSERT_ORDER(params);
-
-                var result = yield {
-                    FINISHED: function () {
-                        return order.status == 'FINISHED'
-                    },
-                    USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
-                };
-                if (result.USER_CLICK_STOP) {
-                    TQ.CANCEL_ORDER(order);
-                    break;
-                }
-
-                if (order.status == 'FINISHED') {
-                    if (order.volume_left == 0) params.offset = params.offset == 'CLOSE'? 'OPEN': 'CLOSE';
-                    else break;
-                }
+            if (result.USER_CLICK_STOP) {
+                TQ.SET_STATE('STOP');
+                return;
             }
 
+            if (result.BUY) {
+                params.offset = 'OPEN';
+                params.direction = 'BUY';
+                params.limit_price = quote.ask_price1;
+            }
+
+            console.log(params)
+
+            var order = TQ.INSERT_ORDER(params);
+
+            var result = yield {
+                FINISHED: function () {
+                    return order.status == 'FINISHED'
+                },
+                USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
+            };
+            if (result.USER_CLICK_STOP) {
+                TQ.CANCEL_ORDER(order);
+            }
+            
             TQ.SET_STATE('STOP');
             return;
         }
