@@ -1,5 +1,4 @@
 /**
- * 
  * @param {object} kseq  
  *              // ins_id: TQ.UI.symbol,
                 // duration: TQ.UI.duration,
@@ -14,8 +13,8 @@ TQ.GET_Indicator = function (id, kseq, ta_class_name, params) {
     if (chart) {
         indicator = new Indicator({
             "ta_class_name": ta_class_name,              //必填, 指标实例ID，每个指标实例都有唯一的实例ID号
-            ins_id: kseq.ins_id,
-            dur_nano: kseq.duration,
+            ins_id: kseq.symbol,
+            dur_nano: kseq.duration * 1000000000,
             view_left: chart.left_id,
             view_right: chart.right_id,
             params
@@ -28,15 +27,16 @@ TQ.GET_Indicator = function (id, kseq, ta_class_name, params) {
             if (chart) {
                 indicator = new Indicator({
                     "ta_class_name": ta_class_name,              //必填, 指标实例ID，每个指标实例都有唯一的实例ID号
-                    ins_id: kseq.ins_id,
-                    dur_nano: kseq.duration,
+                    ins_id: kseq.symbol,
+                    dur_nano: kseq.duration * 1000000000,
                     view_left: chart.left_id,
                     view_right: chart.right_id,
                     params
                 });
             }
         } else {
-            if (indicator.view_left != chart.left_id || indicator.view_right != chart.right_id) indicator.updateRange(chart.left_id, chart.right_id);
+            if (indicator.view_left != chart.left_id || indicator.view_right != chart.right_id)
+                indicator.updateRange(chart.left_id, chart.right_id);
             indicator.calculate();
         }
 
@@ -91,18 +91,6 @@ TQ.GET_Indicator = function (id, kseq, ta_class_name, params) {
     });
 
 }
-
-// var KSequence = getKSequence({ ins_id, dur_nano, width });
-// console.log(KSequence.open)
-// KSequence.get()
-// KSequence.datetime //UnixNano 北京时间，如果是日线，则是交易日的 UnixNano
-// KSequence.open //开
-// KSequence.high //高
-// KSequence.low //低
-// KSequence.close //收
-// KSequence.volume //成交量
-// KSequence.open_oi //起始持仓量
-// KSequence.close_oi //结束持仓量
 
 /**
  * obj 对象必须的字段 
