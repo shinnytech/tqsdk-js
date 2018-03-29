@@ -16,7 +16,7 @@ function* ma(C){
     let s1 = C.OUTS("LINE", "ma" + n1, {color: RED});
     let s2 = C.OUTS("LINE", "ma" + n2, {color: GREEN});
     let s3 = C.OUTS("LINE", "ma" + n3, {color: BLUE});
-    let s4 = C.OUTS("LINE", "ma" + n4, {color: RED});
+    let s4 = C.OUTS("LINE", "ma" + n4, {color: YELLOW});
     //计算
     while(true) {
         let i = yield;
