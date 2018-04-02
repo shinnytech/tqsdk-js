@@ -3,10 +3,26 @@ const IndicatorInstance = function (obj) {
     this.rels = []; // 相关节点
     this.invalid = false; // 是否重新计算
     this.BEGIN = -1;
+    this.last_i = -1;
     this.calculateLeft = -1;
     this.calculateRight = -1;
     this.runId = -1;
 };
+
+const RandomStr = function (len = 8) {
+    var charts = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    var s = '';
+    for (var i = 0; i < len; i++) s += charts[Math.random() * 0x3e | 0];
+    return s;
+}
+
+function ParseSymbol(str) {
+    var match_arr = str.match(/([^\.]+)\.(.*)/);
+    return {
+        exchange_id: match_arr ? match_arr[1] : '',// 交易所代码
+        instrument_id: match_arr ? match_arr[2] : ''// 合约代码
+    }
+}
 
 IndicatorInstance.prototype.resetByInstance = function (obj) {
     Object.assign(this, obj);
@@ -17,6 +33,7 @@ IndicatorInstance.prototype.resetByInstance = function (obj) {
     }
     this.rels = [];
     this.BEGIN = -1;
+    this.last_i = -1;
     this.calculateLeft = -1;
     this.calculateRight = -1;
     this.calculate();
@@ -116,7 +133,7 @@ IndicatorInstance.prototype.update = function () {
             let s = [new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL()];
             this.out_datas[serialName] = s;
             return s;
-        } else if (style === 'COLOR_BAR') {
+        } else if (style === 'COLOR_BAR' || style === "MARK") {
             let s = [new VALUESERIAL(), new VALUESERIAL()];
             this.out_datas[serialName] = s;
             return s;
@@ -126,7 +143,93 @@ IndicatorInstance.prototype.update = function () {
             return s;
         }
     };
-
+    this.ORDER = function (direction, offset, volume) {
+        if (!this.enable_trade)
+            return;
+        current_i = this.calculateLeft;
+        kobj = DM.get_data('klines/' + this.ins_id + '/' + this.dur_nano);
+        if (current_i <= this.last_i || !kobj || !kobj.data || !kobj.last_id || kobj.last_id != current_i + 1)
+            return;
+        //@note: 代码跑到这里时, i应该是首次指向序列的倒数第二个柱子
+        this.last_i = current_i;
+        let quote = DM.get_data('quotes/' + this.ins_id);
+        if (direction == "BUY"){
+            limit_price = quote.ask_price1;
+        }else{
+            limit_price = quote.bid_price1;
+        };
+        var { exchange_id, instrument_id } = ParseSymbol(this.ins_id);
+        if (offset == "CLOSE" || offset == "CLOSEOPEN"){
+            let order_id = RandomStr();
+            var pack = {
+                aid: 'insert_order',
+                order_id: order_id,  //必填, 委托单号, 需确保在一个账号中不重复, 限长512字节
+                exchange_id: exchange_id,          //必填, 下单到哪个交易所
+                instrument_id: instrument_id,      //必填, 下单合约代码
+                direction: direction,             //必填, 下单买卖方向
+                offset: "CLOSE",               //可选, 下单开平方向, 当指令相关对象不支持开平机制(例如股票)时可不填写此字段
+                volume: volume,                    //必填, 下单手数
+                price_type: "LIMIT",          //必填, 报单价格类型
+                limit_price: limit_price,           //当 price_type == LIMIT 时需要填写此字段, 报单价格
+            };
+            WS.sendJson(pack);
+        if (offset == "OPEN" || offset=="CLOSEOPEN"){
+            let order_id = RandomStr();
+            var pack = {
+                aid: 'insert_order',
+                order_id: order_id,  //必填, 委托单号, 需确保在一个账号中不重复, 限长512字节
+                exchange_id: exchange_id,          //必填, 下单到哪个交易所
+                instrument_id: instrument_id,      //必填, 下单合约代码
+                direction: direction,             //必填, 下单买卖方向
+                offset: "OPEN",               //可选, 下单开平方向, 当指令相关对象不支持开平机制(例如股票)时可不填写此字段
+                volume: volume,                    //必填, 下单手数
+                price_type: "LIMIT",          //必填, 报单价格类型
+                limit_price: limit_price,           //当 price_type == LIMIT 时需要填写此字段, 报单价格
+            };
+            WS.sendJson(pack);
+        if (offset == "AUTO"){
+            volume_close = 0;
+            let position = DM.get_data('trade/' + DM.get_account_id() + "/positions/" + this.ins_id);
+            if (position != undefined){
+                if (direction == "BUY"){
+                    volume_close = Math.min(position.volume_short, volume);
+                }else{
+                    volume_close = Math.min(position.volume_long, volume);
+                }
+            }
+            if (volume_close > 0){
+                let order_id = RandomStr();
+                pack = {
+                    aid: 'insert_order',
+                    order_id: order_id,  //必填, 委托单号, 需确保在一个账号中不重复, 限长512字节
+                    exchange_id: exchange_id,          //必填, 下单到哪个交易所
+                    instrument_id: instrument_id,      //必填, 下单合约代码
+                    direction: direction,             //必填, 下单买卖方向
+                    offset: "CLOSE",               //可选, 下单开平方向, 当指令相关对象不支持开平机制(例如股票)时可不填写此字段
+                    volume: volume_close,                    //必填, 下单手数
+                    price_type: "LIMIT",          //必填, 报单价格类型
+                    limit_price: limit_price,           //当 price_type == LIMIT 时需要填写此字段, 报单价格
+                };
+                WS.sendJson(pack);
+            }
+            volume -= volume_close;
+            if (volume > 0){
+                let order_id = RandomStr();
+                pack = {
+                    aid: 'insert_order',
+                    order_id: order_id,  //必填, 委托单号, 需确保在一个账号中不重复, 限长512字节
+                    exchange_id: exchange_id,          //必填, 下单到哪个交易所
+                    instrument_id: instrument_id,      //必填, 下单合约代码
+                    direction: direction,             //必填, 下单买卖方向
+                    offset: "OPEN",               //可选, 下单开平方向, 当指令相关对象不支持开平机制(例如股票)时可不填写此字段
+                    volume: volume,                    //必填, 下单手数
+                    price_type: "LIMIT",          //必填, 报单价格类型
+                    limit_price: limit_price,           //当 price_type == LIMIT 时需要填写此字段, 报单价格
+                };
+                WS.sendJson(pack);
+            }
+        }
+    };
     //重生成函数
     this.func = self[this.ta_class_name](this);
     this.func.next(this.calculateLeft);
@@ -148,7 +251,6 @@ IndicatorInstance.prototype.exec = function () {
         for (; this.calculateLeft <= this.calculateRight; this.calculateLeft++) {
             this.func.next(this.calculateLeft);
         }
-
         this.calculateLeft--;
     } catch (e) {
         this.postEndMessage();
