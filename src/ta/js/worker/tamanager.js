@@ -171,7 +171,7 @@ const TM = (function () {
         C.OUTS = function (style, serialName, options) {
             if (style === 'KLINE')
                 return [null, null, null, null];
-            else if (style === 'COLOR_BAR')
+            else if (style === 'COLOR_BAR' || style === "MARK")
                 return [null, null];
             else
                 return null;

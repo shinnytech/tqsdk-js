@@ -348,6 +348,9 @@ const LIGHTRED = RGB(0xF0, 0x80, 0x80);
 const LIGHTGREEN = RGB(0x90, 0xEE, 0x90);
 const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
 
+const ICON_BUY = 0;
+const ICON_SELL = 1;
+
 const VALUESERIAL = function () {
     this.LEFT = 0;
     this.RIGHT = 0;
