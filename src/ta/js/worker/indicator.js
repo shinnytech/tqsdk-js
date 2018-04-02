@@ -4,6 +4,8 @@ const IndicatorInstance = function (obj) {
     this.invalid = false; // 是否重新计算
     this.BEGIN = -1;
     this.last_i = -1;
+    this.expected_long_volume = 0;
+    this.expected_short_volume = 0;
     this.calculateLeft = -1;
     this.calculateRight = -1;
     this.runId = -1;
@@ -34,6 +36,8 @@ IndicatorInstance.prototype.resetByInstance = function (obj) {
     this.rels = [];
     this.BEGIN = -1;
     this.last_i = -1;
+    this.expected_long_volume = 0;
+    this.expected_short_volume = 0;
     this.calculateLeft = -1;
     this.calculateRight = -1;
     this.calculate();
@@ -154,27 +158,41 @@ IndicatorInstance.prototype.update = function () {
         this.last_i = current_i;
         let quote = DM.get_data('quotes/' + this.ins_id);
         if (direction == "BUY"){
-            limit_price = quote.ask_price1;
+            limit_price = quote.upper_limit;
         }else{
-            limit_price = quote.bid_price1;
+            limit_price = quote.lower_limit;
         };
         var { exchange_id, instrument_id } = ParseSymbol(this.ins_id);
         if (offset == "CLOSE" || offset == "CLOSEOPEN") {
-            let order_id = RandomStr();
-            var pack = {
-                aid: 'insert_order',
-                order_id: order_id,  //必填, 委托单号, 需确保在一个账号中不重复, 限长512字节
-                exchange_id: exchange_id,          //必填, 下单到哪个交易所
-                instrument_id: instrument_id,      //必填, 下单合约代码
-                direction: direction,             //必填, 下单买卖方向
-                offset: "CLOSE",               //可选, 下单开平方向, 当指令相关对象不支持开平机制(例如股票)时可不填写此字段
-                volume: volume,                    //必填, 下单手数
-                price_type: "LIMIT",          //必填, 报单价格类型
-                limit_price: limit_price,           //当 price_type == LIMIT 时需要填写此字段, 报单价格
-            };
-            WS.sendJson(pack);
+            if (direction == "BUY"){
+                volume_close = Math.min(this.expected_short_volume, volume);
+                this.expected_short_volume -= volume_close;
+            }else{
+                volume_close = Math.min(this.expected_long_volume, volume);
+                this.expected_long_volume -= volume_close;
+            }
+            if (volume_close > 0){
+                let order_id = RandomStr();
+                var pack = {
+                    aid: 'insert_order',
+                    order_id: order_id,  //必填, 委托单号, 需确保在一个账号中不重复, 限长512字节
+                    exchange_id: exchange_id,          //必填, 下单到哪个交易所
+                    instrument_id: instrument_id,      //必填, 下单合约代码
+                    direction: direction,             //必填, 下单买卖方向
+                    offset: "CLOSE",               //可选, 下单开平方向, 当指令相关对象不支持开平机制(例如股票)时可不填写此字段
+                    volume: volume_close,                    //必填, 下单手数
+                    price_type: "LIMIT",          //必填, 报单价格类型
+                    limit_price: limit_price,           //当 price_type == LIMIT 时需要填写此字段, 报单价格
+                };
+                WS.sendJson(pack);
+            }
         }
         if (offset == "OPEN" || offset=="CLOSEOPEN") {
+            if (direction == "BUY"){
+                this.expected_long_volume += volume;
+            }else{
+                this.expected_short_volume += volume;
+            }
             let order_id = RandomStr();
             var pack = {
                 aid: 'insert_order',
@@ -190,14 +208,12 @@ IndicatorInstance.prototype.update = function () {
             WS.sendJson(pack);
         }
         if (offset == "AUTO"){
-            volume_close = 0;
-            let position = DM.get_data('trade/' + DM.get_account_id() + "/positions/" + this.ins_id);
-            if (position != undefined){
-                if (direction == "BUY"){
-                    volume_close = Math.min(position.volume_short, volume);
-                }else{
-                    volume_close = Math.min(position.volume_long, volume);
-                }
+            if (direction == "BUY"){
+                volume_close = Math.min(this.expected_short_volume, volume);
+                this.expected_short_volume -= volume_close;
+            }else{
+                volume_close = Math.min(this.expected_long_volume, volume);
+                this.expected_long_volume -= volume_close;
             }
             if (volume_close > 0){
                 let order_id = RandomStr();
@@ -215,6 +231,11 @@ IndicatorInstance.prototype.update = function () {
                 WS.sendJson(pack);
             }
             volume -= volume_close;
+            if (direction == "BUY"){
+                this.expected_long_volume += volume;
+            }else{
+                this.expected_short_volume += volume;
+            }
             if (volume > 0){
                 let order_id = RandomStr();
                 pack = {
