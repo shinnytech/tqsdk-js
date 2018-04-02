@@ -159,7 +159,7 @@ IndicatorInstance.prototype.update = function () {
             limit_price = quote.bid_price1;
         };
         var { exchange_id, instrument_id } = ParseSymbol(this.ins_id);
-        if (offset == "CLOSE" || offset == "CLOSEOPEN"){
+        if (offset == "CLOSE" || offset == "CLOSEOPEN") {
             let order_id = RandomStr();
             var pack = {
                 aid: 'insert_order',
@@ -173,7 +173,8 @@ IndicatorInstance.prototype.update = function () {
                 limit_price: limit_price,           //当 price_type == LIMIT 时需要填写此字段, 报单价格
             };
             WS.sendJson(pack);
-        if (offset == "OPEN" || offset=="CLOSEOPEN"){
+        }
+        if (offset == "OPEN" || offset=="CLOSEOPEN") {
             let order_id = RandomStr();
             var pack = {
                 aid: 'insert_order',
@@ -187,6 +188,7 @@ IndicatorInstance.prototype.update = function () {
                 limit_price: limit_price,           //当 price_type == LIMIT 时需要填写此字段, 报单价格
             };
             WS.sendJson(pack);
+        }
         if (offset == "AUTO"){
             volume_close = 0;
             let position = DM.get_data('trade/' + DM.get_account_id() + "/positions/" + this.ins_id);
