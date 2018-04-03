@@ -137,7 +137,7 @@ IndicatorInstance.prototype.update = function () {
             let s = [new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL()];
             this.out_datas[serialName] = s;
             return s;
-        } else if (style === 'COLOR_BAR' || style === "MARK") {
+        } else if (style === 'COLOR_BAR') {
             let s = [new VALUESERIAL(), new VALUESERIAL()];
             this.out_datas[serialName] = s;
             return s;
@@ -152,6 +152,8 @@ IndicatorInstance.prototype.update = function () {
             return;
         current_i = this.calculateLeft;
         kobj = DM.get_data('klines/' + this.ins_id + '/' + this.dur_nano);
+        console.log("current_i:", current_i);
+        console.log("last_i:", this.last_i);
         if (current_i <= this.last_i || !kobj || !kobj.data || !kobj.last_id || kobj.last_id != current_i + 1)
             return;
         //@note: 代码跑到这里时, i应该是首次指向序列的倒数第二个柱子
@@ -369,8 +371,8 @@ const LIGHTRED = RGB(0xF0, 0x80, 0x80);
 const LIGHTGREEN = RGB(0x90, 0xEE, 0x90);
 const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
 
-const ICON_BUY = 0;
-const ICON_SELL = 1;
+const ICON_BUY = 1;
+const ICON_SELL = 2;
 
 const VALUESERIAL = function () {
     this.LEFT = 0;
