@@ -160,9 +160,9 @@ IndicatorInstance.prototype.update = function () {
         this.last_i = current_i;
         let quote = DM.get_data('quotes/' + this.ins_id);
         if (direction == "BUY"){
-            limit_price = quote.upper_limit;
+            limit_price = quote.ask_price1;
         }else{
-            limit_price = quote.lower_limit;
+            limit_price = quote.bid_price1;
         };
         var { exchange_id, instrument_id } = ParseSymbol(this.ins_id);
         if (offset == "CLOSE" || offset == "CLOSEOPEN") {
