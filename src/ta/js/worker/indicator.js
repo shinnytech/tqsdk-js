@@ -4,18 +4,21 @@ const IndicatorInstance = function (obj) {
     this.invalid = false; // 是否重新计算
     this.BEGIN = -1;
     this.last_i = -1;
-    this.expected_long_volume = 0;
-    this.expected_short_volume = 0;
+    this.long_position_volume = 0;
+    this.short_position_volume = 0;
     this.calculateLeft = -1;
     this.calculateRight = -1;
     this.runId = -1;
 };
 
-const RandomStr = function (len = 8) {
+const RandomStr = function (prefix="", len=8) {
     var charts = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     var s = '';
     for (var i = 0; i < len; i++) s += charts[Math.random() * 0x3e | 0];
-    return s;
+    if (prefix)
+        return prefix + s;
+    else
+        return s;
 }
 
 function ParseSymbol(str) {
@@ -36,8 +39,8 @@ IndicatorInstance.prototype.resetByInstance = function (obj) {
     this.rels = [];
     this.BEGIN = -1;
     this.last_i = -1;
-    this.expected_long_volume = 0;
-    this.expected_short_volume = 0;
+    this.long_position_volume = 0;
+    this.short_position_volume = 0;
     this.calculateLeft = -1;
     this.calculateRight = -1;
     this.calculate();
@@ -149,7 +152,8 @@ IndicatorInstance.prototype.update = function () {
     };
     // 重新定义函数时，删除指标自带的输出序列（Mark）
     delete this.out_series_mark;
-    this.ORDER = function (direction, offset, volume) {
+
+    this.ORDER = function (direction, offset, volume, order_symbol=this.trade_symbol) {
         if (!this.out_series_mark) {
             this.out_series_mark = this.OUTS('MARK', 'mk');
         }
@@ -164,23 +168,25 @@ IndicatorInstance.prototype.update = function () {
             return;
         //@note: 代码跑到这里时, i应该是首次指向序列的倒数第二个柱子
         this.last_i = current_i;
-        let quote = DM.get_data('quotes/' + this.ins_id);
+        if (!order_symbol)
+            order_symbol = this.ins_id;
+        let quote = DM.get_data('quotes/' + order_symbol);
 
         let price_field = direction == "BUY" ? 'ask_price1' : 'bid_price1';
         if (!quote[price_field]) // 取不到对应的价格 包括 NaN 、 undefined
             return;
         let limit_price = quote[price_field];
-        var { exchange_id, instrument_id } = ParseSymbol(this.ins_id);
+        var { exchange_id, instrument_id } = ParseSymbol(order_symbol);
         if (offset == "CLOSE" || offset == "CLOSEOPEN") {
             if (direction == "BUY") {
-                volume_close = Math.min(this.expected_short_volume, volume);
-                this.expected_short_volume -= volume_close;
+                volume_close = Math.min(this.short_position_volume, volume);
+                this.short_position_volume -= volume_close;
             } else {
-                volume_close = Math.min(this.expected_long_volume, volume);
-                this.expected_long_volume -= volume_close;
+                volume_close = Math.min(this.long_position_volume, volume);
+                this.long_position_volume -= volume_close;
             }
             if (volume_close > 0) {
-                let order_id = RandomStr();
+                let order_id = RandomStr(this.order_id_prefix);
                 var pack = {
                     aid: 'insert_order',
                     order_id: order_id,  //必填, 委托单号, 需确保在一个账号中不重复, 限长512字节
@@ -197,34 +203,52 @@ IndicatorInstance.prototype.update = function () {
         }
         if (offset == "OPEN" || offset == "CLOSEOPEN") {
             if (direction == "BUY") {
-                this.expected_long_volume += volume;
+                if (this.volume_limit) {
+                    if (this.volume_limit > this.long_position_volume)
+                        volume_open = Math.min(this.volume_limit - this.long_position_volume, volume);
+                    else
+                        volume_open = 0;
+                }else {
+                    volume_open = volume;
+                }
+                this.long_position_volume += volume_open;
             } else {
-                this.expected_short_volume += volume;
+                if (this.volume_limit) {
+                    if (this.volume_limit > this.short_position_volume)
+                        volume_open = Math.min(this.volume_limit - this.short_position_volume, volume);
+                    else
+                        volume_open = 0;
+                }else {
+                    volume_open = volume;
+                }
+                this.short_position_volume += volume_open;
             }
-            let order_id = RandomStr();
-            var pack = {
-                aid: 'insert_order',
-                order_id: order_id,  //必填, 委托单号, 需确保在一个账号中不重复, 限长512字节
-                exchange_id: exchange_id,          //必填, 下单到哪个交易所
-                instrument_id: instrument_id,      //必填, 下单合约代码
-                direction: direction,             //必填, 下单买卖方向
-                offset: "OPEN",               //可选, 下单开平方向, 当指令相关对象不支持开平机制(例如股票)时可不填写此字段
-                volume: volume,                    //必填, 下单手数
-                price_type: "LIMIT",          //必填, 报单价格类型
-                limit_price: limit_price,           //当 price_type == LIMIT 时需要填写此字段, 报单价格
-            };
-            WS.sendJson(pack);
+            if (volume_open > 0){
+                let order_id = RandomStr(this.order_id_prefix);
+                var pack = {
+                    aid: 'insert_order',
+                    order_id: order_id,  //必填, 委托单号, 需确保在一个账号中不重复, 限长512字节
+                    exchange_id: exchange_id,          //必填, 下单到哪个交易所
+                    instrument_id: instrument_id,      //必填, 下单合约代码
+                    direction: direction,             //必填, 下单买卖方向
+                    offset: "OPEN",               //可选, 下单开平方向, 当指令相关对象不支持开平机制(例如股票)时可不填写此字段
+                    volume: volume_open,                    //必填, 下单手数
+                    price_type: "LIMIT",          //必填, 报单价格类型
+                    limit_price: limit_price,           //当 price_type == LIMIT 时需要填写此字段, 报单价格
+                };
+                WS.sendJson(pack);
+            }
         }
         if (offset == "AUTO") {
             if (direction == "BUY") {
-                volume_close = Math.min(this.expected_short_volume, volume);
-                this.expected_short_volume -= volume_close;
+                volume_close = Math.min(this.short_position_volume, volume);
+                this.short_position_volume -= volume_close;
             } else {
-                volume_close = Math.min(this.expected_long_volume, volume);
-                this.expected_long_volume -= volume_close;
+                volume_close = Math.min(this.long_position_volume, volume);
+                this.long_position_volume -= volume_close;
             }
             if (volume_close > 0) {
-                let order_id = RandomStr();
+                let order_id = RandomStr(this.order_id_prefix);
                 pack = {
                     aid: 'insert_order',
                     order_id: order_id,  //必填, 委托单号, 需确保在一个账号中不重复, 限长512字节
@@ -240,12 +264,28 @@ IndicatorInstance.prototype.update = function () {
             }
             volume -= volume_close;
             if (direction == "BUY") {
-                this.expected_long_volume += volume;
+                if (this.volume_limit) {
+                    if (this.volume_limit > this.long_position_volume)
+                        volume_open = Math.min(this.volume_limit - this.long_position_volume, volume);
+                    else
+                        volume_open = 0;
+                }else {
+                    volume_open = volume;
+                }
+                this.long_position_volume += volume_open;
             } else {
-                this.expected_short_volume += volume;
+                if (this.volume_limit) {
+                    if (this.volume_limit > this.short_position_volume)
+                        volume_open = Math.min(this.volume_limit - this.short_position_volume, volume);
+                    else
+                        volume_open = 0;
+                }else {
+                    volume_open = volume;
+                }
+                this.short_position_volume += volume_open;
             }
-            if (volume > 0) {
-                let order_id = RandomStr();
+            if (volume_open > 0){
+                let order_id = RandomStr(this.order_id_prefix);
                 pack = {
                     aid: 'insert_order',
                     order_id: order_id,  //必填, 委托单号, 需确保在一个账号中不重复, 限长512字节
@@ -253,7 +293,7 @@ IndicatorInstance.prototype.update = function () {
                     instrument_id: instrument_id,      //必填, 下单合约代码
                     direction: direction,             //必填, 下单买卖方向
                     offset: "OPEN",               //可选, 下单开平方向, 当指令相关对象不支持开平机制(例如股票)时可不填写此字段
-                    volume: volume,                    //必填, 下单手数
+                    volume: volume_open,                    //必填, 下单手数
                     price_type: "LIMIT",          //必填, 报单价格类型
                     limit_price: limit_price,           //当 price_type == LIMIT 时需要填写此字段, 报单价格
                 };
