@@ -153,17 +153,14 @@ IndicatorInstance.prototype.update = function () {
         if (!this.out_series_mark) {
             this.out_series_mark = this.OUTS('MARK', 'mk');
         }
+        var kobj = DM.get_data('klines/' + this.ins_id + '/' + this.dur_nano);
+        if (this.calculateLeft <= this.last_i || !kobj || !kobj.data || !kobj.last_id || kobj.last_id != this.calculateLeft + 1)
+            return;
         this.out_series_mark[this.calculateLeft] = direction === "BUY" ? ICON_BUY : ICON_SELL;
-
         if (!this.enable_trade)
             return;
-        current_i = this.calculateLeft;
-        kobj = DM.get_data('klines/' + this.ins_id + '/' + this.dur_nano);
-
-        if (current_i <= this.last_i || !kobj || !kobj.data || !kobj.last_id || kobj.last_id != current_i + 1)
-            return;
         //@note: 代码跑到这里时, i应该是首次指向序列的倒数第二个柱子
-        this.last_i = current_i;
+        this.last_i = this.calculateLeft;
         let quote = DM.get_data('quotes/' + this.ins_id);
 
         let price_field = direction == "BUY" ? 'ask_price1' : 'bid_price1';
