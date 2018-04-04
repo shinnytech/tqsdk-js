@@ -27,15 +27,14 @@ function ParseSymbol(str) {
 }
 
 IndicatorInstance.prototype.resetByInstance = function (obj) {
+    Object.assign(this, obj);
     if (obj.ins_id === '' || obj.dur_nano === -1 || obj.view_left === -1 || obj.view_right === -1) {
         this.invalid = false;
-        this.BEGIN = -1;
     } else {
-        if (obj.ins_id !== this.ins_id || obj.dur_nano !== this.dur_nano) this.BEGIN = -1;
-        Object.assign(this, obj);
         this.invalid = true;
     }
     this.rels = [];
+    this.BEGIN = -1;
     this.last_i = -1;
     this.expected_long_volume = 0;
     this.expected_short_volume = 0;
@@ -67,7 +66,7 @@ IndicatorInstance.prototype.updateRange = function () {
             if (id_arr[i] > this.view_right) break;
             else end_id = id_arr[i];
         }
-        if (this.BEGIN == -1 || this.BEGIN > this.view_left) {
+        if (this.BEGIN == -1 || this.BEGIN > start_id) {
             this.BEGIN = start_id;
             this.calculateLeft = start_id;
             this.calculateRight = end_id;
@@ -155,8 +154,6 @@ IndicatorInstance.prototype.update = function () {
             this.out_series_mark = this.OUTS('MARK', 'mk');
         }
         this.out_series_mark[this.calculateLeft] = direction === "BUY" ? ICON_BUY : ICON_SELL;
-
-        console.log(this.calculateLeft)
 
         if (!this.enable_trade)
             return;
