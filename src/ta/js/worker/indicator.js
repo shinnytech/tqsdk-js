@@ -27,14 +27,15 @@ function ParseSymbol(str) {
 }
 
 IndicatorInstance.prototype.resetByInstance = function (obj) {
-    Object.assign(this, obj);
     if (obj.ins_id === '' || obj.dur_nano === -1 || obj.view_left === -1 || obj.view_right === -1) {
         this.invalid = false;
+        this.BEGIN = -1;
     } else {
+        if (obj.ins_id !== this.ins_id || obj.dur_nano !== this.dur_nano) this.BEGIN = -1;
+        Object.assign(this, obj);
         this.invalid = true;
     }
     this.rels = [];
-    this.BEGIN = -1;
     this.last_i = -1;
     this.expected_long_volume = 0;
     this.expected_short_volume = 0;
@@ -147,33 +148,41 @@ IndicatorInstance.prototype.update = function () {
             return s;
         }
     };
+    // 重新定义函数时，删除指标自带的输出序列（Mark）
+    delete this.out_series_mark;
     this.ORDER = function (direction, offset, volume) {
+        if (!this.out_series_mark) {
+            this.out_series_mark = this.OUTS('MARK', 'mk');
+        }
+        this.out_series_mark[this.calculateLeft] = direction === "BUY" ? ICON_BUY : ICON_SELL;
+
+        console.log(this.calculateLeft)
+
         if (!this.enable_trade)
             return;
         current_i = this.calculateLeft;
         kobj = DM.get_data('klines/' + this.ins_id + '/' + this.dur_nano);
-        console.log("current_i:", current_i);
-        console.log("last_i:", this.last_i);
+
         if (current_i <= this.last_i || !kobj || !kobj.data || !kobj.last_id || kobj.last_id != current_i + 1)
             return;
         //@note: 代码跑到这里时, i应该是首次指向序列的倒数第二个柱子
         this.last_i = current_i;
         let quote = DM.get_data('quotes/' + this.ins_id);
-        if (direction == "BUY"){
-            limit_price = quote.ask_price1;
-        }else{
-            limit_price = quote.bid_price1;
-        };
+
+        let price_field = direction == "BUY" ? 'ask_price1' : 'bid_price1';
+        if (!quote[price_field]) // 取不到对应的价格 包括 NaN 、 undefined
+            return;
+        let limit_price = quote[price_field];
         var { exchange_id, instrument_id } = ParseSymbol(this.ins_id);
         if (offset == "CLOSE" || offset == "CLOSEOPEN") {
-            if (direction == "BUY"){
+            if (direction == "BUY") {
                 volume_close = Math.min(this.expected_short_volume, volume);
                 this.expected_short_volume -= volume_close;
-            }else{
+            } else {
                 volume_close = Math.min(this.expected_long_volume, volume);
                 this.expected_long_volume -= volume_close;
             }
-            if (volume_close > 0){
+            if (volume_close > 0) {
                 let order_id = RandomStr();
                 var pack = {
                     aid: 'insert_order',
@@ -189,10 +198,10 @@ IndicatorInstance.prototype.update = function () {
                 WS.sendJson(pack);
             }
         }
-        if (offset == "OPEN" || offset=="CLOSEOPEN") {
-            if (direction == "BUY"){
+        if (offset == "OPEN" || offset == "CLOSEOPEN") {
+            if (direction == "BUY") {
                 this.expected_long_volume += volume;
-            }else{
+            } else {
                 this.expected_short_volume += volume;
             }
             let order_id = RandomStr();
@@ -209,15 +218,15 @@ IndicatorInstance.prototype.update = function () {
             };
             WS.sendJson(pack);
         }
-        if (offset == "AUTO"){
-            if (direction == "BUY"){
+        if (offset == "AUTO") {
+            if (direction == "BUY") {
                 volume_close = Math.min(this.expected_short_volume, volume);
                 this.expected_short_volume -= volume_close;
-            }else{
+            } else {
                 volume_close = Math.min(this.expected_long_volume, volume);
                 this.expected_long_volume -= volume_close;
             }
-            if (volume_close > 0){
+            if (volume_close > 0) {
                 let order_id = RandomStr();
                 pack = {
                     aid: 'insert_order',
@@ -233,12 +242,12 @@ IndicatorInstance.prototype.update = function () {
                 WS.sendJson(pack);
             }
             volume -= volume_close;
-            if (direction == "BUY"){
+            if (direction == "BUY") {
                 this.expected_long_volume += volume;
-            }else{
+            } else {
                 this.expected_short_volume += volume;
             }
-            if (volume > 0){
+            if (volume > 0) {
                 let order_id = RandomStr();
                 pack = {
                     aid: 'insert_order',
@@ -274,6 +283,9 @@ IndicatorInstance.prototype.exec = function () {
     var [left, right] = [this.calculateLeft, this.calculateRight];
     try {
         for (; this.calculateLeft <= this.calculateRight; this.calculateLeft++) {
+            if (this.out_series_mark) {
+                this.out_series_mark[this.calculateLeft] = null;
+            }
             this.func.next(this.calculateLeft);
         }
         this.calculateLeft--;
