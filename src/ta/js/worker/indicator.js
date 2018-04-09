@@ -11,7 +11,7 @@ const IndicatorInstance = function (obj) {
     this.runId = -1;
 };
 
-const RandomStr = function (prefix="", len=8) {
+const RandomStr = function (prefix = "", len = 8) {
     var charts = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     var s = '';
     for (var i = 0; i < len; i++) s += charts[Math.random() * 0x3e | 0];
@@ -153,17 +153,18 @@ IndicatorInstance.prototype.update = function () {
     // 重新定义函数时，删除指标自带的输出序列（Mark）
     delete this.out_series_mark;
 
-    this.ORDER = function (direction, offset, volume, order_symbol=this.trade_symbol) {
+    this.ORDER = function (direction, offset, volume, order_symbol = this.trade_symbol) {
         if (!this.out_series_mark) {
             this.out_series_mark = this.OUTS('MARK', 'mk');
         }
-        this.out_series_mark[this.calculateLeft] = direction === "BUY" ? ICON_BUY : ICON_SELL;
-
+        var current_i = this.calculateLeft;
+        var kobj = DM.get_data('klines/' + this.ins_id + '/' + this.dur_nano);
+        if (kobj && kobj.last_id && current_i < kobj.last_i){
+            // last_id 之前都要计算
+            this.out_series_mark[this.calculateLeft] = direction === "BUY" ? ICON_BUY : ICON_SELL;
+        }
         if (!this.enable_trade)
             return;
-        current_i = this.calculateLeft;
-        kobj = DM.get_data('klines/' + this.ins_id + '/' + this.dur_nano);
-
         if (current_i <= this.last_i || !kobj || !kobj.data || !kobj.last_id || kobj.last_id != current_i + 1)
             return;
         //@note: 代码跑到这里时, i应该是首次指向序列的倒数第二个柱子
@@ -208,7 +209,7 @@ IndicatorInstance.prototype.update = function () {
                         volume_open = Math.min(this.volume_limit - this.long_position_volume, volume);
                     else
                         volume_open = 0;
-                }else {
+                } else {
                     volume_open = volume;
                 }
                 this.long_position_volume += volume_open;
@@ -218,12 +219,12 @@ IndicatorInstance.prototype.update = function () {
                         volume_open = Math.min(this.volume_limit - this.short_position_volume, volume);
                     else
                         volume_open = 0;
-                }else {
+                } else {
                     volume_open = volume;
                 }
                 this.short_position_volume += volume_open;
             }
-            if (volume_open > 0){
+            if (volume_open > 0) {
                 let order_id = RandomStr(this.order_id_prefix);
                 var pack = {
                     aid: 'insert_order',
@@ -269,7 +270,7 @@ IndicatorInstance.prototype.update = function () {
                         volume_open = Math.min(this.volume_limit - this.long_position_volume, volume);
                     else
                         volume_open = 0;
-                }else {
+                } else {
                     volume_open = volume;
                 }
                 this.long_position_volume += volume_open;
@@ -279,12 +280,12 @@ IndicatorInstance.prototype.update = function () {
                         volume_open = Math.min(this.volume_limit - this.short_position_volume, volume);
                     else
                         volume_open = 0;
-                }else {
+                } else {
                     volume_open = volume;
                 }
                 this.short_position_volume += volume_open;
             }
-            if (volume_open > 0){
+            if (volume_open > 0) {
                 let order_id = RandomStr(this.order_id_prefix);
                 pack = {
                     aid: 'insert_order',
