@@ -35,6 +35,24 @@ gulp.task('clean', function () {
 });
 
 /**
+ * ta/translate.html
+ * ta/translate.js
+ */
+gulp.task('translate.html', function () {
+    return gulp.src(['./src/ta/translate.html'], { base: 'src' })
+    .pipe(minifyHtml({ collapseWhitespace: true, removeComments: true }))
+        .pipe(gulp.dest(dist_ta));
+});
+
+gulp.task('translate.js', function () {
+    return gulp.src(['./src/ta/translate.js'], { base: 'src' })
+        .pipe(minifyJs())
+        .pipe(gulp.dest(dist_ta));
+});
+
+
+
+/**
  * ta/index.html 
  */
 gulp.task('indictor', ['css'], function () {
@@ -64,7 +82,7 @@ gulp.task('js', ['workerjs'], function () {
         .pipe(gulp.dest(dist_ta + 'ta/'));
 });
 
-gulp.task('workerjs', ['copy_ta'], function () {
+gulp.task('workerjs', ['copy_ta', 'translate.html', 'translate.js'], function () {
     var reg = /importScripts\((.+?)\);/;
     return gulp.src(['./src/ta/js/worker/*.js', './src/ta/js/worker/worker.js'])
         .pipe(concat('worker' + vString + '.js'))
