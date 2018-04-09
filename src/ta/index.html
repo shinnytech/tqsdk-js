@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,17 +11,19 @@
     <link href="../assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/index.css">
 </head>
+
 <body style="overflow:scroll;overflow:hidden;">
-<!--Modal-->
-<div class="modal fade" id="EditModal" tabindex="-1" role="dialog" aria-labelledby="EditModalTitle">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
-                </button>
-                <h4 class="modal-title" id="EditModalTitle">编辑／添加 指标</h4>
-            </div>
-            <div class="modal-body">
+    <!--Modal-->
+    <div class="modal fade" id="EditModal" tabindex="-1" role="dialog" aria-labelledby="EditModalTitle">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title" id="EditModalTitle">编辑／添加 指标</h4>
+                </div>
+                <div class="modal-body">
 
                     <div class="form-group">
                         <label for="indicator-name" class="control-label">指标名称:</label>
@@ -30,123 +33,128 @@
                         <label class="control-label">指标类型(选择后无法更改):</label>
                         <div class="radio" id="indicator-type-tq">
                             <label>
-                                <input type="radio" name="indicator-type" value="0">
-                                天勤脚本语言<span class="label label-danger">天勤指标</span>
+                                <input type="radio" name="indicator-type" value="0"> 天勤脚本语言
+                                <span class="label label-danger">天勤指标</span>
                             </label>
                         </div>
                         <div class="radio" id="indicator-type-wh">
                             <label>
-                                <input type="radio" name="indicator-type" value="1">
-                                文华脚本语言<span class="label label-info">文华</span>
+                                <input type="radio" name="indicator-type" value="1"> 文华脚本语言
+                                <span class="label label-info">文华</span>
                             </label>
                         </div>
                     </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" id="edit-btn">保存</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="edit-btn">保存</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
-<div class="modal fade" id="TrashModal" tabindex="-1" role="dialog" aria-labelledby="TrashModalTitle">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
-                </button>
-                <h4 class="modal-title" id="TrashModalTitle">删除指标</h4>
-            </div>
-            <div class="modal-body">
-                确认删除指标 <code id="trash-indicator-name"></code> ?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
-                <button type="button" class="btn btn-primary" id="trash-btn">删除</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 主体内容区域 -->
-<div class="container-fluid main-container">
-    <div class="row">
-        <div class="col-xs-12 no-padding">
-            <div class="btn-toolbar" role="toolbar">
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-default" id="btn_new_indicator">新建指标</button>
-                </div>
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-default" id="btn_editor_run">保存代码并更新指标(Ctrl+S)</button>
-                </div>
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-default" id="btn_editor_reset">回到上一版本</button>
-                </div>
-                
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-default" id="btn_help">帮助文档</button>
-                </div>
-                <div class="btn-group pull-right theme-container">
-                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
-                            aria-haspopup="true" aria-expanded="false">主题：
-                        <span class="show-theme"></span> <span class="caret"></span>
+    <div class="modal fade" id="TrashModal" tabindex="-1" role="dialog" aria-labelledby="TrashModalTitle">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
                     </button>
-                    <ul class="dropdown-menu theme-list">
-                    </ul>
+                    <h4 class="modal-title" id="TrashModalTitle">删除指标</h4>
+                </div>
+                <div class="modal-body">
+                    确认删除指标
+                    <code id="trash-indicator-name"></code> ?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" id="trash-btn">删除</button>
                 </div>
             </div>
         </div>
     </div>
-    <div class="row" style="height: 100%;margin-bottom: 38px;">
-        <!-- 指标列表 -->
-        <div class="col col-xs-3 left-menu no-padding">
-            <div class="menu-container">
-            <div class="panel panel-default">
-                <table class="table" id="list_menu">
-                    <thead>
-                    <tr>
-                        <th colspan="3">系统指标</th>
-                    </tr>
-                    </thead>
-                    <tbody id="system-indicators">
 
-                    </tbody>
-                    <thead>
-                    <tr>
-                        <th colspan="3">用户自定义指标</th>
-                    </tr>
-                    </thead>
-                    <tbody id="custom-indicators">
-
-                    </tbody>
-                </table>
-            </div>
+    <!-- 主体内容区域 -->
+    <div class="container-fluid main-container">
+        <div class="row">
+            <div class="col-xs-12 no-padding">
+                <div class="btn-toolbar" role="toolbar">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-default" id="btn_new_indicator">新建指标</button>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-default" id="btn_editor_run">保存代码并更新指标(Ctrl+S)</button>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-default" id="btn_editor_reset">回到上一版本</button>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <a class="btn btn-default" href="/ta/translate.html" target="_blank">文华语言翻译</a>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-default" id="btn_help">帮助文档</button>
+                    </div>
+                    <div class="btn-group pull-right theme-container">
+                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">主题：
+                            <span class="show-theme"></span>
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu theme-list">
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="col col-xs-9 content-container no-padding">
-            <div class="editor-container">
-                <div id="editor"></div>
+        <div class="row" style="height: 100%;margin-bottom: 38px;">
+            <!-- 指标列表 -->
+            <div class="col col-xs-3 left-menu no-padding">
+                <div class="menu-container">
+                    <div class="panel panel-default">
+                        <table class="table" id="list_menu">
+                            <thead>
+                                <tr>
+                                    <th colspan="3">系统指标</th>
+                                </tr>
+                            </thead>
+                            <tbody id="system-indicators">
+
+                            </tbody>
+                            <thead>
+                                <tr>
+                                    <th colspan="3">用户自定义指标</th>
+                                </tr>
+                            </thead>
+                            <tbody id="custom-indicators">
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="col col-xs-3 right-menu no-padding hide">
-            <div class="menu-container">
-                <div id="attachment-container">
+            <div class="col col-xs-9 content-container no-padding">
+                <div class="editor-container">
+                    <div id="editor"></div>
+                </div>
+            </div>
+            <div class="col col-xs-3 right-menu no-padding hide">
+                <div class="menu-container">
+                    <div id="attachment-container">
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-<script type="text/javascript" src="../assets/jquery.min.js"></script>
-<script type="text/javascript" src="../assets/bootstrap/js/bootstrap.min.js"></script>
-<script type="text/javascript" src="ace-min/ace.js"></script>
-<script type="text/javascript" src="ace-min/ext-language_tools.js"></script>
-<script type="text/javascript" src="ace-min/ext-linking.js"></script>
-<script type="text/javascript" src="../assets/noty.js"></script>
-<!-- del:start -->
-<script type="text/javascript" src="js/func_store.js"></script>
-<script type="text/javascript" src="js/list_menu.js"></script>
-<script type="text/javascript" src="js/utils.js"></script>
-<!-- del:end -->
-<script type="text/javascript" src="index.js"></script>
+    <script type="text/javascript" src="../assets/jquery.min.js"></script>
+    <script type="text/javascript" src="../assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="ace-min/ace.js"></script>
+    <script type="text/javascript" src="ace-min/ext-language_tools.js"></script>
+    <script type="text/javascript" src="ace-min/ext-linking.js"></script>
+    <script type="text/javascript" src="../assets/noty.js"></script>
+    <!-- del:start -->
+    <script type="text/javascript" src="js/func_store.js"></script>
+    <script type="text/javascript" src="js/list_menu.js"></script>
+    <script type="text/javascript" src="js/utils.js"></script>
+    <!-- del:end -->
+    <script type="text/javascript" src="index.js"></script>
 </body>
+
 </html>
