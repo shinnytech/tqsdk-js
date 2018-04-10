@@ -89,7 +89,7 @@ self.addEventListener('message', function (event) {
         case 'error_class_name':
             G_ERRORS = content;
             break;
-        case 'unregister_indicator':
+        case 'unregister_indicator_class':
             WS.sendJson({
                 aid: 'unregister_indicator_class',
                 name: content,

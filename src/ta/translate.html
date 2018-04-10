@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>天勤</title>
+    <!-- base ui && js -->
+    <link href="../assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body,
+        html {
+            width: 100%;
+        }
+
+        .no-padding {
+            padding: 0px;
+        }
+
+        table.table {
+            word-break: break-all;
+            word-wrap: break-word;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none !important;
+            margin: 0;
+        }
+
+        /* ============================= */
+
+        .main-container {
+            min-width: 800px;
+            height: 100%;
+            margin-top: 15px;
+        }
+
+        .editor-container {
+            height: 600px;
+            width: 100%;
+        }
+
+        #editor,
+        #result-editor {
+            width: 100%;
+            height: 100%;
+        }
+
+        .left-menu {
+            padding-left: 30px;
+            padding-right: 0;
+            padding-top: 15px;
+        }
+
+        table.table.wh-param-list td {
+            padding: 0;
+            vertical-align: middle;
+        }
+
+        table.table>thead>tr>th {
+            padding: 6px 4px;
+        }
+
+        table.table.wh-param-list th,
+        table.table.wh-param-list td {
+            width: 20%;
+            text-align: center;
+        }
+
+        table.table.wh-param-list td input.form-control {
+            border-radius: 0;
+            border: none;
+            padding: 3px 4px;
+        }
+
+        table.table.wh-param-list td input.form-control[readonly] {
+            background-color: #fff;
+        }
+
+        .panel-danger>.panel-footer {
+            color: #a94442;
+            background-color: #f2dede;
+            border-color: #ebccd1;
+        }
+
+        .panel-success>.panel-footer {
+            color: #3c763d;
+            background-color: #dff0d8;
+            border-color: #d6e9c6;
+        }
+    </style>
+</head>
+
+<body style="overflow:scroll;overflow:hidden;">
+    <!-- 主体内容区域 -->
+    <div class="container-fluid main-container">
+        <div class="row">
+            <div class="col col-xs-7">
+                <div class="panel panel-default">
+                    <div class="panel-heading">文华</div>
+                    <div class="panel-body" style="padding:0">
+                        <div class="row">
+                            <div class="col col-xs-4 left-menu">
+                                <div class="menu-container">
+                                    <div id="attachment-container">
+                                        <div class="panel panel-default">
+                                            <div class="panel-heading">名称</div>
+                                            <div class="panel-body">
+                                                <input type="text" class="form-control" id="indicator-name">
+                                            </div>
+                                        </div>
+                                        <div class="panel panel-default">
+                                            <div class="panel-heading">属性</div>
+                                            <div class="panel-body">
+                                                <div class="btn-group">
+                                                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        <span class="show-prop">副图指标</span>
+                                                        <span class="caret"></span>
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <a href="#" class="indicator-prop">副图指标</a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="#" class="indicator-prop">K线附属指标</a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="panel panel-default">
+                                            <div class="panel-heading">参数列表</div>
+                                            <table class="table table-bordered wh-param-list">
+                                                <thead>
+                                                    <tr>
+                                                        <th>参数</th>
+                                                        <th>名称</th>
+                                                        <th>最小</th>
+                                                        <th>最大</th>
+                                                        <th>缺省</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>1</td>
+                                                        <td>
+                                                            <input type="text" readonly class="form-control name_1" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control min_1" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control max_1" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control default_1" />
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>2</td>
+                                                        <td>
+                                                            <input type="text" readonly class="form-control name_2" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control min_2" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control max_2" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control default_2" />
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>3</td>
+                                                        <td>
+                                                            <input type="text" readonly class="form-control name_3" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control min_3" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control max_3" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control default_3" />
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr>
+                                                        <td>4</td>
+                                                        <td>
+                                                            <input type="text" readonly class="form-control name_4" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control min_4" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control max_4" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control default_4" />
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr>
+                                                        <td>5</td>
+                                                        <td>
+                                                            <input type="text" readonly class="form-control name_5" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control min_5" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control max_5" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control default_5" />
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>6</td>
+                                                        <td>
+                                                            <input type="text" readonly class="form-control name_6" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control min_6" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control max_6" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" readonly class="form-control default_6" />
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col col-xs-8 content-container">
+                                <div class="editor-container" style="border-left:1px solid #ddd">
+                                    <div id="editor"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id='translate' type="button" class="btn btn-primary btn-block">
+                        翻 译
+                    </button>
+            </div>
+            <div class="col col-xs-5">
+                <div class="panel panel-default" id='tianqin'>
+                    <div class="panel-heading">天勤</div>
+                    <div class="panel-heading hide" id='translate-status'></div>
+                    <div class="panel-body" style="padding:0">
+                        <div class="editor-container">
+                            <div id="result-editor"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="../assets/jquery.min.js"></script>
+    <script type="text/javascript" src="../assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="ace-min/ace.js"></script>
+    <script type="text/javascript" src="ace-min/ext-language_tools.js"></script>
+    <script type="text/javascript" src="ace-min/ext-linking.js"></script>
+    <script type="text/javascript" src="translate.js"></script>
+</body>
+
+</html>
