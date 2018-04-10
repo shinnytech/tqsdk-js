@@ -1,22 +1,182 @@
-示例程序笔记:
-
-trader_split:
-    等待按开始按钮的部分太复杂
-    为何要有一个 completed 标志?
-    ORDER_CHANGED 等待某个委托单变动时, 是否可以在框架上支持?
-
-trader_combine:
-    启动时为何需要一个 while(...)?
-    TaskSingleOrder只负责发出一个单, 那为何要有这个task呢? 并没有超时追下的机制
-
-trader_spread:
-    yield 中的return有用吗?
-    246行的这个wait是什么用处?
-    策略执行效果与说明文字不匹配
+现在的流程
+    为每个技术指标实例构建一个context, 存放 update_instance 内容等
+    Context独有的内容包括:
+        C.PARAM
+        C.OUTS
+    计算与技术指标定义分离
 
 
+重构的目标:
+    在技术指标中引入更多灵活度, 比如启动TASK等
+    允许在JSSDK程序中方便的使用技术指标或技术指标代码中的特性, 例如各类计算函数
+    双方共享一套工具代码
 
 
+难点:
+    ta是在webworker中运行代码
+    技术指标代码涉及context, 类注册和实例管理
+
+
+用例1: 在jssdk代码中使用技术指标
+    想要的效果
+    if(MA("SHFE.cu1801", M1, 5) > 20)
+        INSERT_ORDER(...);
+
+    现在的MA函数
+    MA(i, sclose, vshort, eshort);
+
+    整理一下
+    SCLOSE = GETKLINE("SHFE.cu1801", M1).close;
+    serial_ma = []
+    while(true){
+        wait = yield {
+        };
+
+        i = GETLASTID("SHFE.cu1801", M1);
+        serial_ma[i] = MA(i, sclose, vshort, serial_ma);
+        if(serial_ma[i] > 20)
+            INSERT_ORDER(...);
+    }
+
+    要点:
+        消去手工管理缓存序列
+            不缓存
+            用结果序列作为参数输入
+            自带缓存, 只能用查表法管理
+
+        涉及交易时,用户心理总是默认最后一根K线是当前offset,程序中应减少定位i的出现
+            增加全局context支持, 每个函数都可以接受可选输入参数, 如果未输入, 则使用context中的对应值
+            技术指标context继续保留, 缩减范围
+
+
+
+
+用例2: 在技术指标中使用task或jssdk函数资源
+    想要的效果
+    function* macd(C) {
+        //指标定义
+        C.DEFINE({
+            type: "SUB",
+            cname: "MACD",
+            state: "KLINE",
+            yaxis: [
+                {id: 0, mid: 0, format: "NUMBER2"},
+            ]
+        });
+        //参数
+        let vshort = C.PARAM(20, "SHORT", {min: 1, memo:"短周期"});
+        let vlong = C.PARAM(35, "LONG", {min: 2, memo:"长周期"});
+        let vm = C.PARAM(10, "M", {min: 1});
+        //输入序列
+        let sclose = C.SERIAL("CLOSE");
+        //输出序列
+        let diff = C.OUTS("LINE", "diff", {color: WHITE});
+        let dea = C.OUTS("LINE", "dea", {color: YELLOW, width: 1});
+        let bar = C.OUTS("RGBAR", "bar");
+        //临时序列
+        let eshort = [];
+        let elong = [];
+        //计算
+        while(true) {
+            let i = yield;
+            eshort[i] = EMA(i, sclose, vshort, eshort);
+            elong[i] = EMA(i, sclose, vlong, elong);
+            diff[i] = eshort[i] - elong[i];
+            if (diff[i] > 500)
+                START_TASK(INSERT_ORDER("cu1801", ...))
+            if (xxx)
+                CANCEL_ORDER(*);
+            dea[i] = EMA(i, diff, vm, dea);
+            bar[i] = 2 * (diff[i] - dea[i]);
+        }
+    }
+
+    要点:
+        在技术指标中能引用 jssdk 的全部函数即可
+
+
+
+
+
+ta 要做哪些事情:
+    向主进程注册所有技术指标类
+    收到update_instance时,创建实例
+    管理webworker
+
+
+一堆js文件, 提供若干基础函数及task
+技术指标代码中可以任意使用 jssdk 函数
+
+function* macd(C) {
+    //指标定义
+    C.DEFINE({
+        type: "SUB",
+        cname: "MACD",
+        state: "KLINE",
+        yaxis: [
+            {id: 0, mid: 0, format: "NUMBER2"},
+        ]
+    });
+    //参数
+    let vshort = C.PARAM(20, "SHORT", {min: 1, memo:"短周期"});
+    let vlong = C.PARAM(35, "LONG", {min: 2, memo:"长周期"});
+    let vm = C.PARAM(10, "M", {min: 1});
+    //输入序列
+    let sclose = C.SERIAL("CLOSE");
+    //输出序列
+    let diff = C.OUTS("LINE", "diff", {color: WHITE});
+    let dea = C.OUTS("LINE", "dea", {color: YELLOW, width: 1});
+    let bar = C.OUTS("RGBAR", "bar");
+    //临时序列
+    let eshort = [];
+    let elong = [];
+    //计算
+    while(true) {
+        let i = yield;
+        eshort[i] = EMA(i, sclose, vshort, eshort);
+        elong[i] = EMA(i, sclose, vlong, elong);
+        diff[i] = eshort[i] - elong[i];
+        dea[i] = EMA(i, diff, vm, dea);
+        bar[i] = 2 * (diff[i] - dea[i]);
+    }
+}
+
+function* macd_calc(){
+    //参数
+    let vshort = C.PARAM(20, "SHORT", {min: 1, memo:"短周期"});
+    let vlong = C.PARAM(35, "LONG", {min: 2, memo:"长周期"});
+    let vm = C.PARAM(10, "M", {min: 1});
+    //输入序列
+    let sclose = C.SERIAL("CLOSE");
+    //输出序列
+    let diff = C.OUTS("LINE", "diff", {color: WHITE});
+    let dea = C.OUTS("LINE", "dea", {color: YELLOW, width: 1});
+    let bar = C.OUTS("RGBAR", "bar");
+    //临时序列
+    let eshort = [];
+    let elong = [];
+    //计算
+    while(true) {
+        let i = yield;
+        eshort[i] = EMA(i, sclose, vshort, eshort);
+        elong[i] = EMA(i, sclose, vlong, elong);
+        diff[i] = eshort[i] - elong[i];
+        dea[i] = EMA(i, diff, vm, dea);
+        bar[i] = 2 * (diff[i] - dea[i]);
+    }
+}
+
+function macd_define(){
+    //指标定义
+    C.DEFINE({
+        type: "SUB",
+        cname: "MACD",
+        state: "KLINE",
+        yaxis: [
+            {id: 0, mid: 0, format: "NUMBER2"},
+        ]
+    });
+}
 
 
 重复代码考虑整理合并

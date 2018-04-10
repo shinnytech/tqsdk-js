@@ -122,6 +122,7 @@ IndicatorInstance.prototype.update = function () {
 
     this.out_series = {};
     this.out_datas = {};
+    this.out_drawings = {};
     this.OUTS = function (style, serialName, options) {
         this.out_series[serialName] = {};
         let serial = this.out_series[serialName];
@@ -150,9 +151,29 @@ IndicatorInstance.prototype.update = function () {
             return s;
         }
     };
+    this.DRAW_LINE = function(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
+        this.out_drawings[id] = {type:"LINE", x1, y1, x2, y2, color, width, style};
+    };
+    this.DRAW_RAY = function(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
+        this.out_drawings[id] = {type:"RAY", x1, y1, x2, y2, color, width, style};
+    };
+    this.DRAW_SEG = function(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
+        this.out_drawings[id] = {type:"SEG", x1, y1, x2, y2, color, width, style};
+    };
+    this.DRAW_BOX = function(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
+        this.out_drawings[id] = {type:"BOX", x1, y1, x2, y2, color, width, style};
+    };
+    this.DRAW_PANEL = function(id, x1, y1, x2, y2, color=0xFFFFFF){
+        this.out_drawings[id] = {type:"PANEL", x1, y1, x2, y2, color};
+    };
+    this.DRAW_ICON = function(id, x1, y1, icon){
+        this.out_drawings[id] = {type:"ICON", x1, y1, icon};
+    };
+    this.DRAW_TEXT = function(id, x1, y1, text="", color=0xFFFFFF){
+        this.out_drawings[id] = {type:"TEXT", x1, y1, text, color};
+    };
     // 重新定义函数时，删除指标自带的输出序列（Mark）
     delete this.out_series_mark;
-
     this.ORDER = function (direction, offset, volume, order_symbol = this.trade_symbol) {
         if (!this.out_series_mark) {
             this.out_series_mark = this.OUTS('MARK', 'mk');
@@ -357,6 +378,7 @@ IndicatorInstance.prototype.exec = function () {
         range_right: right,
         serials: this.out_series,
         datas: this.out_datas,
+        drawings: this.out_drawings,
     };
     WS.sendJson(pack);
 };
