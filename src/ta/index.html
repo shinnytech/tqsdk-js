@@ -14,44 +14,6 @@
 
 <body style="overflow:scroll;overflow:hidden;">
     <!--Modal-->
-    <div class="modal fade" id="EditModal" tabindex="-1" role="dialog" aria-labelledby="EditModalTitle">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                    <h4 class="modal-title" id="EditModalTitle">编辑／添加 指标</h4>
-                </div>
-                <div class="modal-body">
-
-                    <div class="form-group">
-                        <label for="indicator-name" class="control-label">指标名称:</label>
-                        <input type="text" class="form-control" id="indicator-name">
-                    </div>
-                    <div class="form-group">
-                        <label class="control-label">指标类型(选择后无法更改):</label>
-                        <div class="radio" id="indicator-type-tq">
-                            <label>
-                                <input type="radio" name="indicator-type" value="0"> 天勤脚本语言
-                                <span class="label label-danger">天勤指标</span>
-                            </label>
-                        </div>
-                        <div class="radio" id="indicator-type-wh">
-                            <label>
-                                <input type="radio" name="indicator-type" value="1"> 文华脚本语言
-                                <span class="label label-info">文华</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" id="edit-btn">保存</button>
-                </div>
-            </div>
-        </div>
-    </div>
     <div class="modal fade" id="TrashModal" tabindex="-1" role="dialog" aria-labelledby="TrashModalTitle">
         <div class="modal-dialog" role="document">
             <div class="modal-content">

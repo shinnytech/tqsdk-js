@@ -83,54 +83,68 @@ $(function () {
     });
 
     $('#btn_editor_run').on('click', function (e) {
-        let funcName = CMenu.editing.name;
-        let code = CMenu.editor.getSession().getValue();
-        code = code.trim();
-        if (CMenu.editing.type === 'custom_wh') {
-            CMenu.saveDraftIndicator();
-            WAITING_RESULR.add(funcName);
-        } else if (CMenu.editing.type === 'custom' || CMenu.editing.type === 'system') {
-            let reg = /^function\s*\*\s*(\S*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}\n*$/g;
-            let result = reg.exec(code);
-            if (result && result[0] === result.input) {
-                if (result[1] !== funcName) {
-                    Notify.error('函数名称必须和自定义指标名称相同!');
-                } else if (!result[2].includes('yield')) {
-                    Notify.error('函数中返回使用 yield 关键字!');
-                } else {
-                    let annotations = CMenu.editor.getSession().getAnnotations();
-                    for (let i = 0; i < annotations.length; i++) {
-                        if (annotations[i].type === 'error') {
-                            Notify.error(annotations[i].row + ':' + annotations[i].colume + ' ' + annotations[i].text);
-                            return;
-                        }
-                    }
-
-                    CMenu.saveDraftIndicator();
-                    WAITING_RESULR.add(funcName);
-                    if (ErrorHandlers.has(funcName)) {
-                        ErrorHandlers.remove(funcName);
-                    }
-                }
-            } else {
-                Notify.error('代码不符合规范!');
-            }
-        }
-
-        CMenu.editor.focus();
-    });
-
-    $('#btn_tarder_run').on('click', function (e) {
-        let funcName = CMenu.editing.name;
-        let code = CMenu.editor.getSession().getValue();
-        code = code.trim();
-
-        CMenu.saveDraftIndicator();
-        WAITING_RESULR.add(funcName);
+        let oldName = CMenu.editing.name;
+        let code = CMenu.editor.getSession().getValue().trim();
+        let newName = check_code(code);
         
+        if (newName) {
+            if(oldName !== newName){
+                // 通知webworker unregister_indicator_class
+                worker.postMessage({ cmd: 'unregister_indicator_class', content: oldName });
+            }
+            IStore.saveDraft({
+                key: CMenu.editing.key,
+                name: newName,
+                draft: {
+                    code: code,
+                }
+            }).then(function (result) {
+                CMenu.editing = result;
+                worker.postMessage({ cmd: 'indicator', content: result });
+                WAITING_RESULR.add(newName);
+                if (ErrorHandlers.has(newName)) {
+                    ErrorHandlers.remove(newName);
+                }
+            }, function (e) {
+                if (e === 'ConstraintError') {
+                    Notify.error('指标名称重复');
+                } else {
+                    Notify.error(e);
+                }
+            });
+        } else {
+            Notify.error('指标名称不能为空');
+        }
         CMenu.editor.focus();
     });
 
     $('#edit-btn').on('click', CMenu.editIndicator);
     $('#trash-btn').on('click', CMenu.trashIndicator);
 });
+
+/**
+ * 检查代码是否符合规范，并返回 function name
+ * @param {} code
+ */
+function check_code(code) {
+    let reg = /^function\s*\*\s*(\S*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}\n*$/g;
+    let result = reg.exec(code);
+    if (result && result[0] === result.input) {
+        if (!result[2].includes('yield')) {
+            Notify.error('函数中返回使用 yield 关键字!');
+            return false;
+        } else if (CMenu.editor) {
+            let annotations = CMenu.editor.getSession().getAnnotations();
+            for (let i = 0; i < annotations.length; i++) {
+                if (annotations[i].type === 'error') {
+                    Notify.error(annotations[i].row + ':' + annotations[i].colume + ' ' + annotations[i].text);
+                    return false;
+                }
+            }
+            return result[1];
+        }
+    } else {
+        Notify.error('代码不符合规范!');
+        return false;
+    }
+}

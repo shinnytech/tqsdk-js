@@ -15,7 +15,6 @@ const CMenu = (function () {
         item_doms: {},
 
         // 编辑、删除对话框
-        $editModal: null,
         $trashModal: null,
 
         // info panel && // param panel
@@ -37,15 +36,11 @@ CMenu.init = function (div) {
     CMenu.dom = CMenu.$container.find('#custom-indicators');
     CMenu.dom.append($('<div><h5>Loading...</h5></div>'));
 
-    // 附加信息区域
-    CMenu.initAttachUI();
-
     // 初始化系统指标
     // 初始化时默认选中第一个系统指标
     let promiseSys = CMenu.initSysIndicators();
 
     // 初始化用户自定义指标
-    CMenu.$editModal = $('#EditModal');
     CMenu.$trashModal = $('#TrashModal');
     let promiseCus = CMenu.initCustomIndicators();
 
@@ -64,7 +59,7 @@ CMenu.init = function (div) {
         if (session.$worker) {
             session.$worker.send('changeOptions', [{
                 strict: false,
-            }, ]);
+            },]);
             clearInterval(interval);
         }
     }, 50);
@@ -113,7 +108,7 @@ CMenu.init = function (div) {
         // console.log(e, e.clientX, e.clientY);
     });
 
-    CMenu.editor.getSession().selection.on('changeSelection', function(e) {
+    CMenu.editor.getSession().selection.on('changeSelection', function (e) {
         let range = CMenu.editor.getSelectionRange();
         if (range) {
             // console.log(selectionAction, range.start, range.end);
@@ -204,8 +199,8 @@ CMenu.updateTooltip = function (position, token) {
     div.style.visibility = 'hidden';
 
     var types = ['support.function.tianqin', 'constant.language.function'];
-   
-    
+
+
     if (token) {
         var color = CMenu.getTooltipColor(token);
         var typeIndex = types.indexOf(token.type);
@@ -216,7 +211,7 @@ CMenu.updateTooltip = function (position, token) {
         } else {
             div.style.backgroundColor = '#FFFFFF';
             var text = CMenu.getTooltipText(token);
-            
+
             if (text && text.length > 0) {
                 if (typeIndex > -1) text = text += ' (按住Ctrl单击打开链接)';
                 div.style.visibility = 'visible';
@@ -244,7 +239,6 @@ CMenu.selectCallback = function (tr, data) {
         CMenu.editing = data;
         CMenu.editor.setValue(data.draft.code, 1);
         CMenu.editor.setReadOnly(true);
-        CMenu.updateAttachUI();
     } else {
         $('#btn_editor_save').attr('disabled', false);
         $('#btn_editor_run').attr('disabled', false);
@@ -257,9 +251,7 @@ CMenu.selectCallback = function (tr, data) {
             } else {
                 CMenu.editor.setValue(result.draft.code, 1);
             }
-
             CMenu.editor.setReadOnly(false);
-            CMenu.updateAttachUI();
         });
     }
 
@@ -279,107 +271,6 @@ CMenu.selectCallback = function (tr, data) {
     }
 };
 
-CMenu.initAttachUI = function () {
-    CMenu.$attach_container = $('div#attachment-container');
-    CMenu.attach_info = {
-        dom: $('<div class="panel panel-default"></div>').append($('<div class="panel-heading">基本信息</div>')),
-    };
-
-    let $infoTable = $(`<table class="table">
-                 <tbody>
-                    <tr>
-                        <th width="48px">名称:</th>
-                        <td class="name"></td>
-                    </tr>
-                    <tr>
-                        <th>类型:</th>
-                        <td class="type"></td>
-                    </tr>
-                    <tr class="prop">
-                        <th>属性:</th>
-                        <td class="prop">
-                             <!-- Single button -->
-                            <div class="btn-group btn-group-justified"  role="group">
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" 
-                                        aria-haspopup="true" aria-expanded="false">
-                                    <span class="show-prop">副图指标</span> <span class="caret"></span>
-                                    </button>
-                                      <ul class="dropdown-menu">
-                                        <li><a href="#" class="indicator-prop">副图指标</a></li>
-                                        <li><a href="#" class="indicator-prop">K线附属指标</a></li>
-                                      </ul>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                 </tbody>
-                </table>`);
-    $infoTable.find('.indicator-prop').on('click', function (e) {
-        $infoTable.find('button>span.show-prop').text(this.innerText);
-    });
-
-    CMenu.attach_info.dom.append($infoTable);
-
-    // param_dom start
-    CMenu.attach_param = {
-        dom: $('<div class="panel panel-default"></div>').append($('<div class="panel-heading">参数列表</div>')),
-    };
-    let $paramTable = $('<table class="table table-bordered wh-param-list"></table>');
-    let $paramThead = $(`<thead>
-                        <tr>
-                            <th>参数</th>
-                            <th>名称</th>
-                            <th>缺省</th>
-                            <th>最小</th>
-                            <th>最大</th>
-                        </tr>
-                        </thead>`);
-    let $paramTbody = $('<tbody></tbody>');
-    for (let i = 1; i <= 6; i++) {
-        let $tr = $('<tr></tr>');
-        let $tdId = $('<td>' + i + '</td>');
-        let $tdName = $('<td><input type="text" readonly class="form-control ' + ('name_' + i) + '"/></td>');
-        let $tdMax = $('<td><input type="number" readonly class="form-control ' + ('max_' + i) + '"/></td>');
-        let $tdMin = $('<td><input type="number" readonly class="form-control ' + ('min_' + i) + '"/></td>');
-        let $tdDefault = $('<td><input type="number" readonly class="form-control ' + ('default_' + i) + '"/></td>');
-        $tr.append($tdId).append($tdName).append($tdDefault).append($tdMin).append($tdMax);
-        $paramTbody.append($tr);
-    }
-
-    $paramTbody.find('input').on('click', function (e) {
-        $(this).attr('readonly', false);
-    });
-
-    $paramTable.append($paramThead).append($paramTbody);
-    CMenu.attach_param.dom.append($paramTable);
-    CMenu.$attach_container.append(CMenu.attach_info.dom).append(CMenu.attach_param.dom);
-};
-
-CMenu.updateAttachUI = function () {
-    let indicator = CMenu.editing;
-    let typeStr = {
-        system: '天勤脚本语言',
-        custom: '天勤脚本语言',
-        custom_wh: '文华脚本语言',
-    };
-    if (indicator.type === 'custom_wh') {
-        CMenu.editor.getSession().setOption('useWorker', false);
-        CMenu.attach_info.dom.find('.name').text(indicator.name);
-        CMenu.attach_info.dom.find('.type').text(typeStr[indicator.type]);
-        CMenu.attach_info.dom.find('td span.show-prop').text(indicator.prop);
-        let trs = CMenu.attach_param.dom.find('tbody tr');
-        for (let i = 1; i <= 6; i++) {
-            trs.find('.name_' + i).val(indicator.params[i].name);
-            trs.find('.max_' + i).val(indicator.params[i].max);
-            trs.find('.min_' + i).val(indicator.params[i].min);
-            trs.find('.default_' + i).val(indicator.params[i].defaultValue);
-        }
-    } else {
-        CMenu.editor.getSession().setOption('useWorker', true);
-    }
-};
-
 CMenu.initSysIndicators = function () {
     return new Promise((resolve, reject) => {
         $.get('defaults/defaults.json').then(function (response) {
@@ -396,7 +287,7 @@ CMenu.initSysIndicators = function () {
                     });
                 }
             }
-            
+
             // 初始化界面
             CMenu.sys_dom.empty();
             for (let i = 0; i < CMenu.sys_datas.length; i++) {
@@ -437,21 +328,89 @@ CMenu.initCustomIndicators = function () {
 
 CMenu.addAction = function () {
     CMenu.doing = 'new';
-    CMenu.$editModal.find('#indicator-name').val('');
-    CMenu.$editModal.find('#indicator-type-tq').show();
-    CMenu.$editModal.find('#indicator-type-wh').show();
-    CMenu.$editModal.find("input[name='indicator-type']").eq('0').click();
-    CMenu.$editModal.modal('show');
+
+    let name = 'untitled';
+    let codeDefault = CMenu.codeTemplate.replace('${1:function_name}', name);
+    let type = 'custom'; // 没有文华，只保留天勤 @20180409
+
+    IStore.add({
+        name: name,
+        type: type,
+        draft: {
+            code: codeDefault,
+        },
+    }).then(function (i) {
+        CMenu.update(() => {
+            CMenu.dom.find('tr.' + name + ' td')[0].click();
+        });
+    }, function (e) {
+        if (e === 'ConstraintError') {
+            name = name + '_' + RandomStr(4);
+            IStore.add({
+                name: name,
+                type: type,
+                draft: {
+                    code:  CMenu.codeTemplate.replace('${1:function_name}', name)
+                },
+            }).then(function (i) {
+                CMenu.update(() => {
+                    CMenu.dom.find('tr.' + name + ' td')[0].click();
+                });
+            }, function (e) {
+                if (e === 'ConstraintError') {
+                    Notify.error('指标名称重复');
+                } else {
+                    Notify.error(e);
+                }
+            });
+        } else {
+            Notify.error(e);
+        }
+    });
 };
 
 CMenu.copyCallback = function (tr, data) {
     CMenu.doing = 'copy';
-    CMenu.$editModal.find('#indicator-name').val(data.name + '_copy');
-    CMenu.$editModal.find('#indicator-type-tq').show();
-    CMenu.$editModal.find('#indicator-type-wh').hide();
-    CMenu.$editModal.find("input[name='indicator-type']").eq('0').click();
-    CMenu.$editModal.attr('data_code', data.draft.code);
-    CMenu.$editModal.modal('show');
+
+    let name = data.name + '_copy';
+    let code = data.draft.code.trim();
+    let re = /^(function\s*\*\s*).*(\s*\(\s*C\s*\)\s*\{[\s\S]*\})$/g;
+    let type = 'custom'; // 没有文华，只保留天勤 @20180409
+
+    IStore.add({
+        name: name,
+        type: type,
+        draft: {
+            code: code.replace(re, '$1' + name + '$2'),
+        },
+    }).then(function (i) {
+        CMenu.update(() => {
+            CMenu.dom.find('tr.' + name + ' td')[0].click();
+        });
+    }, function (e) {
+        if (e === 'ConstraintError') {
+            name += '_' + RandomStr(4);
+            IStore.add({
+                name: name,
+                type: type,
+                draft: {
+                    code: code.replace(re, '$1' + name + '$2'),
+                },
+            }).then(function (i) {
+                CMenu.update(() => {
+                    CMenu.dom.find('tr.' + name + ' td')[0].click();
+                });
+            }, function (e) {
+                if (e === 'ConstraintError') {
+                    Notify.error('指标名称重复');
+                } else {
+                    Notify.error(e);
+                }
+            });
+        } else {
+            Notify.error(e);
+        }
+    });
 };
 
 // 检查 系统指标 和 用户自定义指标 是否有指标名称是 name
@@ -464,119 +423,6 @@ CMenu.hasClassName = function (name) {
     }
 
     return false;
-};
-
-CMenu.editIndicator = function (e) {
-
-    let name = $('#indicator-name').val();
-    let type = CMenu.$editModal.find("input[name='indicator-type']:checked").val();
-    type = type === '0' ? 'custom' : 'custom_wh';
-    if (!CMenuUtils.validVariableName(name)) {
-        Notify.error('指标名称应符合 JavaScript 变量名命名规则。\n 第一个字符必须是字母、下划线（_）或美元符号（$）\n' +
-            '余下的字符可以是下划线（_）、美元符号（$）或任何字母或数字字符。 \n 长度限制为20。');
-        return;
-    }
-
-    if (CMenu.hasClassName(name)) {
-        Notify.error('指标名称重复');
-        return;
-    }
-
-    if (CMenu.doing === 'new') {
-        let codeDefault = '';
-        let wenhua = { prop: null, params: null };
-        if (type === 'custom_wh') {
-            wenhua = CMenu.getIndicatorWH_Prop_Params();
-        } else {
-            codeDefault = CMenu.codeTemplate.replace('${1:function_name}', name);
-        }
-
-        IStore.add({
-            name: name,
-            type: type,
-            prop: wenhua.prop,
-            params: wenhua.params,
-            draft: {
-                code: codeDefault,
-            },
-        }).then(function (i) {
-            CMenu.update(() => {
-                CMenu.dom.find('tr.' + name + ' td')[0].click();
-            });
-            CMenu.$editModal.modal('hide');
-        }, function (e) {
-
-            if (e === 'ConstraintError') {
-                Notify.error('指标名称重复');
-            } else {
-                Notify.error(e);
-            }
-        });
-    } else if (CMenu.doing === 'copy') {
-        let code = CMenu.$editModal.attr('data_code');
-        let re = /^(function\s*\*\s*).*(\s*\(\s*C\s*\)\s*\{[\s\S]*\})$/g;
-        let resCode = code.trim().replace(re, '$1' + name + '$2');
-        IStore.add({
-            name: name,
-            type: type,
-            draft: {
-                code: resCode,
-            },
-        }).then(function (i) {
-            CMenu.update(() => {
-                CMenu.dom.find('tr.' + name + ' td')[0].click();
-            });
-            CMenu.$editModal.modal('hide');
-        }, function (e) {
-
-            if (e === 'ConstraintError') {
-                Notify.error('指标名称重复');
-            } else {
-                Notify.error(e);
-            }
-        });
-    } else {
-        let wenhua = { prop: null, params: null };
-        if (type === 'custom_wh') {
-            wenhua = CMenu.getIndicatorWH_Prop_Params();
-        }
-
-        IStore.saveDraft({
-            key: CMenu.editing.key,
-            name: name,
-            type: type,
-            prop: wenhua.prop,
-            params: wenhua.params,
-        }).then(function (i) {
-            CMenu.update(() => {
-                CMenu.dom.find('tr.' + name + ' td')[0].click();
-            });
-            CMenu.$editModal.modal('hide');
-        }, function (e) {
-
-            if (e === 'ConstraintError') {
-                Notify.error('指标名称重复');
-            } else {
-                Notify.error(e);
-            }
-        });
-    }
-};
-
-// 从 UI界面 取得文华脚本的 Prop && Params
-CMenu.getIndicatorWH_Prop_Params = function () {
-    let prop = CMenu.attach_info.dom.find('td span.show-prop').text();
-    let params = {};
-    let $trs = CMenu.attach_param.dom.find('tbody tr');
-    for (let i = 1; i <= 6; i++) {
-        let name = $trs.find('.name_' + i).val();
-        let max = $trs.find('.max_' + i).val();
-        let min = $trs.find('.min_' + i).val();
-        let defaultValue = $trs.find('.default_' + i).val();
-        params[i] = { name, max, min, defaultValue };
-    }
-
-    return { prop, params };
 };
 
 // 删除当前编辑的指标
@@ -597,42 +443,32 @@ CMenu.trashIndicator = function (e) {
 
     // 删除数据库存储数据
     IStore.remove(CMenu.editing.key).then(function (i) {
-            // 更新界面
-            CMenu.update(() => {
-                if ($nextTr) {
-                    $nextTr.find('td:first').click();
-                } else {
-                    CMenu.sys_item_doms[0].find('td:first').click();
-                }
-            });
+        // 更新界面
+        CMenu.update(() => {
+            if ($nextTr) {
+                $nextTr.find('td:first').click();
+            } else {
+                CMenu.sys_item_doms[0].find('td:first').click();
+            }
+        });
 
-            // 关闭确认框
-            CMenu.$trashModal.modal('hide');
+        // 关闭确认框
+        CMenu.$trashModal.modal('hide');
 
-            // 通知webworker unregister_indicator
-            worker.postMessage({ cmd: 'unregister_indicator', content: indicatorName });
-        },
-
-        function (e) {
+        // 通知webworker unregister_indicator_class
+        worker.postMessage({ cmd: 'unregister_indicator_class', content: indicatorName });
+    },        function (e) {
             Notify.error(e.toString());
         });
 };
 
 CMenu.saveDraftIndicator = function (e) {
-    let wenhua = { prop: null, params: null };
-    if (CMenu.editing.type === 'custom_wh') {
-        wenhua = CMenu.getIndicatorWH_Prop_Params();
-        console.log(wenhua)
-    }
-
     IStore.saveDraft({
         key: CMenu.editing.key,
         name: CMenu.editing.name,
         draft: {
             code: CMenu.editor.getValue(),
-        },
-        prop: wenhua.prop,
-        params: wenhua.params,
+        }
     }).then(function (result) {
         CMenu.editing = result;
         worker.postMessage({ cmd: 'indicator', content: result });
@@ -643,24 +479,15 @@ CMenu.saveDraftIndicator = function (e) {
 };
 
 CMenu.saveFinalIndicator = function (e) {
-    let wenhua = { prop: null, params: null };
-    if (CMenu.editing.type === 'custom_wh') {
-        wenhua = CMenu.getIndicatorWH_Prop_Params();
-    }
-
     IStore.saveFinal({
         key: CMenu.editing.key,
         name: CMenu.editing.name,
         draft: {
             code: CMenu.editor.getValue(),
-        },
-        prop: wenhua.prop,
-        params: wenhua.params,
+        }
     }).then(function (result) {
         CMenu.update()
-        // CMenu.updateUI(result);
     }, function (e) {
-
         Notify.error(e);
     });
 };
@@ -670,24 +497,6 @@ CMenu.resetIndicator = function (e) {
         CMenu.editing = result;
         CMenu.editor.setValue(result.draft.code, 1);
         CMenu.editor.focus();
-    });
-};
-
-CMenu.editCallback = function (tr, key) {
-    CMenu.doing = 'edit';
-    IStore.getByKey(key).then(function (result) {
-        CMenu.$editModal.find('#indicator-name').val(result.name);
-        if (result.type === 'custom') {
-            CMenu.$editModal.find('#indicator-type-tq').show();
-            CMenu.$editModal.find('#indicator-type-wh').hide();
-            CMenu.$editModal.find("input[name='indicator-type']").eq('0').click();
-        } else if (result.type === 'custom_wh') {
-            CMenu.$editModal.find('#indicator-type-tq').hide();
-            CMenu.$editModal.find('#indicator-type-wh').show();
-            CMenu.$editModal.find("input[name='indicator-type']").eq('1').click();
-        }
-
-        CMenu.$editModal.modal('show');
     });
 };
 
@@ -728,13 +537,13 @@ CMenu.updateUI = function (indicator) {
         if (!CMenu.item_doms[indicator.key]) {
             CMenu.item_doms[indicator.key] = CMenuUtils.getIndicatorTr(indicator, {
                 select: CMenu.selectCallback,
-                edit: CMenu.editCallback,
                 trash: CMenu.trashCallback,
             });
             CMenu.dom.append(CMenu.item_doms[indicator.key]);
         } else {
             let type = CMenuUtils.getBrandTag(indicator.type);
             CMenu.item_doms[indicator.key].find('td:first').empty().append(type).append(indicator.name);
+            CMenu.item_doms[indicator.key].find('td:first').empty().append(indicator.name);
         }
 
         if (ErrorHandlers.has(indicator.name)) {
@@ -742,8 +551,6 @@ CMenu.updateUI = function (indicator) {
             CMenu.item_doms[indicator.key].find('td:first').append(timeout);
         }
     }
-
-    CMenu.updateAttachUI();
 };
 
 CMenu.initThemeContainer = function () {
@@ -849,8 +656,7 @@ CMenuUtils = (function () {
     };
 
     let getNameTd = function (data) {
-        let $td = $('<td></td>');
-        $td.append(CMenuUtils.getBrandTag(data.type)).append(data.name);
+        let $td = $('<td>' + data.name + '</td>');
         return $td;
     };
 
