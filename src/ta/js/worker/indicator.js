@@ -159,7 +159,7 @@ IndicatorInstance.prototype.update = function () {
         }
         var current_i = this.calculateLeft;
         var kobj = DM.get_data('klines/' + this.ins_id + '/' + this.dur_nano);
-        if (kobj && kobj.last_id && current_i < kobj.last_i){
+        if (kobj && kobj.last_id != -1 && current_i < kobj.last_id){
             // last_id 之前都要计算
             this.out_series_mark[this.calculateLeft] = direction === "BUY" ? ICON_BUY : ICON_SELL;
         }
