@@ -1,3 +1,12 @@
+occycle: 1,
+
+NEAREST(i, cond);
+EVERY(i, serial, n)
+ISLASTBAR(i)
+ROUND(x, n)
+
+
+
 现在的流程
     为每个技术指标实例构建一个context, 存放 update_instance 内容等
     Context独有的内容包括:

@@ -151,6 +151,9 @@ IndicatorInstance.prototype.update = function () {
             return s;
         }
     };
+    this.DRAW = function(id, params){
+        this.out_drawings[id] = params;
+    }
     this.DRAW_LINE = function(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
         this.out_drawings[id] = {type:"LINE", x1, y1, x2, y2, color, width, style};
     };
@@ -445,6 +448,14 @@ const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
 
 const ICON_BUY = 1;
 const ICON_SELL = 2;
+const ICON_BLOCK = 9;
+
+const PS_SOLID = 0;
+const PS_DASH = 1;
+const PS_DOT = 2;
+const PS_DASHDOT = 3;
+const PS_DASHDOTDOT = 4;
+
 
 const VALUESERIAL = function () {
     this.LEFT = 0;
