@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<body>
+    TATEST
+    <script type="text/javascript" src="lib/utils.js"></script>
+    <script type="text/javascript" src="lib/task.js"></script>
+    <script type="text/javascript" src="lib/dm.js"></script>
+    <script type="text/javascript" src="lib/ta.js"></script>
+    <script type="text/javascript" src="lib/websocket.js"></script>
+    <script type="text/javascript" src="lib/tqsdk.js"></script>
+
+    <script type="text/javascript" src="lib/func/basefuncs.js"></script>
+
+    <script>
+    var ss = `
+        class kdj extends Indicator
+        {
+            static define() {
+                return {
+                    type: "SUB",
+                    cname: "KDJ",
+                    state: "KLINE",
+                    params: [
+                        {name: "N", default:3},
+                        {name: "M1", default:5},
+                        {name: "M2", default:5},
+                    ],
+                }
+            }
+            constructor(){
+                super();
+                //输入序列
+                this.close = TQ.GET_KLINE().close;
+                this.high = TQ.GET_KLINE().high;
+                this.low = TQ.GET_KLINE().low;
+
+                this.k = this.OUTS("LINE", "k", {color: RED});
+                this.d = this.OUTS("LINE", "d", {color: GREEN});
+                this.j = this.OUTS("LINE", "j", {color: YELLOW});
+                this.rsv = [];
+            }
+            calc(i) {
+                let hv = HIGHEST(i, this.high, this.params.n);
+                let lv = LOWEST(i, this.low, this.params.n);
+                rsv[i] = (hv == lv) ? 0 : (close[i] - lv) / (hv - lv) * 100;
+                this.k[i] = SMA(i, rsv, m1, 1, k);
+                this.d[i] = SMA(i, k, m2, 1, d);
+                this.j[i] = 3*k[i] -2*d[i];
+            }
+        }
+        `;
+    eval(ss);
+    TQ.REGISTER_INDICATOR_CLASS(kdj);
+    TQ.register_processor('update_indicator_instance', TQ.ta.update_indicator_instance);
+    TQ.register_processor('delete_indicator_instance', TQ.ta.delete_indicator_instance);
+    </script>
+
+</body>
+
+</html>

@@ -252,8 +252,14 @@
             };
 
             var orders = []; // 记录这个 Task 下的单
-
+            var kline = TQ.GETKLINE(...);
+            var ind = TQ.NEW_INDICATOR_INSTANCE(kdj, 10, 20, symbol, dur);
             while (true) {
+                if (ind.outs.ks[-1] < 50){
+                    Sleep(100);
+                    continue;
+                }
+
                 var pending_volume = 0; // 挂单手数
                 var traded_sum = 0; // 已成交的总金额
                 var traded_volume = 0; // 已成交的总手数

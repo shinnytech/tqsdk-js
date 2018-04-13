@@ -1,10 +1,9 @@
-var result_editor = null;
 $(function () {
     // 初始化代码编辑区域
     var editor = ace.edit('editor');
     editor.getSession().setMode('ace/mode/text');
     editor.getSession().setOption('useWorker', false);
-     result_editor = ace.edit('result-editor');
+    var result_editor = ace.edit('result-editor');
     ace.require('ace/ext/language_tools');
     result_editor.getSession().setMode('ace/mode/javascript');
     result_editor.$blockScrolling = Infinity;

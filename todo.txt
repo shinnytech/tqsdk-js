@@ -1,9 +1,174 @@
-occycle: 1,
+合并整理函数库:
 
-NEAREST(i, cond);
-EVERY(i, serial, n)
+原技术指标系统:
+    核心函数
+        C.DEFINE - 定义技术指标属性
+        C.PARAM - 定义指标参数
+        C.SERIAL - 定义输入序列
+        C.OUTS - 定义输出序列
+    计算函数
+        SUM - 求序列中连续N项和
+        MA - 求序列中连续N项平均值
+        STDEV - 求序列中连续N项标准差
+    Context
+        C
+
+原sdk系统:
+    TQ.START_TASK
+    TQ.PAUSE_TASK
+    TQ.RESUME_TASK
+    TQ.STOP_TASK
+    TQ.UI
+    TQ.GET_QUOTE
+    TQ.GET_ACCOUNT
+    TQ.GET_POSITION
+    TQ.GET_ORDER
+    TQ.GET_COMBINE
+    TQ.GET_POSITION
+    TQ.GET_KLINE
+    TQ.INSERT_ORDER
+    TQ.CANCEL_ORDER
+    TQ.ON_CHANGE
+    TQ.ON_CLICK
+
+//-----------------------------------------------------------------
+合并后目标效果:
+建立一个全局context, 作为各类函数的默认参数来源:
+    GLOBAL_CONTEXT = {
+        current_symbol: "SHFE.cu1801",
+        current_dur: "5000000000",
+        ...
+    }
+
+系统函数: (这批函数都放进 sdk.js)
+    数据读写: (dm.js)
+        TQ.GET_QUOTE
+        TQ.GET_ACCOUNT
+        TQ.GET_POSITION
+        TQ.GET_ORDER
+        TQ.GET_COMBINE
+        TQ.GET_POSITION
+        TQ.GET_KLINE(
+            {
+                kline_id: 'my_kline', // 若没有指定值，默认为一个 8 位长的随机字符串，随机字符串不会重复
+                symbol: GLOBAL_CONTEXT.current_symbol,
+                duration: GLOBAL_CONTEXT.current_dur,
+                width: 200, // 若没有指定值，默认设定为 100
+            }
+        )
+        TQ.INSERT_ORDER
+        TQ.CANCEL_ORDER
+
+    任务管理: (task.js)
+        TQ.START_TASK
+        TQ.PAUSE_TASK
+        TQ.RESUME_TASK
+        TQ.STOP_TASK
+
+    UI管理: (ui.js)
+        TQ.UI
+        TQ.ON_CHANGE
+        TQ.ON_CLICK
+
+    指标管理: (ta.js)
+        TQ.DEFINE_INDICATOR_CLASS();
+        TQ.UNDEFINE_INDICATOR_CLASS();
+        TQ.NEW_INDICATOR_INSTANCE();
+        TQ.UPDATE_INDICATOR_INSTANCE(...);
+        TQ.DELETE_INDICATOR_INSTANCE();
+
+    sdk.js
+        TQ...
+
+
+非系统函数
+    数据计算函数:
+        SUM - 求序列中连续N项和
+        MA - 求序列中连续N项平均值
+        STDEV - 求序列中连续N项标准差
+
+    动作组件:
+        TaskSplit
+
+    技术指标:
+        MACD
+        KDJ
+
+
+技术指标代码的重构:
+当前版本:
+    function* kdj(C){
+        //指标定义
+        C.DEFINE({
+            type: "SUB",
+            cname: "KDJ",
+            state: "KLINE",
+        });
+        //参数
+        let n = C.PARAM(3, "N");
+        let m1 = C.PARAM(5, "M1");
+        let m2 = C.PARAM(5, "M2");
+        //输入序列
+        let close = C.SERIAL("CLOSE");
+        let high = C.SERIAL("HIGH");
+        let low = C.SERIAL("LOW");
+        //输出序列
+        let k = C.OUTS("LINE", "k", {color: RED});
+        let d = C.OUTS("LINE", "d", {color: GREEN});
+        let j = C.OUTS("LINE", "j", {color: YELLOW});
+        //临时序列
+        let rsv = [];
+        //计算
+        while(true) {
+            let i = yield;
+            let hv = HIGHEST(i, high, n);
+            let lv = LOWEST(i, low, n);
+            rsv[i] = (hv == lv) ? 0 : (close[i] - lv) / (hv - lv) * 100;
+            k[i] = SMA(i, rsv, m1, 1, k);
+            d[i] = SMA(i, k, m2, 1, d);
+            j[i] = 3*k[i] -2*d[i];
+        }
+    }
+
+    TQ.DEFINE_INDICATOR({
+        func: kdj,
+        type: "SUB",
+        cname: "KDJ",
+        state: "KLINE",
+        params: [
+            (3, "N");
+            (5, "M1");
+            (5, "M2");
+        ],
+        outs: [
+            ("LINE", "k", {color: RED});
+            ("LINE", "d", {color: GREEN});
+            ("LINE", "j", {color: YELLOW});
+        ],
+    })
+
+    ind = TQ.UPDATE_INDICATOR_INSTANCE({
+        id: ...,
+        func: kdj,
+        params: [3, 5, 5],
+    });
+
+    ind.outs.k;
+
+
+已知问题:
+    K线数据的proxy还要完善
+    DM的last_changed_data是否要保留, 有无替代方案
+        用epoch替代
+    在worker中做import的问题, 文件间的互相依赖关系搞不定
+
+
+
+
+occycle: 1,
 ISLASTBAR(i)
-ROUND(x, n)
+
+
 
 
 

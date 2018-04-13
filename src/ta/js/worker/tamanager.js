@@ -5,7 +5,6 @@ const TM = (function () {
             if (G_ERRORS.indexOf(funcName) > -1) {
                 continue;
             }
-
             initOne(content[funcName]);
         }
     }
@@ -14,53 +13,10 @@ const TM = (function () {
         let funcName = indicator.name;
         let code = indicator.draft.code;
         try {
-            if (indicator.type !== 'custom_wh') {
-                eval(funcName + ' = ' + code);
-                updateClassDefine(self[funcName]);
-            } else {
-                let req = covertWHRequest(indicator);
-                if (req === null) return;
-                fetch('http://tools.tq18.cn/convert/wh', {
-                    method: 'POST',
-                    body: JSON.stringify(req),
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.errline === 0) {
-                            eval(funcName + ' = ' + data.target);
-                            updateClassDefine(self[funcName]);
-                        } else if (data.errline === -1) {
-                            postMessage({
-                                cmd: 'feedback', content: {
-                                    error: true,
-                                    type: 'eval',
-                                    message: 'error in end of file',
-                                    func_name: funcName,
-                                },
-                            });
-                        } else {
-                            postMessage({
-                                cmd: 'feedback', content: {
-                                    error: true,
-                                    type: 'eval',
-                                    message: `error in ${data.errline}:${data.errcol} ${data.errvalue}`,
-                                    func_name: funcName,
-                                },
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        postMessage({
-                            cmd: 'feedback', content: {
-                                error: true,
-                                type: 'eval',
-                                message: error.message,
-                                func_name: funcName,
-                            },
-                        });
-                    });
-            }
+            eval(funcName + ' = ' + code);
+            updateClassDefine(self[funcName]);
         } catch (e) {
+            console.error(e);
             postMessage({
                 cmd: 'feedback', content: {
                     error: true,
@@ -71,43 +27,6 @@ const TM = (function () {
             });
             return;
         }
-    }
-
-    function covertWHRequest(indicator) {
-        let type = 'MAIN';
-        switch (indicator.prop) {
-            case 'K线附属指标':
-                type = 'MAIN';
-                break;
-            case '副图指标':
-                type = 'SUB';
-                break;
-            case '主图K线形态':
-                type = 'MAIN';
-                postMessage({
-                    cmd: 'feedback', content: {
-                        error: true,
-                        type: 'define',
-                        message: '未实现 主图K线形态',
-                        func_name: indicator.name,
-                    },
-                });
-                return null;
-        }
-        let params = [];
-        for (let i = 1; i <= 6; i++) {
-            let p = indicator.params[i];
-            if (p && p.name)
-                params.push([p.name, Number(p.min), Number(p.max), Number(p.defaultValue)]);
-        }
-
-        return {
-            id: indicator.name, //指标函数名
-            cname: indicator.name, //指标中文名称
-            type: type, //指标类型, MAIN=主图指标, SUB=副图指标
-            params: params,
-            src: indicator.draft.code, //文华原代码
-        };
     }
 
     function updateClassDefine(func) {
@@ -192,6 +111,7 @@ const TM = (function () {
             f.next();
         }
         catch (e) {
+            console.error(e)
             postMessage({
                 cmd: 'calc_end', content: {
                     id: id,

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<body>
+    TATEST
+    <script type="text/javascript" src="lib/utils.js"></script>
+    <script type="text/javascript" src="lib/task.js"></script>
+    <script type="text/javascript" src="lib/dm.js"></script>
+    <script type="text/javascript" src="lib/ta.js"></script>
+    <script type="text/javascript" src="lib/websocket.js"></script>
+    <script type="text/javascript" src="lib/tqsdk.js"></script>
+
+    <script type="text/javascript" src="lib/func/basefuncs.js"></script>
+    <script type="text/javascript" src="lib/ind/kdj.js"></script>
+
+    <script>
+     TQ.register_processor('update_indicator_instance', TQ.ta.update_indicator_instance);
+     TQ.register_processor('delete_indicator_instance', TQ.ta.delete_indicator_instance);
+    </script>
+
+</body>
+
+</html>

@@ -1,4 +1,5 @@
 importScripts('websocket.js', 'indicator.js', 'datamanager.js', 'tamanager.js', '/ta/defaults/basefuncs.js');
+importScripts('/libs/tqsdk.js');
 
 // 全局对象,存储全部 Instance
 const G_INSTANCES = {};
@@ -29,6 +30,7 @@ const WS = new TqWebSocket('ws://127.0.0.1:7777/', {
             for (let id in G_INSTANCES) {
                 G_INSTANCES[id].calculate();
             }
+            TaskManager.run();
         } else if (message.aid === 'update_indicator_instance') {
             //主进程要求创建或修改指标实例
             let pack = message;

@@ -1,3 +1,5 @@
+importScripts('/libs/utils.js')
+
 const IndicatorInstance = function (obj) {
     Object.assign(this, obj);
     this.rels = []; // 相关节点
@@ -10,24 +12,6 @@ const IndicatorInstance = function (obj) {
     this.calculateRight = -1;
     this.runId = -1;
 };
-
-const RandomStr = function (prefix = "", len = 8) {
-    var charts = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-    var s = '';
-    for (var i = 0; i < len; i++) s += charts[Math.random() * 0x3e | 0];
-    if (prefix)
-        return prefix + s;
-    else
-        return s;
-}
-
-function ParseSymbol(str) {
-    var match_arr = str.match(/([^\.]+)\.(.*)/);
-    return {
-        exchange_id: match_arr ? match_arr[1] : '',// 交易所代码
-        instrument_id: match_arr ? match_arr[2] : ''// 合约代码
-    }
-}
 
 IndicatorInstance.prototype.resetByInstance = function (obj) {
     Object.assign(this, obj);
@@ -122,7 +106,6 @@ IndicatorInstance.prototype.update = function () {
 
     this.out_series = {};
     this.out_datas = {};
-    this.out_drawings = {};
     this.OUTS = function (style, serialName, options) {
         this.out_series[serialName] = {};
         let serial = this.out_series[serialName];
@@ -151,32 +134,9 @@ IndicatorInstance.prototype.update = function () {
             return s;
         }
     };
-    this.DRAW = function(id, params){
-        this.out_drawings[id] = params;
-    }
-    this.DRAW_LINE = function(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
-        this.out_drawings[id] = {type:"LINE", x1, y1, x2, y2, color, width, style};
-    };
-    this.DRAW_RAY = function(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
-        this.out_drawings[id] = {type:"RAY", x1, y1, x2, y2, color, width, style};
-    };
-    this.DRAW_SEG = function(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
-        this.out_drawings[id] = {type:"SEG", x1, y1, x2, y2, color, width, style};
-    };
-    this.DRAW_BOX = function(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
-        this.out_drawings[id] = {type:"BOX", x1, y1, x2, y2, color, width, style};
-    };
-    this.DRAW_PANEL = function(id, x1, y1, x2, y2, color=0xFFFFFF){
-        this.out_drawings[id] = {type:"PANEL", x1, y1, x2, y2, color};
-    };
-    this.DRAW_ICON = function(id, x1, y1, icon){
-        this.out_drawings[id] = {type:"ICON", x1, y1, icon};
-    };
-    this.DRAW_TEXT = function(id, x1, y1, text="", color=0xFFFFFF){
-        this.out_drawings[id] = {type:"TEXT", x1, y1, text, color};
-    };
     // 重新定义函数时，删除指标自带的输出序列（Mark）
     delete this.out_series_mark;
+
     this.ORDER = function (direction, offset, volume, order_symbol = this.trade_symbol) {
         if (!this.out_series_mark) {
             this.out_series_mark = this.OUTS('MARK', 'mk');
@@ -326,6 +286,30 @@ IndicatorInstance.prototype.update = function () {
             }
         }
     };
+    
+    this.ORDER_BY_TASK = function (direction, offset, volume, task_func, task_params) {
+        if (!this.out_series_mark) {
+            this.out_series_mark = this.OUTS('MARK', 'mk');
+        }
+        var current_i = this.calculateLeft;
+        var kobj = DM.get_data('klines/' + this.ins_id + '/' + this.dur_nano);
+        if (kobj && kobj.last_id != -1 && current_i < kobj.last_id){
+            // last_id 之前都要计算
+            this.out_series_mark[this.calculateLeft] = direction === "BUY" ? ICON_BUY : ICON_SELL;
+        }
+        // if (!this.enable_trade)
+        //     return;
+        if (current_i <= this.last_i || !kobj || !kobj.data || !kobj.last_id || kobj.last_id != current_i + 1)
+            return;
+        //@note: 代码跑到这里时, i应该是首次指向序列的倒数第二个柱子
+        this.last_i = current_i;
+        if (!task_params.symbol)
+            task_params.symbol = this.trade_symbol ? this.trade_symbol : this.ins_id;
+
+            task_params.direction = direction;
+        var task = TQ.START_TASK(task_func, task_params); 
+    };
+    
     //重生成函数
     this.func = self[this.ta_class_name](this);
     this.func.next(this.calculateLeft);
@@ -352,6 +336,7 @@ IndicatorInstance.prototype.exec = function () {
         }
         this.calculateLeft--;
     } catch (e) {
+        console.error(e)
         this.postEndMessage();
         postMessage({
             cmd: 'feedback', content: {
@@ -381,7 +366,6 @@ IndicatorInstance.prototype.exec = function () {
         range_right: right,
         serials: this.out_series,
         datas: this.out_datas,
-        drawings: this.out_drawings,
     };
     WS.sendJson(pack);
 };
@@ -448,14 +432,6 @@ const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
 
 const ICON_BUY = 1;
 const ICON_SELL = 2;
-const ICON_BLOCK = 9;
-
-const PS_SOLID = 0;
-const PS_DASH = 1;
-const PS_DOT = 2;
-const PS_DASHDOT = 3;
-const PS_DASHDOTDOT = 4;
-
 
 const VALUESERIAL = function () {
     this.LEFT = 0;
