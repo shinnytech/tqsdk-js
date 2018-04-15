@@ -1,3 +1,109 @@
+function _sum(serial, n, p) {
+    var s = 0;
+    for (var i = p - n + 1; i <= p; i++) {
+        s += serial[i];
+    }
+    return s;
+}
+
+function SUM(i, serial, n, cache) {
+    if (cache === undefined || cache.length == 0 || isNaN(cache[i - 1]))
+        return _sum(serial, n, i);
+    return cache[i - 1] - serial[i - n] + serial[i];
+}
+
+function COUNT(i, serial, n, cache) {
+    if (cache === undefined || cache.length == 0 || isNaN(cache[i - 1]))
+        return _sum(serial, n, i);
+    return cache[i - 1] - serial[i - n] + serial[i];
+}
+
+function REF(i, serial, n) {
+    return serial[i-n];
+}
+
+function MA(i, serial, n, cache) {
+    if (cache.length == 0 || isNaN(cache[i - 1]))
+        return _sum(serial, n, i) / n;
+    return cache[i - 1] - serial[i - n] / n + serial[i] / n;
+}
+
+function EMA(i, serial, n, cache) {
+    if (cache.length == 0)
+        return serial[i];
+    return isNaN(cache[i - 1]) ? serial[i] : (2 * serial[i] / (n + 1) + (n - 1) * cache[i - 1] / (n + 1));
+}
+
+function DMA(i, serial, a, cache) {
+    if (cache.length == 0)
+        return serial[i];
+    return isNaN(cache[i - 1]) ? serial[i] : (cache[i - 1] * (1-a) + serial[i] * a);
+}
+
+function SMA(i, serial, n, m, cache) {
+    if (cache.length == 0)
+        return serial[i];
+    return isNaN(cache[i - 1]) ? serial[i] : (cache[i - 1] * (n - m) / n + serial[i] * m / n);
+}
+
+function HIGHEST(p, serial, n) {
+    var s;
+    for (var i = p - n + 1; i <= p; i++) {
+        var v = serial[i];
+        if (s === undefined || v > s)
+            s = v;
+    }
+    return s;
+}
+
+function LOWEST(p, serial, n) {
+    var s;
+    for (var i = p - n + 1; i <= p; i++) {
+        var v = serial[i];
+        if (s === undefined || v < s)
+            s = v;
+    }
+    return s;
+}
+
+function STDEV(i, serial, n, cache) {
+    let s = cache.s ? cache.s : [];
+    let x2 = 0;
+    let x = 0;
+    if (s.length == 0 || !(i - 1 in s)) {
+        for (let k = i - n + 1; k <= i; k++) {
+            let d = serial[k];
+            x2 += d * d;
+            x += d;
+        }
+    } else {
+        x = s[i - 1] - serial[i - n] + serial[i];
+        x2 = s[i - 1] - serial[i - n] * serial[i - n] + serial[i] * serial[i];
+    }
+    let std = Math.sqrt((x2 - x * x / n) / n);
+    if (!isNaN(std)) {
+        s[i] = [x, x2];
+    }
+    return std;
+}
+
+function IFELSE(c, a, b) {
+    return c?a:b;
+}
+
+function ABS(v){
+    return Math.abs(v);
+}
+
+function MAX(v1, v2) {
+    return Math.max(v1, v2);
+}
+
+function MIN(v1, v2) {
+    return Math.min(v1, v2);
+}
+
+
 //utils----------------------------------------------------------------------
 
 /**
@@ -66,9 +172,13 @@ class DataManager{
                 case 'object':
                     if (value === null) {
                         // 服务器 要求 删除对象
-                        if (deleteNullObj) { delete target[key]; }
-                        else { target[key] = null; }
-                    } else if (Array.isArray(value)) {
+                        if (deleteNullObj) {
+                            delete target[key];
+                        } else {
+                            target[key] = null;
+                        }
+                    } else if (Array.isArray(value) || key == "data") {
+                        //@note: 这里做了一个特例, 使得K线序列数据被保存为一个array, 而非object
                         target[key] = target[key] ? target[key] : [];
                         this.mergeObject(target[key], value, deleteNullObj);
                     } else {
@@ -93,18 +203,13 @@ class DataManager{
         }
     }
 
-    update_data(diff_list, from = 'server') {
+    update_data(diff_list) {
         var diff_object = diff_list;
         if (diff_list instanceof Array) {
             diff_object = diff_list[0];
             for (var i = 1; i < diff_list.length; i++) {
                 this.mergeObject(diff_object, diff_list[i], false);
             }
-        }
-        if (from === 'server') {
-            // 只有从服务器更新的数据包，更新 last_changed_data 字段
-            for (var k in this.last_changed_data) delete this.last_changed_data[k];
-            Object.assign(this.last_changed_data, diff_object);
         }
         this.mergeObject(this.datas, diff_object, true)
     }
@@ -197,35 +302,87 @@ class DataManager{
         }
     }
 
+    set_default(default_value, ...path){
+        let node = this.datas;
+        for (let i = 0; i < path.length; i++) {
+            if (! (path[i] in node))
+                if (i+1 == path.length)
+                    node[path[i]] = default_value;
+                else
+                    node[path[i]] = {}
+            node = node[path[i]];
+        }
+        return node;
+    }
     /**
      * 获取 k线序列
      */
-    get_kline_serial({ kline_id = RandomStr(), symbol=GLOBAL_CONTEXT.symbol, duration=GLOBAL_CONTEXT.duration, width = 100 }={}) {
-        if (!symbol || !duration)
-            return undefined;
-        var dur_nano = duration * 1000000000;
-        var that = this;
-        return new Proxy({ kline_id, symbol, duration, width }, {
-            get: function (target, key, receiver) {
-                if (key in target) return target[key];
-                var kobj = that.get_data('klines/' + symbol + '/' + dur_nano);
-                if (kobj && kobj.data && kobj.last_id) {
-                    if (['datetime', 'open', 'high', 'low', 'close', 'volume', 'open_oi', 'close_oi'].includes(key)) {
-                        var list = [];
-                        for (var i = (kobj.last_id - width + 1); i <= kobj.last_id; i++) {
-                            if (kobj.data[i]) list.push(kobj.data[i][key]);
-                            else list.push(undefined);
-                        }
-                        return list;
-                    } else if (!isNaN(key)) {
-                        if (key < 0) return kobj.data[kobj.last_id + 1 + Number(key)];
-                        return kobj.data[kobj.last_id - width + 1 + Number(key)];
-                    }
-                }
-                return undefined;
-            }
-        });
+    get_kline_serial(symbol, dur_nano) {
+        let ks = this.set_default({last_id: -1, data:[]}, "klines", symbol, dur_nano);
+        var handler = {
+            get: function(target, property, receiver) {
+                let [ks, field_selector] = target;
+                if (!isNaN(property)) {
+                    if (ks.last_id == -1)
+                        return undefined;
+                    let i = Number(property);
+                    if (i < 0)
+                        i = ks.last_id + i + 1;
+                    if (!field_selector)
+                        return ks.data[i];
+                    else
+                        return ks.data[i]?ks.data[i][field_selector]:undefined;
+                } else if (property == "last_id"){
+                    return ks.last_id;
+                } else if (property == "open"){
+                    return new Proxy([ks, "open"], handler);
+                } else if (property == "high"){
+                    return new Proxy([ks, "high"], handler);
+                } else if (property == "low"){
+                    return new Proxy([ks, "low"], handler);
+                } else if (property == "close"){
+                    return new Proxy([ks, "close"], handler);
+                } else
+                    return undefined;
+            },
+        };
+        let p = new Proxy([ks, null], handler);
+        // p.close = new Proxy([ks, "close"], handler);
+        // p.open = new Proxy([ks, "open"], handler);
+        // p.high = new Proxy([ks, "high"], handler);
+        // p.low = new Proxy([ks, "low"], handler);
+        return p;
     }
+    // get_kline_serial({ kline_id = RandomStr(), symbol=GLOBAL_CONTEXT.symbol, duration=GLOBAL_CONTEXT.duration, width = 100 }={}) {
+    //     if (!symbol || !duration)
+    //         return undefined;
+    //     var dur_nano = duration * 1000000000;
+    //     var that = this;
+    //     return new Proxy({ kline_id, symbol, duration, width }, {
+    //         get: function (target, key, receiver) {
+    //             if (key in target)
+    //                 return target[key];
+    //             var kobj = that.get_data('klines/' + symbol + '/' + dur_nano);
+    //             if (kobj && kobj.data && kobj.last_id) {
+    //                 if (['datetime', 'open', 'high', 'low', 'close', 'volume', 'open_oi', 'close_oi'].includes(key)) {
+    //                     var list = [];
+    //                     for (var i = (kobj.last_id - width + 1); i <= kobj.last_id; i++) {
+    //                         if (kobj.data[i])
+    //                             list.push(kobj.data[i][key]);
+    //                         else
+    //                             list.push(undefined);
+    //                     }
+    //                     return list;
+    //                 } else if (!isNaN(key)) {
+    //                     if (key < 0)
+    //                         return kobj.data[kobj.last_id + 1 + Number(key)];
+    //                     return kobj.data[kobj.last_id - width + 1 + Number(key)];
+    //                 }
+    //             }
+    //             return undefined;
+    //         }
+    //     });
+    // }
 }
 
 //tm----------------------------------------------------------------------
@@ -462,36 +619,34 @@ VALUESERIAL.prototype.setRange = function (left, right) {
 
 class Indicator
 {
-    OUTS(){
-
-    }
     constructor(){
-        this.symbol = "";
-        this.dur_nano = 0;
+        //技术指标参数, 合约代码/周期也作为参数项放在这里面
+        this.ds = null;   //基础序列, 用作输出序列的X轴
+        this.params = {}; //指标参数
         this.view_left = -1;
         this.view_right = -1;
         this.invalid = false;
         this.is_error = false;
+
+        this.outs = {}; //输出序列访问函数
+        this.valid_left = -1; //已经计算过的可靠结果范围(含左右两端点), valid_right永远>=valid_left. 如果整个序列没有计算过任何数据, 则 valid_left=valid_right= -1
+        this.valid_right = -1;
     }
 
-    reset(params){
-        Object.assign(this, obj);
-        if (obj.ins_id === '' || obj.dur_nano === -1 || obj.view_left === -1 || obj.view_right === -1) {
-            this.invalid = false;
-        } else {
-            this.invalid = true;
-        }
+    reset(ds, params){
+        this.ds = ds;
+        this.params = params;
+        this.valid_left = -1;
+        this.valid_right = -1;
+
         this.rels = [];
         this.BEGIN = -1;
         this.last_i = -1;
         this.long_position_volume = 0;
         this.short_position_volume = 0;
-        this.calculateLeft = -1;
-        this.calculateRight = -1;
     }
 
     updateRange() {
-        var ds = DM.get_kdata_obj(this.ins_id, this.dur_nano);
         if (ds && this.view_left > -1 && this.view_right > -1) {
             var id_arr = Object.keys(ds).map(x => parseInt(x)).sort((a, b) => a - b);
             var start_id = -1;
@@ -564,6 +719,50 @@ class Indicator
         };
         WS.sendJson(pack);
     };
+
+    OUTS(style, name, options){
+        var out_serial = [];
+        let self = this;
+        this.outs[name] = function (left, right = null) {
+            //每个序列的输出函数允许一次性提取一段数据(含left, right两点)
+            //如果提供了left/right 两个参数,则返回一个 array
+            //如果只提供left, 则返回一个value
+
+            //无法输出结果的情形
+            if (self.is_error || !self.ds || self.ds.last_id == -1){
+                if (right == null)
+                    return null;
+                else
+                    return [];
+            }
+            //负数支持, 如果left/right为负数, 需要先转换到正数, 这一转换又必须事先有一个合约/周期来标定X轴
+            if (left < 0)
+                left = self.ds.last_id + left + 1;
+            if (right < 0)
+                right = self.ds.last_id + left + 1;
+
+            //判定是否需要计算及计算范围
+            let calc_left = -1;
+            let calc_right = -1;
+            if (left < self.valid_left || self.valid_left == -1){
+                calc_left = left;
+                calc_right = right ? right : left;
+            } else if (right > self.valid_right || left > self.valid_right){
+                calc_left = self.valid_right + 1;
+                calc_right = right ? right : left;
+            }
+            if (calc_right >= calc_left && calc_right != -1){
+                for (let i=calc_left; i <= calc_right; i++) {
+                    self.calc(i);
+                }
+            }
+            if (right == null)
+                return out_serial[left];
+            else
+                return out_serial.slice(left, right);
+        };
+        return out_serial;
+    }
 }
 
 class TaManager
@@ -572,12 +771,6 @@ class TaManager
         this.class_dict = {};
         this.instance_dict = {};
         this.calc_notify_func = null;
-    }
-    add(instance_id, ind_instance){
-        this.instance_dict[instance_id] = ind_instance;
-    }
-    delete(instance_id) {
-        delete this.instance_dict[instance_id];
     }
     on_rtn_data(message){
         // 标记需要重算的 instance
@@ -643,10 +836,10 @@ class TaManager
         //todo:
     };
 
-    new_indicator_instance(ind_class, params) {
+    new_indicator_instance(ind_class, ds, params, instance_id) {
         let ind_instance = new ind_class(params);
-        ind_instance.reset(params);
-        this.add(ind_instance);
+        this.instance_dict[instance_id] = ind_instance;
+        ind_instance.reset(ds, params);
         return ind_instance;
     };
 
@@ -655,7 +848,7 @@ class TaManager
     };
 
     delete_indicator_instance(ind_instance, params) {
-        this.ta_manager.delete(ind_instance.id);
+        delete this.instance_dict[ind_instance.id];
     };
 
     on_update_indicator_instance(pack){
@@ -780,16 +973,16 @@ class TQSDK {
         this.STOP_TASK = this.tm.stop_task;
 
         this.UNREGISTER_INDICATOR_CLASS = this.ta.unregister_indicator_class;
-        this.NEW_INDICATOR_INSTANCE = this.ta.new_indicator_instance;
         this.UPDATE_INDICATOR_INSTANCE = this.ta.update_indicator_instance;
         this.DELETE_INDICATOR_INSTANCE = this.ta.delete_indicator_instance;
 
         this.message_processor = {
             "rtn_data": this.on_rtn_data,
-        }
+        };
 
         this.ws.init();
     }
+
     onmessage(message) {
         processor = this.message_processor(message.aid);
         if(processor)
@@ -803,14 +996,6 @@ class TQSDK {
     }
     register_processor(aid, processor_func) {
         this.message_processor[aid] = processor_func;
-    }
-
-    REGISTER_INDICATOR_CLASS(ind_class){
-        this.ta.register_indicator_class(ind_class);
-        let classDefine = ind_class.define();
-        classDefine.aid = 'register_indicator_class';
-        classDefine.name = ind_class.name;
-        this.ws.sendJson(classDefine);
     }
 
     /**
@@ -846,7 +1031,7 @@ class TQSDK {
             "duration": dur_nano,
             "view_width": width, // 默认为 100
         });
-        return this.dm.get_kline_serial({kline_id, symbol, duration, width});
+        return this.dm.get_kline_serial(symbol, dur_nano);
     }
     INSERT_ORDER(ord) {
         if (!this.dm.get_account_id()) {
@@ -909,6 +1094,17 @@ class TQSDK {
             }
         }
     };
+
+    REGISTER_INDICATOR_CLASS(ind_class){
+        this.ta.register_indicator_class(ind_class);
+        let classDefine = ind_class.define();
+        classDefine.aid = 'register_indicator_class';
+        classDefine.name = ind_class.name;
+        this.ws.sendJson(classDefine);
+    }
+    NEW_INDICATOR_INSTANCE(ind_class, main_serial, params, instance_id=RandomStr()) {
+        return this.ta.new_indicator_instance(ind_class, main_serial, params, instance_id);
+    }
 }
 
 
@@ -920,7 +1116,6 @@ class TQSDK {
 // }
 
 var assert = require('assert');
-// var {TQSDK, Indicator} = require('../src/libs/tqsdk.js');
 
 class MockWebsocket{
     constructor(url, callbacks){
@@ -936,7 +1131,7 @@ class MockWebsocket{
 
 var TQ = new TQSDK(new MockWebsocket());
 
-describe('dm', function () {
+function init_test_data(){
     TQ.dm.on_rtn_data({
         "aid": "rtn_data",                                        //数据推送
         "data": [                                                 //diff数据数组, 一次推送中可能含有多个数据包
@@ -1104,6 +1299,10 @@ describe('dm', function () {
             }
         ]
     });
+}
+
+describe('dm', function () {
+    init_test_data();
     it('GetQuote with symbol', function () {
         var q = TQ.GET_QUOTE("SHFE.cu1612");
         assert.equal(q.last_price, 36580.0);
@@ -1114,7 +1313,7 @@ describe('dm', function () {
             duration: 180,
         });
         assert.equal(q[-1].close, 3432.33);
-        // assert.equal(q.close[-1], 3432.33);
+        assert.equal(q.close[-1], 3432.33);
     });
     it('2', function () {
         // assert(n == 2);
@@ -1126,66 +1325,77 @@ describe('dm', function () {
 });
 
 
-class kdj extends Indicator
+class ma extends Indicator
 {
     static define() {
         return {
             type: "SUB",
-            cname: "KDJ",
+            cname: "MA",
             state: "KLINE",
             params: [
                 {name: "N", default:3},
-                {name: "M1", default:5},
-                {name: "M2", default:5},
             ],
         }
     }
     constructor(){
         super();
-        //输入序列
-        this.ks = TQ.GET_KLINE();
-        this.k = this.OUTS("LINE", "k", {color: RED});
-        this.d = this.OUTS("LINE", "d", {color: GREEN});
-        this.j = this.OUTS("LINE", "j", {color: YELLOW});
-        this.rsv = [];
+        this.m = this.OUTS("LINE", "m", {color: RED});
     }
     calc(i) {
-        let hv = HIGHEST(i, this.ks.high, this.params.n);
-        let lv = LOWEST(i, this.ks.low, this.params.n);
-        rsv[i] = (hv == lv) ? 0 : (this.ks.close[i] - lv) / (hv - lv) * 100;
-        this.k[i] = SMA(i, rsv, m1, 1, k);
-        this.d[i] = SMA(i, k, m2, 1, d);
-        this.j[i] = 3*k[i] - 2*d[i];
+        this.m[i] = MA(i, this.ds.close, this.params.N, this.ds);
     }
 }
 
+function input_datas(){
+    data = {};
+    for(let i = 1000; i<= 10000; i++){
+        data[i] = {
+            "datetime": i,
+            "open": i,
+            "high": i,
+            "low": i,
+            "close": i,
+            "volume": i,
+            "open_oi": i,
+            "close_oi": i,
+        }
+    }
+    TQ.dm.on_rtn_data({
+        "aid": "rtn_data",                                        //数据推送
+        "data": [                                                 //diff数据数组, 一次推送中可能含有多个数据包
+            {
+                "klines": {                                           //K线数据
+                    "CFFEX.IF1801": {                                         //合约代码
+                        5000000000: {                                   //K线周期, 单位为纳秒, 180000000000纳秒 = 3分钟
+                            "last_id": 10000,                                //整个序列最后一个记录的序号
+                            "data": data,
+                        },
+                    },
+                },
+            }
+        ]
+    });
+}
+
 describe('ta', function () {
-    TQ.ta.register_indicator_class(kdj);
+    init_test_data();
+    input_datas();
+    TQ.ta.register_indicator_class(ma);
     it('New indicator instance', function () {
-        let ind = TQ.NEW_INDICATOR_INSTANCE(kdj, {});
+        let ind = TQ.NEW_INDICATOR_INSTANCE(ma, {});
+    });
+    it('indicator calculate', function () {
+        let ds = TQ.GET_KLINE({
+            symbol: "CFFEX.IF1801",
+            duration: 5,
+        });
+        let ind1 = TQ.NEW_INDICATOR_INSTANCE(ma, ds, {
+            "N": 1,
+        });
+        assert.equal(ind1.outs.m(-1), 10000);
+        let ind2 = TQ.NEW_INDICATOR_INSTANCE(ma, ds, {
+            "N": 10,
+        });
+        assert.equal(ind2.outs.m(-1), 9995.5);
     });
 });
-
-// //------------------------------------------------------------------------------
-// //预期用法
-//
-// //在普通的html中,
-// <script type="text/javascript" src="lib/tqsdk.js"></script>
-// TQ.GET_KLINE(...);
-// ind = TQ.NEW_INDICATOR_INSTANCE(...);
-//
-//
-// //在ta-ide中,
-// worker.js
-// TQ.register_processor('update_indicator_instance', TQ.ta.update_indicator_instance);
-// TQ.register_processor('delete_indicator_instance', TQ.ta.delete_indicator_instance);
-//
-
-//     ORDER_ID_PREFIX = this."EXT." + RandomId + ".",
-//     SELF_ORDERS = this.{},
-//     SET_ORDER_ID_PREFIX(order_id_prefix){
-//       TQ.ORDER_ID_PREFIX = order_id_prefix + "." + RandomId + ".";
-//     },
-// };
-//
-//
