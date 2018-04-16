@@ -152,6 +152,7 @@ function ParseSymbol(str) {
 class DataManager{
     constructor(){
         this.datas = {};
+        this.epoch = 0;
         this.last_changed_data = {};
     }
 
@@ -196,17 +197,13 @@ class DataManager{
                     break;
             }
         }
+        target["_epoch"] = this.epoch;
     }
 
-    update_data(diff_list) {
-        var diff_object = diff_list;
-        if (diff_list instanceof Array) {
-            diff_object = diff_list[0];
-            for (var i = 1; i < diff_list.length; i++) {
-                this.mergeObject(diff_object, diff_list[i], false);
-            }
-        }
-        this.mergeObject(this.datas, diff_object, true)
+    is_changing(obj){
+        if (!obj)
+            return false;
+        return obj["_epoch"] == this.epoch;
     }
 
     get_tdata_obj(insId, instanceId) {
@@ -228,9 +225,7 @@ class DataManager{
     }
 
     clear_data() {
-        // 清空数据
-        for (var k in this.datas)
-            delete this.datas[k];
+        this.datas = {};
     }
 
     get_account_id() {
@@ -246,7 +241,8 @@ class DataManager{
         try {
             if (typeof path === 'string') {
                 var pathList = path.split('/');
-                for (var i = 0; i < pathList.length; i++) originData = originData[pathList[i]];
+                for (var i = 0; i < pathList.length; i++)
+                    originData = originData[pathList[i]];
                 return originData;
             } else {
                 return undefined;
@@ -259,7 +255,6 @@ class DataManager{
     get_account(from = this.datas) {
         return this.get_data('trade/' + this.get_account_id() + '/accounts/CNY', from);
     };
-
     get_position(from = this.datas) {
         return this.get_data('trade/' + this.get_account_id() + '/positions', from);
     };
@@ -292,8 +287,9 @@ class DataManager{
      */
     on_rtn_data(message_rtn_data) {
         //收到行情数据包，更新到数据存储区
+        this.epoch += 1;
         for (let i = 0; i < message_rtn_data.data.length; i++) {
-            this.update_data(message_rtn_data.data[i]);
+            this.mergeObject(this.datas, message_rtn_data.data[i], true)
         }
     }
 
@@ -329,6 +325,8 @@ class DataManager{
                         return ks.data[i]?ks.data[i][field_selector]:undefined;
                 } else if (property == "last_id"){
                     return ks.last_id;
+                } else if (property == "_epoch"){
+                    return ks._epoch;
                 } else if (property == "open"){
                     return new Proxy([ks, "open"], handler);
                 } else if (property == "high"){
@@ -559,37 +557,29 @@ const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
 const ICON_BUY = 1;
 const ICON_SELL = 2;
 
+
+
 class Indicator
 {
-    constructor(){
+    constructor(instance_id, symbol, dur_nano, ds, params){
         //技术指标参数, 合约代码/周期也作为参数项放在这里面
-        this.ds = null;   //基础序列, 用作输出序列的X轴
-        this.params = {}; //指标参数
-        this.epoch = 0;
-        this.view_left = -1;
-        this.view_right = -1;
-        this.invalid = false;
-        this.is_error = false;
-
+        this.instance_id = instance_id;
+        this.symbol = symbol;
+        this.dur_nano = dur_nano;
+        this.ds = ds;   //基础序列, 用作输出序列的X轴
+        this.params = params; //指标参数
         this.outs = {}; //输出序列访问函数
         this.out_define = {}; //输出序列格式声明
         this.out_values = {}; //输出序列值
-
         this.valid_left = -1; //已经计算过的可靠结果范围(含左右两端点), valid_right永远>=valid_left. 如果整个序列没有计算过任何数据, 则 valid_left=valid_right= -1
         this.valid_right = -1;
-    }
 
-    reset(ds, params){
-        this.ds = ds;
-        this.params = params;
-        this.valid_left = -1;
-        this.valid_right = -1;
-
-        this.rels = [];
-        this.BEGIN = -1;
-        this.last_i = -1;
+        this.epoch = 0;
+        this.view_left = -1;
+        this.view_right = -1;
         this.long_position_volume = 0;
         this.short_position_volume = 0;
+        this.is_error = false;
     }
 
     /**
@@ -598,7 +588,7 @@ class Indicator
      * @param right
      * @return [update_left, update_right]: 本次计算中更新的数据范围, update_right总是>=update_left. 如果本次计算没有任何结果被更新, 返回 [-1, -1]
      */
-    calc_range(left, right){
+    calc_range(left=this.view_left, right=this.view_right){
         //无法计算的情形
         if (this.is_error || !this.ds || this.ds.last_id == -1 || left > this.ds.last_id){
             return [-1, -1];
@@ -633,6 +623,7 @@ class Indicator
     };
 
     OUTS(style, name, options){
+        options.style=style;
         this.out_define[name] = options;
         var out_serial = [];
         this.out_values[name] = out_serial;
@@ -671,26 +662,6 @@ class TaManager
         this.class_dict = {};
         this.instance_dict = {};
         this.calc_notify_func = null;
-    }
-    on_rtn_data(message){
-        // 标记需要重算的 instance
-        var invalid_instance_list = [];
-        for (let i = 0; i < message.data.length; i++) {
-            var klines = message.data[i].klines;
-            if (klines)
-                for (let key in klines) {
-                    for (let dur in klines[key]) {
-                        let perfix = key + '.' + dur;
-                        for (let id in this.instance_dict) {
-                            invalid_instance_list.insert(id);
-                        }
-                    }
-                }
-        }
-        // 重新计算 instance
-        for (let id in invalid_instance_list) {
-            this.calculate(this.instance_dict[id]);
-        }
     }
     calculate(instance){
         let runId = Keys.next().value;
@@ -736,15 +707,11 @@ class TaManager
         //todo:
     };
 
-    new_indicator_instance(ind_class, ds, params, instance_id) {
-        let ind_instance = new ind_class(params);
+    new_indicator_instance(ind_class, symbol, dur_nano, ds, params, instance_id) {
+        let ind_instance = new ind_class(instance_id, symbol, dur_nano, ds, params);
         this.instance_dict[instance_id] = ind_instance;
-        ind_instance.reset(ds, params);
+        ind_instance.init();
         return ind_instance;
-    };
-
-    update_indicator_instance(ind_instance, params) {
-        ind_instance.reset(params);
     };
 
     delete_indicator_instance(ind_instance, params) {
@@ -879,8 +846,10 @@ class TQSDK {
         }
     }
     onopen() {
+        this.dm.clear_data();
     }
     onreconnect() {
+        this.dm.clear_data();
     }
     onclose() {
     }
@@ -891,7 +860,15 @@ class TQSDK {
     on_rtn_data(message_rtn_data){
         //收到行情数据包，更新到数据存储区
         this.dm.on_rtn_data(message_rtn_data);
-        this.ta.on_rtn_data(message_rtn_data);
+        // 重新计算所有技术指标 instance
+        for (let id in this.ta.instance_dict) {
+            let instance = this.ta.instance_dict[id];
+            if (this.dm.is_changing(instance.ds)){
+                let [calc_left, calc_right] = instance.calc_range();
+                this.send_indicator_data(instance, calc_left, calc_right);
+            }
+        }
+
         // this.tm.run();
     }
     on_update_indicator_instance(pack){
@@ -902,18 +879,30 @@ class TQSDK {
         for (let name in pack.params){
             params[name] = pack.params[name].value;
         }
+        let ds = this.dm.get_kline_serial(pack.ins_id, pack.dur_nano);
+        let c = this.ta.class_dict[pack.ta_class_name];
+        if (!c)
+            return;
+
+        if (instance_id in this.ta.instance_dict){
+            let instance = this.ta.instance_dict[instance_id];
+        }
         if (!this.ta.instance_dict[instance_id]) {
-            let c = this.ta.class_dict[pack.ta_class_name];
-            if (!c)
-                return;
-            let ds = this.dm.get_kline_serial(pack.ins_id, pack.dur_nano);
-            instance = this.ta.new_indicator_instance(c, ds, params, pack.instance_id);
+            instance = this.ta.new_indicator_instance(c, pack.ins_id, pack.dur_nano, ds, params, pack.instance_id);
         }else{
             instance = this.ta.instance_dict[pack.instance_id];
-            instance.reset(params);
+            if (ds != instance.ds || params != instance.params){
+                this.ta.delete_indicator_instance(instance);
+                instance = this.ta.new_indicator_instance(c, pack.ins_id, pack.dur_nano, ds, params, pack.instance_id);
+            }
         }
         instance.epoch = pack.epoch;
+        instance.view_left = pack.view_left;
+        instance.view_right = pack.view_right;
         let [calc_left, calc_right] = instance.calc_range(pack.view_left, pack.view_right);
+        this.send_indicator_data(instance, calc_left, calc_right);
+    }
+    send_indicator_data(instance, calc_left, calc_right){
         //计算指标值
         let datas = {};
         if(calc_left > -1){
@@ -924,7 +913,7 @@ class TQSDK {
         }
         let set_data = {
             "aid": "set_indicator_data",                    //必填, 标示此数据包为技术指标结果数据
-            "instance_id": instance_id,                     //必填, 指标实例ID，应当与 update_indicator_instance 中的值一致
+            "instance_id": instance.instance_id,                     //必填, 指标实例ID，应当与 update_indicator_instance 中的值一致
             "epoch": instance.epoch,                                  //必填, 指标实例版本号，应当与 update_indicator_instance 中的值一致
             "range_left": calc_left,                             //必填, 表示此数据包中第一个数据对应图表X轴上的位置序号
             "range_right": calc_right,                            //必填, 表示此数据包中最后一个数据对应图表X轴上的位置序号
@@ -1032,8 +1021,12 @@ class TQSDK {
     UNREGISTER_INDICATOR_CLASS(ind_class){
         this.ta.unregister_indicator_class();
     }
-    NEW_INDICATOR_INSTANCE(ind_class, main_serial, params, instance_id=RandomStr()) {
-        return this.ta.new_indicator_instance(ind_class, main_serial, params, instance_id);
+    NEW_INDICATOR_INSTANCE(ind_class, symbol, dur_sec, params, instance_id=RandomStr()) {
+        let ds = this.GET_KLINE({
+            symbol: symbol,
+            duration: dur_sec,
+        });
+        return this.ta.new_indicator_instance(ind_class, symbol, dur_sec, ds, params, instance_id);
     }
     DELETE_INDICATOR_INSTANCE(ind_instance){
         return this.ta.delete_indicator_instance(ind_instance);
@@ -1265,8 +1258,7 @@ class ma extends Indicator
             ],
         }
     }
-    constructor(){
-        super();
+    init(){
         this.m = this.OUTS("LINE", "m", {color: RED});
     }
     calc(i) {
@@ -1342,7 +1334,7 @@ describe('技术指标与图表结合使用', function () {
             "epoch": 1,
             "ins_id": "CFFEX.IF1801",
             "dur_nano": 5000000000,
-            "view_left": 1000,
+            "view_left": 2800,
             "view_right": 4000,
             "params": {
                 "N": {"value": 10},
@@ -1355,22 +1347,44 @@ describe('技术指标与图表结合使用', function () {
         assert.equal(send_obj.aid, "set_indicator_data");
         assert.equal(send_obj.instance_id, "abc324238");
         assert.equal(send_obj.epoch, 1);
-        assert.equal(send_obj.range_left, 1000);
+        assert.equal(send_obj.range_left, 2800);
         assert.equal(send_obj.range_right, 3000);
-        assert.equal(send_obj.datas.m[0].length, 2001);
-        assert(isNaN(send_obj.datas.m[0][0]));
-        assert.equal(send_obj.datas.m[0][10], 1005.5);
-        assert.equal(send_obj.datas.m[0][2000], 2995.5);
+        assert.equal(send_obj.datas.m[0].length, 201);
+        assert(!isNaN(send_obj.datas.m[0][0]));
+        assert.equal(send_obj.datas.m[0][10], 2805.5);
+        assert.equal(send_obj.datas.m[0][200], 2995.5);
         TQ.ws.send_objs = [];
         //更新一波行情数据
         //预期会向主程序发送 set_indicator_data 包, 增补前次未发送的数据
         batch_input_datas(3001, 3001, 3001);
         assert.equal(TQ.ws.send_objs.length, 1);
         let send_obj_2 = TQ.ws.send_objs[0];
-
+        assert.equal(send_obj_2.range_left, 3001);
+        assert.equal(send_obj_2.range_right, 3001);
+        assert.equal(send_obj_2.datas.m[0][0], 2996.5);
+        TQ.ws.send_objs = [];
         //更新指标参数(只调整 view_left和 view_right)
         //预期会向主程序发送 set_indicator_data 包, 增补前次未发送的数据
-
+        let r2 = {
+            "aid": "update_indicator_instance",
+            "ta_class_name": "ma",
+            "instance_id": "abc324238",
+            "epoch": 1,
+            "ins_id": "CFFEX.IF1801",
+            "dur_nano": 5000000000,
+            "view_left": 2600,
+            "view_right": 4000,
+            "params": {
+                "N": {"value": 10},
+            }
+        };
+        TQ.on_update_indicator_instance(r2);
+        assert.equal(TQ.ws.send_objs.length, 1);
+        let send_obj_3 = TQ.ws.send_objs[0];
+        assert.equal(send_obj_3.range_left, 2600);
+        assert.equal(send_obj_3.range_right, 3001);
+        assert.equal(send_obj_3.datas.m[0][0], 2595.5);
+        TQ.ws.send_objs = [];
         //更新指标参数(更换合约/周期)
         //预期会向主程序发送 set_indicator_data 包, 所有数据会重算
     });
