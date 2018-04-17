@@ -32,13 +32,13 @@
     "jasmine": "^3.1.0",
     "jsdoc": "^3.5.5",
     "minimist": "^1.2.0",
-    "mocha": "^5.1.0",
     "uglify-es": "^3.1.2"
   },
   "devDependencies": {
     "gulp-connect": "^5.0.0",
     "gulp-jsdoc3": "^1.0.1",
     "gulp-replace": "^0.6.1",
-    "gulp-watch": "^4.3.11"
+    "gulp-watch": "^4.3.11",
+    "mocha": "^5.1.0"
   }
 }

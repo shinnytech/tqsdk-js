@@ -213,14 +213,10 @@ class DataManager{
     }
 
     is_changing(obj){
-        if (!obj)
-            return false;
-        return obj["_epoch"] == this.epoch;
+        return obj && obj._epoch ? obj._epoch == this.epoch : false;
     }
 
-    get_tdata_obj(insId, instanceId) {
-        var path = insId + '.0';
-        G_INSTANCES[instanceId].addRelationship(path);
+    get_tdata_obj(insId) {
         try {
             return this.datas.ticks[insId].data;
         } catch (e) {
@@ -747,7 +743,7 @@ class TaManager
     };
 
     unregister_indicator_class(ind_class) {
-        //todo:
+        delete this.class_dict[ind_class.name];
     };
 
     new_indicator_instance(ind_class, symbol, dur_nano, ds, params, instance_id) {
@@ -1094,14 +1090,6 @@ class TQSDK {
     }
 }
 
-
-// if (typeof exports !== 'undefined') {
-//     module.exports = {TQSDK, Indicator};
-//     // exports.DataManager = DataManager;
-// } else {
-//     var TQ = new TQSDK();
-// }
-
 var assert = require('assert');
 
 class MockWebsocket{
@@ -1301,9 +1289,57 @@ function init_test_data(){
 }
 
 describe('dm', function () {
-    init_test_data();
+
+    it('update_data mergeObject', function (){
+        init_test_data(TQ);
+        assert.equal(Object.keys(TQ.dm.datas).length, 6);
+    });
+
+    it('is_changing', function () {
+        let account = TQ.GET_ACCOUNT();
+        let positions = TQ.GET_POSITION('SHFE.cu1805');
+        TQ.on_rtn_data({
+            "aid": "rtn_data",
+            "data": [
+                {
+                    "trade": {                                            //交易相关数据
+                        "user1": {                                          //登录用户名
+                            "user_id": "user1",                               //登录用户名
+                            "accounts": {                                     //账户资金信息
+                                "CNY": {                                        //account_key, 通常为币种代码
+                                    //核心字段
+                                    "account_id": "423423",                       //账号
+                                    "currency": "CNY",                            //币种
+                                    "balance": 9963216.550000003,                 //账户权益
+                                    "available": 9480176.150000002,               //可用资金
+                                                                                  //参考字段
+                                    "pre_balance": 12345,                         //上一交易日结算时的账户权益
+                                    "deposit": 42344,                             //本交易日内的入金金额
+                                    "withdraw": 42344,                            //本交易日内的出金金额
+                                    "commission": 123,                            //本交易日内交纳的手续费
+                                    "preminum": 123,                              //本交易日内交纳的权利金
+                                    "static_balance": 124895,                     //静态权益
+                                    "position_profit": 12345,                     //持仓盈亏
+                                    "float_profit": 8910.231,                     //浮动盈亏
+                                    "risk_ratio": 0.048482375,                    //风险度
+                                    "margin": 11232.23,                           //占用资金
+                                    "frozen_margin": 12345,                       //冻结保证金
+                                    "frozen_commission": 123,                     //冻结手续费
+                                    "frozen_premium": 123,                        //冻结权利金
+                                    "close_profit": 12345,                        //本交易日内平仓盈亏
+                                    "position_profit": 12345,                     //当前持仓盈亏
+                                }
+                            },
+                        }
+                    }
+                }
+            ]
+        });
+        assert.equal(TQ.dm.is_changing(account), true);
+        assert.equal(TQ.dm.is_changing(positions), false);
+    });
     it('GetQuote with symbol', function () {
-        var q = TQ.GET_QUOTE("SHFE.cu1612");
+        var q = TQ.GET_QUOTE("CFFEX.IF1801");
         assert.equal(q.last_price, 36580.0);
     });
     it('GET_KLINE with all params', function () {
@@ -1317,6 +1353,11 @@ describe('dm', function () {
         assert.equal(ds.length, 2);
         assert.equal(ds[0], 3434);
         assert.equal(ds[1], 3435);
+    });
+
+    it('clear_data', function () {
+        TQ.dm.clear_data();
+        assert.equal(Object.keys(TQ.dm.datas).length, 0);
     });
 });
 
@@ -1399,6 +1440,46 @@ describe('ta', function () {
             "N": 10,
         });
         assert.equal(ind2.outs.m(-1), 9995.5);
+    });
+
+    it('更新指标计算范围', function () {
+        let symbol = "CFFEX.IF1801";
+        let dur_sec = 5;
+        let params = { "N": 5 };
+        let ind = TQ.NEW_INDICATOR_INSTANCE(ma, symbol, dur_sec, params);
+        let outs_data = ind.outs.m(1000, 1010);
+
+        assert.equal(outs_data.length, 10);
+        // [ NaN, NaN, NaN, NaN, 1002, 1003, 1004, 1005, 1006, 1007 ]
+        assert.ok(isNaN(outs_data[0]));
+        assert.ok(isNaN(outs_data[3]));
+        assert.equal(outs_data[4], 1002);
+        assert.equal(outs_data[9], 1007);
+
+        outs_data = ind.outs.m(9990, 10000);
+
+        assert.equal(outs_data.length, 10);
+        assert.equal(outs_data[0], 9988);
+        assert.equal(outs_data[4], 9992);
+        assert.equal(outs_data[9], 9997);
+    });
+
+    // calculate
+
+    it('删除指标实例 (delete_indicator_instance)', function(){
+        let symbol = "CFFEX.IF1801";
+        let dur_sec = 5;
+        let params = { "N": 5 };
+        let ind = TQ.ta.new_indicator_instance(ma, symbol, dur_sec, params);
+        assert.ok(TQ.ta.instance_dict[ind.id]);
+        TQ.ta.delete_indicator_instance(ind);
+        assert.equal(TQ.ta.instance_dict[ind.id], undefined);
+    });
+
+    it('删除指标类 (unregister_indicator_class)', function () {
+        assert.ok(TQ.ta.class_dict["ma"]);
+        TQ.ta.unregister_indicator_class(ma);
+        assert.equal(TQ.ta.class_dict["ma"], undefined);
     });
 });
 
