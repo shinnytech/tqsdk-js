@@ -103,6 +103,17 @@ function MIN(v1, v2) {
     return Math.min(v1, v2);
 }
 
+function TIME(dt_nano){
+    let d = new Date(dt_nano / 1000000);
+    let s = d.getHours() * 10000 + d.getMinutes() * 100 + d.getSeconds();
+    return s;
+}
+
+function DATE(dt_nano){
+    let d = new Date(dt_nano / 1000000);
+    let s = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDay();
+    return s;
+}
 
 //utils----------------------------------------------------------------------
 
