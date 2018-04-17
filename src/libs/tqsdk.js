@@ -151,9 +151,9 @@ function ParseSymbol(str) {
 //dm----------------------------------------------------------------------
 class DataManager{
     constructor(){
+        this.account_id = "";
         this.datas = {};
         this.epoch = 0;
-        this.last_changed_data = {};
     }
 
     mergeObject(target, source, deleteNullObj) {
@@ -173,9 +173,10 @@ class DataManager{
                         this.mergeObject(target[key], value, deleteNullObj);
                     } else if (key == "data"){
                         //@note: 这里做了一个特例, 使得K线序列数据被保存为一个array, 而非object, 并且记录整个array首个有效记录的id
-                        target[key] = target[key] ? target[key] : [];
+                        if (!(key in target))
+                            target.data = [];
                         if (!target.left_id || Object.keys(value)[0] < target.left_id)
-                            target.left_id = Object.keys(value)[0];
+                            target.left_id = Number(Object.keys(value)[0]);
                         this.mergeObject(target[key], value, deleteNullObj);
                     } else {
                         target[key] = target[key] ? target[key] : {};
@@ -216,69 +217,12 @@ class DataManager{
         }
     }
 
-    get_kdata_obj(insId, durId) {
-        try {
-            return this.datas.klines[insId][durId].data;
-        } catch (e) {
-            return undefined;
-        }
-    }
-
     clear_data() {
         this.datas = {};
     }
 
-    get_account_id() {
-        if (this.datas.trade) {
-            var keys = Object.keys(this.datas.trade);
-            // 只取唯一一个key
-            return keys.length > 0 ? keys[0] : undefined;
-        }
-        return undefined;
-    }
-
-    get_data(path, originData = this.datas) {
-        try {
-            if (typeof path === 'string') {
-                var pathList = path.split('/');
-                for (var i = 0; i < pathList.length; i++)
-                    originData = originData[pathList[i]];
-                return originData;
-            } else {
-                return undefined;
-            }
-        } catch (e) {
-            return undefined;
-        }
-    }
-
-    get_account(from = this.datas) {
-        return this.get_data('trade/' + this.get_account_id() + '/accounts/CNY', from);
-    };
-    get_position(from = this.datas) {
-        return this.get_data('trade/' + this.get_account_id() + '/positions', from);
-    };
-    get_session(from = this.datas) {
-        return this.get_data('trade/' + this.get_account_id() + '/session', from);
-    };
-    get_order(order_id, from = this.datas) {
-        if (type(order_id) == 'String') {
-            return this.get_data('trade/' + this.get_account_id() + '/orders/' + order_id, from);
-        } else {
-            var orders = {};
-            var all_orders = this.get_data('trade/' + this.get_account_id() + '/orders', from);
-            for (var ex_or_id in all_orders) {
-                var ord = all_orders[ex_or_id];
-                if (ord.status == 'FINISHED' && ord.volume_orign == ord.volume_left)
-                    continue;
-                if (ex_or_id in TQ.SELF_ORDERS)
-                    orders[ex_or_id] = ord;
-            }
-            return orders;
-        }
-    };
-    get_combine(ins_id, from = this.datas) {
-        return this.get_data('combines/USER.' + ins_id, from);
+    get_combine(ins_id) {
+        return this.get('combines/USER.' + ins_id, from);
     };
 
     /**
@@ -289,7 +233,11 @@ class DataManager{
         //收到行情数据包，更新到数据存储区
         this.epoch += 1;
         for (let i = 0; i < message_rtn_data.data.length; i++) {
-            this.mergeObject(this.datas, message_rtn_data.data[i], true)
+            let d = message_rtn_data.data[i];
+            if (!this.account_id && d.trade){
+                this.account_id = Object.keys(d.trade)[0];
+            }
+            this.mergeObject(this.datas, d, true);
         }
     }
 
@@ -305,42 +253,49 @@ class DataManager{
         }
         return node;
     }
+
+    get(...path){
+        let node = this.datas;
+        for (let i = 0; i < path.length; i++) {
+            if (! (path[i] in node))
+                return undefined;
+            node = node[path[i]];
+        }
+        return node;
+    }
+
+    make_array_proxy(data_array, item_func=undefined){
+        var handler = {
+            get: function (target, property, receiver) {
+                if (!isNaN(property)) {
+                    let i = Number(property);
+                    if (i < 0)
+                        i = target.length + i;
+                    if (item_func)
+                        return item_func(data_array[i]);
+                    else
+                        return data_array[i];
+                } else{
+                    return target[property];
+                }
+            }
+        };
+        let p = new Proxy(data_array, handler);
+        return p;
+    }
     /**
      * 获取 k线序列
      */
     get_kline_serial(symbol, dur_nano) {
         let ks = this.set_default({last_id: -1, data:[]}, "klines", symbol, dur_nano);
-        var handler = {
-            get: function(target, property, receiver) {
-                let [ks, field_selector] = target;
-                if (!isNaN(property)) {
-                    if (ks.last_id == -1)
-                        return undefined;
-                    let i = Number(property);
-                    if (i < 0)
-                        i = ks.last_id + i + 1;
-                    if (!field_selector)
-                        return ks.data[i];
-                    else
-                        return ks.data[i]?ks.data[i][field_selector]:undefined;
-                } else if (property == "last_id"){
-                    return ks.last_id;
-                } else if (property == "_epoch"){
-                    return ks._epoch;
-                } else if (property == "open"){
-                    return new Proxy([ks, "open"], handler);
-                } else if (property == "high"){
-                    return new Proxy([ks, "high"], handler);
-                } else if (property == "low"){
-                    return new Proxy([ks, "low"], handler);
-                } else if (property == "close"){
-                    return new Proxy([ks, "close"], handler);
-                } else
-                    return undefined;
-            },
-        };
-        let p = new Proxy([ks, null], handler);
-        return p;
+        if (! ks.d){
+            ks.d = this.make_array_proxy(ks.data);
+            ks.d.open = this.make_array_proxy(ks.data, k => k.open);
+            ks.d.high = this.make_array_proxy(ks.data, k => k.high);
+            ks.d.low = this.make_array_proxy(ks.data, k => k.low);
+            ks.d.close = this.make_array_proxy(ks.data, k => k.close);
+        }
+        return ks;
     }
 }
 
@@ -566,7 +521,8 @@ class Indicator
         this.instance_id = instance_id;
         this.symbol = symbol;
         this.dur_nano = dur_nano;
-        this.ds = ds;   //基础序列, 用作输出序列的X轴
+        this._ds = ds;   //基础序列, 用作输出序列的X轴
+        this.DS = ds.d;  //提供给用户代码使用的ds proxy
         this.params = params; //指标参数
         this.outs = {}; //输出序列访问函数
         this.out_define = {}; //输出序列格式声明
@@ -590,11 +546,11 @@ class Indicator
      */
     calc_range(left=this.view_left, right=this.view_right){
         //无法计算的情形
-        if (this.is_error || !this.ds || this.ds.last_id == -1 || left > this.ds.last_id){
+        if (this.is_error || !this._ds || this._ds.last_id == -1 || left > this._ds.last_id){
             return [-1, -1];
         }
-        if(right > this.ds.last_id)
-            right = this.ds.last_id;
+        if(right > this._ds.last_id)
+            right = this._ds.last_id;
         //判定是否需要计算及计算范围
         let calc_left = -1;
         let calc_right = -1;
@@ -602,7 +558,7 @@ class Indicator
             //左端点前移
             calc_left = left;
             calc_right = right;
-            if (this.ds.left_id){
+            if (this._ds.left_id){
                 //@todo
             }
             this.valid_left = calc_left;
@@ -633,7 +589,7 @@ class Indicator
             //如果提供了left/right 两个参数,则返回一个 array
             //如果只提供left, 则返回一个value
             //无法输出结果的情形
-            if (self.is_error || !self.ds || self.ds.last_id == -1){
+            if (self.is_error || !self._ds || self._ds.last_id == -1){
                 if (right == null)
                     return null;
                 else
@@ -641,9 +597,9 @@ class Indicator
             }
             //负数支持, 如果left/right为负数, 需要先转换到正数, 这一转换又必须事先有一个合约/周期来标定X轴
             if (left < 0)
-                left = self.ds.last_id + left + 1;
+                left = self._ds.last_id + left + 1;
             if (right < 0)
-                right = self.ds.last_id + right + 1;
+                right = self._ds.last_id + right + 1;
             //尝试更新计算数据
             let [calc_left, calc_right] = self.calc_range(left, right?right:left);
             //输出数据结果
@@ -822,10 +778,7 @@ class TQSDK {
         this.tm = new TaskManager();
         this.ta = new TaManager();
 
-        this.GET_ACCOUNT = this.dm.get_account;
-        this.GET_ORDER = this.dm.get_order;
         this.GET_COMBINE = this.dm.get_combine;
-        this.GET_POSITION = this.dm.get_position;
 
         this.START_TASK = this.tm.start_task;
         this.PAUSE_TASK = this.tm.pause_task;
@@ -863,7 +816,7 @@ class TQSDK {
         // 重新计算所有技术指标 instance
         for (let id in this.ta.instance_dict) {
             let instance = this.ta.instance_dict[id];
-            if (this.dm.is_changing(instance.ds)){
+            if (this.dm.is_changing(instance._ds)){
                 let [calc_left, calc_right] = instance.calc_range();
                 this.send_indicator_data(instance, calc_left, calc_right);
             }
@@ -922,6 +875,19 @@ class TQSDK {
         };
         this.ws.send_json(set_data);
     }
+
+    GET_ACCOUNT() {
+        return this.dm.get('trade', this.dm.account_id, 'accounts', 'CNY');
+    };
+
+    GET_POSITION(symbol) {
+        return this.dm.get('trade', this.dm.account_id, 'positions', symbol);
+    };
+
+    GET_POSITION_DICT(symbol) {
+        return this.dm.get('trade', this.dm.account_id, 'positions');
+    }
+
     GET_QUOTE(symbol){
         // 订阅行情
         var ins_list = this.dm.datas.ins_list;
@@ -932,7 +898,7 @@ class TQSDK {
                 ins_list: s,
             });
         }
-        return this.dm.get_data('quotes/' + symbol);
+        return this.dm.get('quotes', symbol);
     }
     GET_KLINE({ kline_id = RandomStr(), symbol=GLOBAL_CONTEXT.symbol, duration=GLOBAL_CONTEXT.duration, width = 100 }={}) {
         if (!symbol || !duration)
@@ -945,7 +911,9 @@ class TQSDK {
             "duration": dur_nano,
             "view_width": width, // 默认为 100
         });
-        return this.dm.get_kline_serial(symbol, dur_nano);
+        let ks = this.dm.get_kline_serial(symbol, dur_nano);
+        //这里返回的是实际数据的proxy
+        return ks.d;
     }
 
     /**
@@ -955,7 +923,7 @@ class TQSDK {
      */
     GET_ORDER_DICT(order_id_prefix) {
         let results = {};
-        let all_orders = this.dm.set_default({}, 'trade', this.dm.get_account_id(), 'orders');
+        let all_orders = this.dm.set_default({}, 'trade', this.dm.account_id, 'orders');
         for (var ex_or_id in all_orders) {
             var ord = all_orders[ex_or_id];
             if (ord.status == 'ALIVE')
@@ -965,7 +933,7 @@ class TQSDK {
     };
 
     INSERT_ORDER({symbol, direction, offset, volume=1, price_type="LIMIT", limit_price, prefix=""}) {
-        if (!this.dm.get_account_id()) {
+        if (!this.dm.account_id) {
             Notify.error('未登录，请在软件中登录后重试。');
             return null;
         }
@@ -992,7 +960,7 @@ class TQSDK {
             instrument_id: instrument_id,
             limit_price: limit_price,
             price_type: "LIMIT",
-        }, "trade", this.dm.get_account_id(), "orders", order_id);
+        }, "trade", this.dm.account_id, "orders", order_id);
         return order;
     };
 
@@ -1022,10 +990,8 @@ class TQSDK {
         this.ta.unregister_indicator_class();
     }
     NEW_INDICATOR_INSTANCE(ind_class, symbol, dur_sec, params, instance_id=RandomStr()) {
-        let ds = this.GET_KLINE({
-            symbol: symbol,
-            duration: dur_sec,
-        });
+        let dur_nano = dur_sec * 1000000000;
+        let ds = this.dm.get_kline_serial(symbol, dur_nano);
         return this.ta.new_indicator_instance(ind_class, symbol, dur_sec, ds, params, instance_id);
     }
     DELETE_INDICATOR_INSTANCE(ind_instance){
@@ -1094,15 +1060,25 @@ function init_test_data(){
                         180000000000: {                                   //K线周期, 单位为纳秒, 180000000000纳秒 = 3分钟
                             "last_id": 3435,                                //整个序列最后一个记录的序号
                             "data": {
+                                3434: {
+                                    "datetime": 192837100000000,                //UnixNano 北京时间，如果是日线，则是交易日的 UnixNano
+                                    "open": 3434,                            //开
+                                    "high": 3434,                            //高
+                                    "low": 3434,                             //低
+                                    "close": 3434,                           //收
+                                    "volume": 3434,                                //成交量
+                                    "open_oi": 3434,                            //起始持仓量
+                                    "close_oi": 3434,                           //结束持仓量
+                                },
                                 3435: {
                                     "datetime": 192837400000000,                //UnixNano 北京时间，如果是日线，则是交易日的 UnixNano
-                                    "open": 3432.33,                            //开
-                                    "high": 3432.33,                            //高
-                                    "low": 3432.33,                             //低
-                                    "close": 3432.33,                           //收
-                                    "volume": 2,                                //成交量
-                                    "open_oi": 1632,                            //起始持仓量
-                                    "close_oi": 1621,                           //结束持仓量
+                                    "open": 3435,                            //开
+                                    "high": 3435,                            //高
+                                    "low": 3435,                             //低
+                                    "close": 3435,                           //收
+                                    "volume": 3435,                                //成交量
+                                    "open_oi": 3435,                            //起始持仓量
+                                    "close_oi": 3435,                           //结束持仓量
                                 },
                             },
                             "binding": {
@@ -1240,8 +1216,12 @@ describe('dm', function () {
             symbol: "SHFE.cu1601",
             duration: 180,
         });
-        assert.equal(q[-1].close, 3432.33);
-        assert.equal(q.close[-1], 3432.33);
+        assert.equal(q[-1].close, 3435);
+        assert.equal(q.close[-1], 3435);
+        let ds = q.close.slice(-2);
+        assert.equal(ds.length, 2);
+        assert.equal(ds[0], 3434);
+        assert.equal(ds[1], 3435);
     });
 });
 
@@ -1254,17 +1234,18 @@ class ma extends Indicator
             cname: "MA",
             state: "KLINE",
             params: [
-                {name: "N", default:3},
+                {name: "N", default: 3},
             ],
-        }
+        };
     }
     init(){
         this.m = this.OUTS("LINE", "m", {color: RED});
     }
     calc(i) {
-        this.m[i] = MA(i, this.ds.close, this.params.N, this.m);
+        this.m[i] = MA(i, this.DS.close, this.params.N, this.m);
     }
 }
+
 
 function batch_input_datas(left_id, right_id, last_id){
     data = {};
@@ -1301,19 +1282,14 @@ describe('ta', function () {
     init_test_data();
     batch_input_datas(1000, 10000, 10000);
     TQ.ta.register_indicator_class(ma);
-    it('创建指标实例', function () {
-        let ind = TQ.NEW_INDICATOR_INSTANCE(ma, {});
-    });
     it('指标简单计算', function () {
-        let ds = TQ.GET_KLINE({
-            symbol: "CFFEX.IF1801",
-            duration: 5,
-        });
-        let ind1 = TQ.NEW_INDICATOR_INSTANCE(ma, ds, {
+        let symbol = "CFFEX.IF1801";
+        let dur_sec = 5;
+        let ind1 = TQ.NEW_INDICATOR_INSTANCE(ma, symbol, dur_sec, {
             "N": 1,
         });
         assert.equal(ind1.outs.m(-1), 10000);
-        let ind2 = TQ.NEW_INDICATOR_INSTANCE(ma, ds, {
+        let ind2 = TQ.NEW_INDICATOR_INSTANCE(ma, symbol, dur_sec, {
             "N": 10,
         });
         assert.equal(ind2.outs.m(-1), 9995.5);
