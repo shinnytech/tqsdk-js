@@ -583,14 +583,14 @@ class Indicator
         return [calc_left, calc_right];
     };
 
-    ORDER(current_i, direction, offset, volume, limit_price=undefined, order_symbol = this.trade_symbol) {
-        if (this.is_error || !this._ds || this._ds.last_id == -1 || !this.enable_trade)
+    ORDER(current_i, direction, offset, volume, limit_price = undefined, order_symbol = this.trade_symbol) {
+        if (this.is_error || !this._ds || this._ds.last_id == -1)
             return;
-        // if (!this.out_series_mark) {
-        //     this.out_series_mark = this.OUTS('MARK', 'mk');
-        // }
-        // this.out_series_mark[this.calculateLeft] = direction === "BUY" ? ICON_BUY : ICON_SELL;
-        if (current_i <= this.last_i || this._ds.last_id != current_i + 1)
+        if (!this.out_series_mark) {
+            this.out_series_mark = this.OUTS('MARK', 'mk', {});
+        }
+        this.out_series_mark[current_i] = direction === "BUY" ? ICON_BUY : ICON_SELL;
+        if (!this.enable_trade || current_i <= this.last_i || this._ds.last_id != current_i + 1)
             return;
         //@note: 代码跑到这里时, i应该是首次指向序列的倒数第二个柱子
         this.last_i = current_i;
@@ -654,7 +654,7 @@ class Indicator
                 });
         }
     };
-    OUTS(style, name, options){
+    OUTS(style, name, options = {}){
         options.style=style;
         this.out_define[name] = options;
         var out_serial = [];
