@@ -265,7 +265,7 @@ class DataManager{
     }
 
     make_array_proxy(data_array, item_func=undefined){
-        var handler = {
+        let handler = {
             get: function (target, property, receiver) {
                 if (!isNaN(property)) {
                     let i = Number(property);
@@ -290,10 +290,10 @@ class DataManager{
         let ks = this.set_default({last_id: -1, data:[]}, "klines", symbol, dur_nano);
         if (! ks.d){
             ks.d = this.make_array_proxy(ks.data);
-            ks.d.open = this.make_array_proxy(ks.data, k => k.open);
-            ks.d.high = this.make_array_proxy(ks.data, k => k.high);
-            ks.d.low = this.make_array_proxy(ks.data, k => k.low);
-            ks.d.close = this.make_array_proxy(ks.data, k => k.close);
+            ks.d.open = this.make_array_proxy(ks.data, k => k?k.open:undefined);
+            ks.d.high = this.make_array_proxy(ks.data, k => k?k.high:undefined);
+            ks.d.low = this.make_array_proxy(ks.data, k => k?k.low:undefined);
+            ks.d.close = this.make_array_proxy(ks.data, k => k?k.close:undefined);
         }
         return ks;
     }
@@ -309,7 +309,7 @@ class Task {
         // this.timeout = 6000000; // 每个任务默认时间
         // this.endTime = 0;
         this.stopped = false;
-        this.events = {}
+        this.events = {};
         this.unit_id = null;
         this.unit_mode = true;
     }
@@ -530,6 +530,11 @@ class Indicator
         this.valid_left = -1; //已经计算过的可靠结果范围(含左右两端点), valid_right永远>=valid_left. 如果整个序列没有计算过任何数据, 则 valid_left=valid_right= -1
         this.valid_right = -1;
 
+        this.enable_trade = false;
+        this.trade_symbol = symbol;
+        this.order_id_prefix = "";
+        this.volume_limit = 10;
+
         this.epoch = 0;
         this.view_left = -1;
         this.view_right = -1;
@@ -562,12 +567,12 @@ class Indicator
                 //@todo
             }
             this.valid_left = calc_left;
-            this.valid_right = calc_right;
+            this.valid_right = calc_right - 1;
         } else if (right > this.valid_right || left > this.valid_right){
             //向右延伸
             calc_left = this.valid_right + 1;
             calc_right = right;
-            this.valid_right = calc_right;
+            this.valid_right = calc_right - 1;
         }
         //重算
         if (calc_right >= calc_left && calc_right != -1){
@@ -578,6 +583,77 @@ class Indicator
         return [calc_left, calc_right];
     };
 
+    ORDER(current_i, direction, offset, volume, limit_price=undefined, order_symbol = this.trade_symbol) {
+        if (this.is_error || !this._ds || this._ds.last_id == -1 || !this.enable_trade)
+            return;
+        // if (!this.out_series_mark) {
+        //     this.out_series_mark = this.OUTS('MARK', 'mk');
+        // }
+        // this.out_series_mark[this.calculateLeft] = direction === "BUY" ? ICON_BUY : ICON_SELL;
+        if (current_i <= this.last_i || this._ds.last_id != current_i + 1)
+            return;
+        //@note: 代码跑到这里时, i应该是首次指向序列的倒数第二个柱子
+        this.last_i = current_i;
+        let quote = TQ.GET_QUOTE(order_symbol);
+        if (!limit_price){
+            let price_field = direction == "BUY" ? 'ask_price1' : 'bid_price1';
+            if (!quote[price_field]) // 取不到对应的价格 包括 NaN 、 undefined
+                return;
+            limit_price = quote[price_field];
+        }
+        let volume_open = 0;
+        let volume_close = 0;
+        if (offset == "CLOSE" || offset == "CLOSEOPEN") {
+            if (direction == "BUY") {
+                volume_close = Math.min(this.short_position_volume, volume);
+                this.short_position_volume -= volume_close;
+            } else {
+                volume_close = Math.min(this.long_position_volume, volume);
+                this.long_position_volume -= volume_close;
+            }
+            if (volume_close > 0)
+                TQ.INSERT_ORDER({
+                    symbol: order_symbol,
+                    direction: direction,
+                    offset: "CLOSE",
+                    volume: volume_close,
+                    limit_price: limit_price,
+                    prefix: this.order_id_prefix,
+                });
+        }
+        if (offset == "OPEN" || offset == "CLOSEOPEN") {
+            if (direction == "BUY") {
+                if (this.volume_limit) {
+                    if (this.volume_limit > this.long_position_volume)
+                        volume_open = Math.min(this.volume_limit - this.long_position_volume, volume);
+                    else
+                        volume_open = 0;
+                } else {
+                    volume_open = volume;
+                }
+                this.long_position_volume += volume_open;
+            } else {
+                if (this.volume_limit) {
+                    if (this.volume_limit > this.short_position_volume)
+                        volume_open = Math.min(this.volume_limit - this.short_position_volume, volume);
+                    else
+                        volume_open = 0;
+                } else {
+                    volume_open = volume;
+                }
+                this.short_position_volume += volume_open;
+            }
+            if (volume_open > 0)
+                TQ.INSERT_ORDER({
+                    symbol: order_symbol,
+                    direction: direction,
+                    offset: "OPEN",
+                    volume: volume_open,
+                    limit_price: limit_price,
+                    prefix: this.order_id_prefix,
+                });
+        }
+    };
     OUTS(style, name, options){
         options.style=style;
         this.out_define[name] = options;
@@ -852,6 +928,13 @@ class TQSDK {
         instance.epoch = pack.epoch;
         instance.view_left = pack.view_left;
         instance.view_right = pack.view_right;
+
+        instance.enable_trade = pack.enable_trade;
+        if (pack.trade_symbol)
+            instance.trade_symbol = pack.trade_symbol;
+        instance.order_id_prefix = pack.order_id_prefix;
+        instance.volume_limit = pack.volume_limit;
+
         let [calc_left, calc_right] = instance.calc_range(pack.view_left, pack.view_right);
         this.send_indicator_data(instance, calc_left, calc_right);
     }
@@ -898,7 +981,7 @@ class TQSDK {
                 ins_list: s,
             });
         }
-        return this.dm.get('quotes', symbol);
+        return this.dm.set_default({}, 'quotes', symbol);
     }
     GET_KLINE({ kline_id = RandomStr(), symbol=GLOBAL_CONTEXT.symbol, duration=GLOBAL_CONTEXT.duration, width = 100 }={}) {
         if (!symbol || !duration)
@@ -977,6 +1060,7 @@ class TQSDK {
                 "order_id": order_id,
             });
         }
+        return orders.length;
     }
 
     REGISTER_INDICATOR_CLASS(ind_class){
@@ -1031,7 +1115,7 @@ function init_test_data(){
         "data": [                                                 //diff数据数组, 一次推送中可能含有多个数据包
             {
                 "quotes": {                                           //实时行情数据
-                    "SHFE.cu1612": {
+                    "CFFEX.IF1801": {
                         "instrument_id": "cu1612",                        //合约代码
                         "datetime": "2016-12-30 13:21:32.500000",         //时间
                         "ask_price1": 36590.0,                            //卖价
@@ -1246,6 +1330,17 @@ class ma extends Indicator
     }
 }
 
+class IndOrder extends Indicator
+{
+    static define() {
+        return {};
+    }
+    init(){
+    }
+    calc(i){
+        this.ORDER(i, "BUY", "OPEN", 1);
+    }
+}
 
 function batch_input_datas(left_id, right_id, last_id){
     data = {};
@@ -1295,6 +1390,7 @@ describe('ta', function () {
         assert.equal(ind2.outs.m(-1), 9995.5);
     });
 });
+
 
 describe('技术指标与图表结合使用', function () {
     init_test_data();
@@ -1365,6 +1461,50 @@ describe('技术指标与图表结合使用', function () {
         //预期会向主程序发送 set_indicator_data 包, 所有数据会重算
     });
 });
+
+describe('指标中下单', function () {
+    init_test_data();
+    TQ.ta.register_indicator_class(IndOrder);
+    it('常规流程', function () {
+        //初始化数据到(1000, 3000)
+        batch_input_datas(1000, 3000, 3000);
+        //请求创建指标实例
+        let r = {
+            "aid": "update_indicator_instance",
+            "ta_class_name": "IndOrder",
+            "instance_id": "abc324238",
+            "epoch": 1,
+            "ins_id": "CFFEX.IF1801",
+            "dur_nano": 5000000000,
+            "view_left": 2800,
+            "view_right": 4000,
+            "params": {
+                "N": {"value": 10},
+            },
+            "enable_trade": true,                       //可选, 技术指标是否有权下单, 默认为false, 不执行交易操作
+            "trade_symbol": "CFFEX.IF1801",              //可选, 设定该指标下单时默认使用的合约代码。不指定时默认为与 ins_id 字段相同
+            "order_id_prefix": "abcd",                  //可选, 设定该指标下单时默认使用的单号前缀。不指定时为空
+            "volume_limit": 10,                         //可选, 设定该指标下单时最大可开仓手数，不指定或设定为0时表示不限制
+        };
+        TQ.on_update_indicator_instance(r);
+        TQ.ws.send_objs = [];
+        batch_input_datas(3000, 3010, 3010);
+        assert.equal(TQ.ws.send_objs.length, 2);
+        let send_obj_insert_order = TQ.ws.send_objs[0];
+        assert.equal(send_obj_insert_order.aid, "insert_order");
+        let send_obj_set_indicator_data = TQ.ws.send_objs[1];
+        assert.equal(send_obj_set_indicator_data.aid, "set_indicator_data");
+        // assert.equal(send_obj.epoch, 1);
+        // assert.equal(send_obj.range_left, 2800);
+        // assert.equal(send_obj.range_right, 3000);
+        // assert.equal(send_obj.datas.m[0].length, 201);
+        // assert(!isNaN(send_obj.datas.m[0][0]));
+        // assert.equal(send_obj.datas.m[0][10], 2805.5);
+        // assert.equal(send_obj.datas.m[0][200], 2995.5);
+        TQ.ws.send_objs = [];
+    });
+});
+
 
 describe('下单', function () {
     init_test_data();
