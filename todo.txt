@@ -157,9 +157,6 @@
 
 
 已知问题:
-    K线数据缺少datetime支持
-        只需要实现 DATE 和 TIME 函数即可
-
     技术指标和策略的代码结构, 怎样才能做到好用?
         class结构:
             代码自由度高, 便于组织复杂逻辑
@@ -171,20 +168,61 @@
                 输出序列
                 指标及参数描述
 
-        yield结构:
 
-    技术指标中, 如果使得只在最后一根K线时实际发出交易指令, 而此前却能在图上标注出信号?
-        需要使用特殊的下单指令和撤单指令
+class ma extends Indicator
+{
+    static define() {
+        return {
+            type: "SUB",
+            cname: "MA",
+            state: "KLINE",
+            params: [
+                {name: "N", default: 3},
+            ],
+        };
+    }
+    init(){
+        this.m = this.OUTS("LINE", "m", {color: RED});
+    }
+    calc(i) {
+        this.m[i] = MA(i, this.DS.close, this.params.N, this.m);
+    }
+}
 
-    技术指标更新重算有问题, 应该总是将最后一根K线排除在valid_range之外
+function* ma(C){
+    //指标定义
+    C.DEFINE({
+        type: "MAIN",
+        cname: "均线组",
+        state: "KLINE",
+    });
+    //参数
+    let n1 = C.PARAM(3, "N1");
+    let n2 = C.PARAM(5, "N2");
+    let n3 = C.PARAM(10, "N3");
+    let n4 = C.PARAM(20, "N4");
+    //输入序列
+    let s = C.SERIAL("CLOSE");
+    //输出序列
+    let s1 = C.OUTS("LINE", "ma" + n1, {color: RED});
+    let s2 = C.OUTS("LINE", "ma" + n2, {color: GREEN});
+    let s3 = C.OUTS("LINE", "ma" + n3, {color: BLUE});
+    let s4 = C.OUTS("LINE", "ma" + n4, {color: YELLOW});
+    //计算
+    while(true) {
+        let i = yield;
+        s1[i] = MA(i, s, n1, s1);
+        s2[i] = MA(i, s, n2, s2);
+        s3[i] = MA(i, s, n3, s3);
+        s4[i] = MA(i, s, n4, s4);
+    }
+}
 
     在技术指标中调用交易函数, 如何携带默认参数?
         可以先显式写入
 
-
     如何实现全平?
         理想效果是在主程序实现unit分仓管理
-        临时方案是直接取持仓量, 发送平仓指令
 
     在worker中做import的问题, 文件间的互相依赖关系搞不定
 
@@ -221,37 +259,25 @@
     ds = TQ.GET_K_SERIAL("SHFE.cu1801", 180);
 
 
-方案1: 直接用函数封装
-    ds.last_id;
-    ds(-1) => {high:3050, ...}
-    ds.high(-1)
-
-方案2: 用proxy+数组封装, 主要优点是在调试器中好用点?
-    ds[-1] => {high:3050, ...}
-    ds[-1]["high"]
-
-
 occycle: 1,
 ISLASTBAR(i)
 
 
-现在的流程
-    为每个技术指标实例构建一个context, 存放 update_instance 内容等
-    Context独有的内容包括:
-        C.PARAM
-        C.OUTS
-    计算与技术指标定义分离
+前期遇到的问题:
+    用jssdk做的功能板块, 无法调用技术指标代码
+    技术指标中不能调用sdk功能
+    用户在写技术指标时, 不能写自定义函数??
+    技术指标代码放到cache中存放, 升级管理困难
+    技术指标代码在webworker中运行, 运行调试困难
+    技术指标框架缺少绘图输出能力
+    技术指标中的交易指令, 缺少开平控制和信号过滤, 仓位管理机制
+    函数库中函数偏少, 需要增补
+    sdk中缺少合约信息(如合约乘数, 价格单位, 手续费, 保证金等)
+    代码文件在硬盘上的布局不好用
 
-
-重构的目标:
-    在技术指标中引入更多灵活度, 比如启动TASK等
-    允许在JSSDK程序中方便的使用技术指标或技术指标代码中的特性, 例如各类计算函数
-    双方共享一套工具代码
-
-
-难点:
-    ta是在webworker中运行代码
-    技术指标代码涉及context, 类注册和实例管理
+    dm的epoch机制导致由timer触发时, is_changing 误判为 true
+    技术指标的output序列应该将使用接口调整为与K线序列一样
+    还没有支持tick序列作为原始数据
 
 
 用例1: 在jssdk代码中使用技术指标

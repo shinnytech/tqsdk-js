@@ -534,7 +534,7 @@ class Indicator
         this.dur_nano = dur_nano;
         this._ds = ds;   //基础序列, 用作输出序列的X轴
         this.DS = ds.d;  //提供给用户代码使用的ds proxy
-        this.params = params; //指标参数
+        this.PARAMS = params; //指标参数
         this.outs = {}; //输出序列访问函数
         this.out_define = {}; //输出序列格式声明
         this.out_values = {}; //输出序列值
@@ -757,7 +757,7 @@ class TaManager
         return ind_instance;
     };
 
-    delete_indicator_instance(ind_instance, params) {
+    delete_indicator_instance(ind_instance) {
         delete this.instance_dict[ind_instance.id];
     };
 
@@ -1071,7 +1071,7 @@ class TQSDK {
                 "order_id": order_id,
             });
         }
-        return orders.length;
+        return Object.keys(orders).length;
     }
 
     REGISTER_INDICATOR_CLASS(ind_class){
@@ -1337,7 +1337,7 @@ class ma extends Indicator
         this.m = this.OUTS("LINE", "m", {color: RED});
     }
     calc(i) {
-        this.m[i] = MA(i, this.DS.close, this.params.N, this.m);
+        this.m[i] = MA(i, this.DS.close, this.PARAMS.N, this.m);
     }
 }
 
@@ -1442,9 +1442,9 @@ describe('技术指标与图表结合使用', function () {
         batch_input_datas(3001, 3001, 3001);
         assert.equal(TQ.ws.send_objs.length, 1);
         let send_obj_2 = TQ.ws.send_objs[0];
-        assert.equal(send_obj_2.range_left, 3001);
+        assert.equal(send_obj_2.range_left, 3000);
         assert.equal(send_obj_2.range_right, 3001);
-        assert.equal(send_obj_2.datas.m[0][0], 2996.5);
+        assert.equal(send_obj_2.datas.m[0][1], 2996.5);
         TQ.ws.send_objs = [];
         //更新指标参数(只调整 view_left和 view_right)
         //预期会向主程序发送 set_indicator_data 包, 增补前次未发送的数据

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<body>
+    TATEST
+    <!--<script type="text/javascript" src="lib/utils.js"></script>-->
+    <!--<script type="text/javascript" src="lib/task.js"></script>-->
+    <!--<script type="text/javascript" src="lib/dm.js"></script>-->
+    <!--<script type="text/javascript" src="lib/ta.js"></script>-->
+    <!--<script type="text/javascript" src="lib/websocket.js"></script>-->
+    <script type="text/javascript" src="libs/tqsdk.js"></script>
+
+    <!--<script type="text/javascript" src="libs/func/basefuncs.js"></script>-->
+    <!--<script type="text/javascript" src="libs/ind/kdj.js"></script>-->
+
+    <script>
+        TQ = new TQSDK();
+        class JI extends Indicator
+        {
+            /*
+            要点:
+                总手数管理, 开仓总手数上限
+                接近收盘时停止开仓并清仓
+                接近涨跌停时停止开仓并清仓
+                撤单总数控制
+            先在策略中手动实现, 再逐渐往基类迁移
+            */
+            static define() {
+                return {
+                    type: "MAIN",
+                    cname: "JI",
+                    state: "KLINE",
+                    params: [
+                        {name: "N1", default: 3},
+                        {name: "N2", default: 5},
+                        {name: "N3", default: 8},
+
+                        {name: "B1", default: 1},
+                        {name: "B2", default: 2},
+                        {name: "B3", default: 3},
+
+                        {name: "OVER", default: 1},
+                    ],
+                }
+            }
+            init() {
+                this.ma1 = this.OUTS("LINE", "ma1", {color: RED});
+                this.ma2 = this.OUTS("LINE", "ma2", {color: RED});
+                this.ma3 = this.OUTS("LINE", "ma3", {color: RED});
+                this.q = TQ.GET_QUOTE(this.symbol);
+                this.cancel_count = 0;
+            }
+            calc(i) {
+                this.ma1[i] = MA(i, this.DS.close, this.PARAMS.N1, this.ma1);
+                this.ma2[i] = MA(i, this.DS.close, this.PARAMS.N2, this.ma2);
+                this.ma3[i] = MA(i, this.DS.close, this.PARAMS.N3, this.ma3);
+                //优先处理停止条件
+                if (  this.q.bid_price1 >= this.q.upper_limit - 50
+                    ||this.q.ask_price1 <= this.q.lower_limit + 50      //价格接近停板
+//                    ||TIME(this.DS[-1].datetime) > 145900                       //接近收盘
+                    ||this.cancel_count > 480                           //撤单数过高
+                ){
+                    this.stop();
+                    return;
+                }
+                //正常运行
+                let buy_open_condition = (this.q.bid_price1 > this.ma1[i]) && (this.q.bid_price1 > this.ma2[i]);
+                let sell_close_condition = (this.q.ask_price1 < this.ma1[i]) && (this.q.ask_price1 < this.ma2[i]);
+                if (!buy_open_condition && !sell_close_condition){
+                    //开仓下单及平仓下单条件均不满足, 撤单
+                    this.cancel_count += TQ.CANCEL_ORDER("JI");
+                }else if (buy_open_condition){
+                    this.ORDER(i, "BUY", "OPEN", 1, this.q.bid_price1 - this.PARAMS.OVER);
+                } else if (sell_close_condition) {
+                    this.ORDER(i, "SELL", "CLOSETODAY", 1, this.q.ask_price1 + this.PARAMS.OVER);
+                }
+            }
+            stop(){
+                //策略停止
+                TQ.CANCEL_ORDER("JI");
+                let position = TQ.GET_POSITION(this.symbol);
+                if (position && position.volume_long > 0)
+                    TQ.INSERT_ORDER({
+                        prefix: "JI",
+                        direction: "SELL",
+                        offset: "CLOSETODAY",
+                        volume: 1,
+                        limit_price: this.q.bid_price1 + this.PARAMS.OVER
+                    });
+            }
+        }
+        TQ.REGISTER_INDICATOR_CLASS(JI);
+    </script>
+
+</body>
+
+</html>
