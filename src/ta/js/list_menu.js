@@ -14,14 +14,8 @@ const CMenu = (function () {
         sys_item_doms: [],
         item_doms: {},
 
-        // 编辑、删除对话框
+        // 删除对话框
         $trashModal: null,
-
-        // info panel && // param panel
-        $attach_container: null,
-        attach_info: {},
-        attach_param: {},
-        attach_btns: {},
 
         editing: {},
         doing: '', // edit / new / copy
@@ -46,7 +40,7 @@ CMenu.init = function (div) {
 
     Promise.all([promiseCus, promiseSys]).then(function () {
         //初始化指标类
-        sendIndicatorList();
+        register_all_indicators();
     });
 
     // 初始化代码编辑区域
@@ -95,32 +89,7 @@ CMenu.init = function (div) {
         e.stop();
     });
 
-    CMenu.editor.session.on('changeBreakpoint', function (e) {
-        // captures set and clear breakpoint events
-    });
-
-    /*************** selection action ***************/
-    let selectionAction = 'NONE';
-    let selectionKeyStrokes = ['golineup', 'gotoright', 'golinedown', 'gotoleft', 'selectup', 'selectright', 'selectdown', 'selectleft'];
-
-    CMenu.editor.on('mousedown', function (e) {
-        selectionAction = 'MOUSE';
-        // console.log(e, e.clientX, e.clientY);
-    });
-
-    CMenu.editor.getSession().selection.on('changeSelection', function (e) {
-        let range = CMenu.editor.getSelectionRange();
-        if (range) {
-            // console.log(selectionAction, range.start, range.end);
-        }
-    });
-
-    CMenu.editor.commands.on('exec', function (e) {
-        if (selectionKeyStrokes.indexOf(e.command.name) > -1) {
-            selectionAction = 'KEYBOARD';
-        }
-    });
-
+    /*************** keywords link Click ***************/
     CMenu.editor.on('linkClick', function (data) {
         var types = ['support.function.tianqin', 'constant.language.function'];
         var functype = ['cfunc', 'efunc'];
@@ -263,17 +232,12 @@ CMenu.selectCallback = function (tr, data) {
         center.classList.remove('col-xs-6');
         center.classList.add('col-xs-9');
         $('div.main-container div.right-menu')[0].classList.add('hide');
-    } else if (data.type === 'custom_wh') {
-        let center = $('div.main-container div.content-container')[0];
-        center.classList.remove('col-xs-9');
-        center.classList.add('col-xs-6');
-        $('div.main-container div.right-menu')[0].classList.remove('hide');
     }
 };
 
 CMenu.initSysIndicators = function () {
     return new Promise((resolve, reject) => {
-        $.get('defaults/defaults.json').then(function (response) {
+        $.get('/libs/ind/defaults.json').then(function (response) {
             for (let name in response) {
                 if (name === 'template') {
                     CMenu.codeTemplate = response[name];
@@ -317,8 +281,7 @@ CMenu.initCustomIndicators = function () {
                 CMenu.updateUI();
                 resolve();
             }, function (e) {
-
-                console.log(e);
+                console.error(e);
             });
         });
 
@@ -330,7 +293,7 @@ CMenu.addAction = function () {
     CMenu.doing = 'new';
 
     let name = 'untitled';
-    let codeDefault = CMenu.codeTemplate.replace('${1:function_name}', name);
+    let codeDefault = CMenu.codeTemplate.replace('${1:indicator_name}', name);
     let type = 'custom'; // 没有文华，只保留天勤 @20180409
 
     IStore.add({
@@ -374,7 +337,7 @@ CMenu.copyCallback = function (tr, data) {
 
     let name = data.name + '_copy';
     let code = data.draft.code.trim();
-    let re = /^(function\s*\*\s*).*(\s*\(\s*C\s*\)\s*\{[\s\S]*\})$/g;
+    let re = /^(class\s).*(\sextends\s*Indicator\s*\{[\s\S]*\})$/g;
     let type = 'custom'; // 没有文华，只保留天勤 @20180409
 
     IStore.add({
@@ -512,12 +475,8 @@ CMenu.update = function (fun) {
     IStore.getAll().then(function (list) {
         CMenu.datas = list;
         CMenu.updateUI();
-        if (fun) {
-            fun();
-        }
-
+        if (fun) fun();
     }, function (e) {
-
         console.log(e);
     });
 };
@@ -747,6 +706,8 @@ CMenu.tooltips = {
         SUM: '求一个序列中连续N项的和',
     },
     'support.keyword.tianqin': {
+        PARAMS: '参数对象',
+        OUTS: '定义输出序列',
         cname: '可选，指定技术指标的中文名称。默认为技术指标名',
         type: '必填，“MAIN” 或 “SUB”, MAIN=主图技术指标, SUB=副图技术指标',
         state: '必填，“KLINE” 或 “TICK”',
@@ -767,8 +728,3 @@ CMenu.getTooltipColor = function (token) {
 CMenu.getTooltipText = function (token) {
     return CMenu.tooltips[token.type][token.value];
 };
-
-// 核心函数 core
-// 计算函数 basefunc
-// 颜色 color
-

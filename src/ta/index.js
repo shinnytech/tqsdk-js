@@ -2,28 +2,32 @@ const CODE_RUN_TIMEOUT = 500;
 const WAITING_RESULR = new Set();
 
 let worker = null;
-const sendIndicatorList = function () {
-    let content = {};
+
+const register_all_indicators = function () {
     let lists = ['sys_datas', 'datas'];
     for (let i = 0; i < lists.length; i++) {
         for (let j = 0; j < CMenu[lists[i]].length; j++) {
-            let funcName = CMenu[lists[i]][j].name;
-            content[funcName] = CMenu[lists[i]][j];
+            let name = CMenu[lists[i]][j].name;
+            let code = CMenu[lists[i]][j].draft.code;
+            if(worker) worker.postMessage({ cmd: 'register_indicator_class',
+                content: {name, code}
+            });
         }
     }
-
-    worker.postMessage({ cmd: 'indicatorList', content: content });
 };
 
 const initWorker = function () {
-    worker = new Worker('js/worker/worker.js');
+    worker = new Worker('js/worker.js');
+    // 发送以前记录的错误的 class
     worker.postMessage({ cmd: 'error_class_name', content: ErrorHandlers.get() });
-    sendIndicatorList();
+    // todo: 注册全部 indicators
+    register_all_indicators();
+    // todo: 监听 webworker 事件
     worker.addEventListener('message', function (e) {
         let content = e.data.content;
         switch (e.data.cmd) {
             case 'websocket_reconnect':
-                sendIndicatorList();
+                register_all_indicators();
                 break;
             case 'calc_start':
                 ErrorHandlers.records[content.id] = setTimeout(() => {
@@ -51,7 +55,6 @@ const initWorker = function () {
                         Notify.success((new TqFeedback(content)).toString());
                         WAITING_RESULR.delete(content.func_name);
                         ErrorHandlers.remove(content.func_name);
-
                         // 定义成功之后更新 Final
                         CMenu.saveFinalIndicator(content.func_name);
                     }
@@ -86,7 +89,7 @@ $(function () {
         let oldName = CMenu.editing.name;
         let code = CMenu.editor.getSession().getValue().trim();
         let newName = check_code(code);
-        
+
         if (newName) {
             if(oldName !== newName){
                 // 通知webworker unregister_indicator_class
@@ -100,7 +103,7 @@ $(function () {
                 }
             }).then(function (result) {
                 CMenu.editing = result;
-                worker.postMessage({ cmd: 'indicator', content: result });
+                worker.postMessage({ cmd: 'register_indicator_class', content: {name: newName, code} });
                 WAITING_RESULR.add(newName);
                 if (ErrorHandlers.has(newName)) {
                     ErrorHandlers.remove(newName);
@@ -127,22 +130,17 @@ $(function () {
  * @param {} code
  */
 function check_code(code) {
-    let reg = /^function\s*\*\s*(\S*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}\n*$/g;
+    let reg = /^class\s*(\S*)\s*(extends\s*Indicator\s*\{[\s\S]*\})\n*$/g;
     let result = reg.exec(code);
     if (result && result[0] === result.input) {
-        if (!result[2].includes('yield')) {
-            Notify.error('函数中返回使用 yield 关键字!');
-            return false;
-        } else if (CMenu.editor) {
-            let annotations = CMenu.editor.getSession().getAnnotations();
-            for (let i = 0; i < annotations.length; i++) {
-                if (annotations[i].type === 'error') {
-                    Notify.error(annotations[i].row + ':' + annotations[i].colume + ' ' + annotations[i].text);
-                    return false;
-                }
+        let annotations = CMenu.editor.getSession().getAnnotations();
+        for (let i = 0; i < annotations.length; i++) {
+            if (annotations[i].type === 'error') {
+                Notify.error(annotations[i].row + ':' + annotations[i].colume + ' ' + annotations[i].text);
+                return false;
             }
-            return result[1];
         }
+        return result[1];
     } else {
         Notify.error('代码不符合规范!');
         return false;

@@ -53,7 +53,7 @@ gulp.task('translate.js', function () {
 
 
 /**
- * ta/index.html 
+ * ta/index.html
  */
 gulp.task('indictor', ['css'], function () {
     delKeywordWarpContent('./src/ta/index.html', dist_ta + 'ta/index.html', 'del')
@@ -78,15 +78,13 @@ gulp.task('js', ['workerjs'], function () {
     return gulp.src(['./src/ta/js/*.js', './src/ta/index.js'], { base: 'src' })
         .pipe(concat('index' + vString + '.js'))
         .pipe(minifyJs())
-        .pipe(replace('js/worker/worker.js', 'worker' + vString + '.js'))
+        .pipe(replace('js/worker.js', 'worker' + vString + '.js'))
         .pipe(gulp.dest(dist_ta + 'ta/'));
 });
 
 gulp.task('workerjs', ['copy_ta', 'translate.html', 'translate.js'], function () {
-    var reg = /importScripts\((.+?)\);/;
-    return gulp.src(['./src/ta/js/worker/*.js', './src/ta/js/worker/worker.js'])
+    return gulp.src(['./src/ta/js/worker.js'])
         .pipe(concat('worker' + vString + '.js'))
-        .pipe(replace(reg, 'importScripts("defaults/basefuncs.js");'))
         .pipe(minifyJs({}))
         .pipe(gulp.dest(dist_ta + 'ta/'));
 });
@@ -114,16 +112,16 @@ gulp.task('copy_ta', ['beforecopy'], function () {
  * 生成 defaults.json
  */
 gulp.task('beforecopy', function () {
-    var files = fs.readdirSync('./src/ta/defaults/');
+    var files = fs.readdirSync('./src/libs/ind/');
     var obj = {};
     files.forEach(function (filename) {
         if (filename.endsWith('.js') && filename != 'basefuncs.js') {
             var name = filename.substr(0, filename.length - 3);
-            var content = fs.readFileSync('./src/ta/defaults/' + filename, 'utf8');
+            var content = fs.readFileSync('./src/libs/ind/' + filename, 'utf8');
             obj[name] = content.trim();
         }
     });
-    fs.writeFileSync('./src/ta/defaults/defaults.json', JSON.stringify(obj), 'utf8');
+    fs.writeFileSync('./src/libs/ind/defaults.json', JSON.stringify(obj), 'utf8');
     return;
 });
 

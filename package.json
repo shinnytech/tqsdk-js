@@ -4,7 +4,7 @@
   "description": "tianqin indicator editor",
   "scripts": {
     "start": "jsdoc ./src/trader/trader_sdk.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha src/libs/test/**",
     "build": "npm install && gulp",
     "server": "gulp && sudo http-server ./dist -a 0.0.0.0 -p 80",
     "src": "sudo http-server ./src -a 0.0.0.0 -p 80"
@@ -32,6 +32,7 @@
     "jasmine": "^3.1.0",
     "jsdoc": "^3.5.5",
     "minimist": "^1.2.0",
+    "node-eval": "^2.0.0",
     "uglify-es": "^3.1.2"
   },
   "devDependencies": {

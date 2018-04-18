@@ -6,7 +6,6 @@ doc/_build/
 doc/js_sdk/_build
 extensions/
 
-
 nohup.out
 buglist.md
 doc/make.log

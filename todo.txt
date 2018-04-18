@@ -1,3 +1,17 @@
+拆分 tqsdk && test
+使用新的 tqsdk 替换原先的指标系统
+
+1. onopen 现在不需要发送 sync_datas ?
+    onopen() {
+        this.ws.sendJson({
+            aid: 'sync_datas',
+            sync_datas: {},
+        });
+    }
+
+
+/********************************/
+
 合并整理函数库:
 
 原技术指标系统:
@@ -483,7 +497,7 @@ yield等待处需要仔细设计:
         3. UI 处理与数据集整合, 任何对UI的改变自动与屏幕同步
 			ui.btn-test.text ="启动"
 			var v = ui.text-volume.text;
-			
+
             SetData("/ui/btn/text", "启动");
             var v = GetData("/ui/btn/status"); //"CLICKED" or "DOWN"
 
