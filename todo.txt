@@ -109,190 +109,44 @@
         KDJ
 
 
-技术指标代码的重构:
-当前版本:
-    function* kdj(C){
-        //指标定义
-        C.DEFINE({
-            type: "SUB",
-            cname: "KDJ",
-            state: "KLINE",
-        });
-        //参数
-        let n = C.PARAM(3, "N");
-        let m1 = C.PARAM(5, "M1");
-        let m2 = C.PARAM(5, "M2");
-        //输入序列
-        let close = C.SERIAL("CLOSE");
-        let high = C.SERIAL("HIGH");
-        let low = C.SERIAL("LOW");
-        //输出序列
-        let k = C.OUTS("LINE", "k", {color: RED});
-        let d = C.OUTS("LINE", "d", {color: GREEN});
-        let j = C.OUTS("LINE", "j", {color: YELLOW});
-        //临时序列
-        let rsv = [];
-        //计算
-        while(true) {
-            let i = yield;
-            let hv = HIGHEST(i, high, n);
-            let lv = LOWEST(i, low, n);
-            rsv[i] = (hv == lv) ? 0 : (close[i] - lv) / (hv - lv) * 100;
-            k[i] = SMA(i, rsv, m1, 1, k);
-            d[i] = SMA(i, k, m2, 1, d);
-            j[i] = 3*k[i] -2*d[i];
-        }
-    }
-
-    TQ.DEFINE_INDICATOR({
-        func: kdj,
-        type: "SUB",
-        cname: "KDJ",
-        state: "KLINE",
-        params: [
-            (3, "N");
-            (5, "M1");
-            (5, "M2");
-        ],
-        outs: [
-            ("LINE", "k", {color: RED});
-            ("LINE", "d", {color: GREEN});
-            ("LINE", "j", {color: YELLOW});
-        ],
-    })
-
-    ind = TQ.UPDATE_INDICATOR_INSTANCE({
-        id: ...,
-        func: kdj,
-        params: [3, 5, 5],
-    });
-
-    ind.outs.k;
-
-
-已知问题:
-    技术指标和策略的代码结构, 怎样才能做到好用?
-        class结构:
-            代码自由度高, 便于组织复杂逻辑
-            利于代码级嵌套调用
-            壳代价较高, 到处都是this
-
-            必备内容:
-                合约/周期
-                输出序列
-                指标及参数描述
-
-
-class ma extends Indicator
-{
-    static define() {
-        return {
-            type: "SUB",
-            cname: "MA",
-            state: "KLINE",
-            params: [
-                {name: "N", default: 3},
-            ],
-        };
-    }
-    init(){
-        this.m = this.OUTS("LINE", "m", {color: RED});
-    }
-    calc(i) {
-        this.m[i] = MA(i, this.DS.close, this.params.N, this.m);
-    }
-}
-
-function* ma(C){
-    //指标定义
-    C.DEFINE({
-        type: "MAIN",
-        cname: "均线组",
-        state: "KLINE",
-    });
-    //参数
-    let n1 = C.PARAM(3, "N1");
-    let n2 = C.PARAM(5, "N2");
-    let n3 = C.PARAM(10, "N3");
-    let n4 = C.PARAM(20, "N4");
-    //输入序列
-    let s = C.SERIAL("CLOSE");
-    //输出序列
-    let s1 = C.OUTS("LINE", "ma" + n1, {color: RED});
-    let s2 = C.OUTS("LINE", "ma" + n2, {color: GREEN});
-    let s3 = C.OUTS("LINE", "ma" + n3, {color: BLUE});
-    let s4 = C.OUTS("LINE", "ma" + n4, {color: YELLOW});
-    //计算
-    while(true) {
-        let i = yield;
-        s1[i] = MA(i, s, n1, s1);
-        s2[i] = MA(i, s, n2, s2);
-        s3[i] = MA(i, s, n3, s3);
-        s4[i] = MA(i, s, n4, s4);
-    }
-}
-
-    在技术指标中调用交易函数, 如何携带默认参数?
-        可以先显式写入
-
-    如何实现全平?
-        理想效果是在主程序实现unit分仓管理
-
-    在worker中做import的问题, 文件间的互相依赖关系搞不定
-
-{
-    "aid": "update_indicator_instance",         //必填, 创建/修改 技术指标实例
-    "ta_class_name": "MACD",                    //必填, 指标名称，与register_indicator中的name一致
-    "instance_id": "abc324238",                 //必填, 指标实例ID，每个指标实例都有唯一的实例ID号
-    "epoch": 1234,                              //必填, 实例版本号，同一指标实例每次变更都会+1
-    "ins_id": "cu1701",                         //必填, 技术指标所在图表当前合约 //（图表上合约可以为1-N个，其中第一个为主合约）
-    "dur_nano": 13248000000000,                 //必填, 技术指标所在图表当前周期，以纳秒数表示, -1为无效标志
-    "view_left": 1000,                          //必填, 技术指标所在图表显示区域左端序号, -1为无效标志
-    "view_right": 3000,                         //必填, 技术指标所在图表显示区域右端序号, -1为无效标志
-    "params": {                                 //必填, 指标参数
-        "N": {"value": 30},
-        "S": {"value": "abcd"},
-    }
-}
-
-目标:
-    支持技术指标上图运行
-
-
-技术指标应该怎样用?
-  理想效果是只填写结构数据, 实际结果在需要获取时再做延迟计算
-  必要的结构数据是:
-      指标自身所需要的参数
-      所在图表的合约/周期等, 有两个处理方案:
-        作为技术指标基类参数    //技术指标必须绑定一个合约/周期, 才能唯一确定X轴
-
-  数据输出需要使用proxy吗? 还是用一个函数就可以了?
-    用get函数貌似还简单一点, 因为有时候没有对应的underlying数据
-
-首先需要整理K线数据序列, 达到以下效果:
-    ds = TQ.GET_K_SERIAL("SHFE.cu1801", 180);
-
-
-occycle: 1,
-ISLASTBAR(i)
-
-
 前期遇到的问题:
+    在做split项目时, 需要跟踪每笔成交记录, 框架缺乏支持, 导致特别不好写
+        成交记录是往一个dict里面添加新的item, 如何能方便的描述这个(或这些item?)
+            跟踪整个 trade dict
+            用 is_changing 拿到新增项
+            封装成一个函数
+
+    技术指标中的交易指令, 缺少开平控制和信号过滤, 仓位管理机制
+        occycle: 1,
+        ISLASTBAR(i)
+
+    sdk中缺少合约信息(如合约乘数, 价格单位, 手续费, 保证金等)
+        如果在登录后首包推送, 规模太大. 考虑缩减字段规模?
+
     用jssdk做的功能板块, 无法调用技术指标代码
     技术指标中不能调用sdk功能
     用户在写技术指标时, 不能写自定义函数??
     技术指标代码放到cache中存放, 升级管理困难
     技术指标代码在webworker中运行, 运行调试困难
     技术指标框架缺少绘图输出能力
-    技术指标中的交易指令, 缺少开平控制和信号过滤, 仓位管理机制
     函数库中函数偏少, 需要增补
-    sdk中缺少合约信息(如合约乘数, 价格单位, 手续费, 保证金等)
     代码文件在硬盘上的布局不好用
-
+    带交易功能的指标应给予特殊标识, 以便在主程序中区分处理
+    指标中带交易的, 异常情况下需要停止运行, 缺少支持
+    自编组合的设定, 因协议不好用, 导致需要额外补丁代码处理
     dm的epoch机制导致由timer触发时, is_changing 误判为 true
     技术指标的output序列应该将使用接口调整为与K线序列一样
     还没有支持tick序列作为原始数据
+    ORDER 的 prefix 设定无效, 撤单指令也没有按 prefix 工作
+    在技术指标中调用交易函数, 如何携带默认参数?
+        可以先显式写入
+    如何实现全平?
+        理想效果是在主程序实现unit分仓管理
+    在worker中做import的问题, 文件间的互相依赖关系搞不定
 
+
+最近一版发布目标:
+    只实现结构整理, 不添加新的功能
 
 用例1: 在jssdk代码中使用技术指标
     想要的效果
