@@ -337,7 +337,7 @@ CMenu.copyCallback = function (tr, data) {
 
     let name = data.name + '_copy';
     let code = data.draft.code.trim();
-    let re = /^(class\s).*(\sextends\s*Indicator\s*\{[\s\S]*\})$/g;
+    let re = /^(function\s*\*\s*).*(\s*\(\s*C\s*\)\s*\{[\s\S]*\})$/g;
     let type = 'custom'; // 没有文华，只保留天勤 @20180409
 
     IStore.add({

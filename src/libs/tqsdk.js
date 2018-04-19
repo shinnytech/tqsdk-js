@@ -403,15 +403,74 @@ const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
 const ICON_BUY = 1;
 const ICON_SELL = 2;
 
-class Indicator {
-    constructor(instance_id, symbol, dur_nano, ds, params){
+class IndicatorDefineContext {
+    constructor(ind_func) {
+        this.instance = ind_func(this);
+        let indicatorName = ind_func.name;
+        this.define = {
+            aid: 'register_indicator_class',
+            name: indicatorName,
+            cname: indicatorName,
+            type: 'SUB',
+            state: 'KLINE',
+            yaxis: [{ id: 0 }],
+            params: [],
+        };
+        this.params = new Map();
+    }
+
+    DEFINE(options) {
+        if (!(options === undefined)) {
+            Object.assign(this.define, options);
+        }
+    };
+
+    PARAM(paramDefaultValue, paramName, options) {
+        let paramDefine = this.params.get(paramName);
+        if (paramDefine === undefined) {
+            paramDefine = {
+                name: paramName,
+                default: paramDefaultValue,
+            };
+            if (typeof paramDefaultValue === 'string') {
+                paramDefine.type = 'STRING';
+            } else if (typeof paramDefaultValue === 'number') {
+                paramDefine.type = 'NUMBER';
+            } else if (paramDefaultValue instanceof COLOR) {
+                paramDefine.type = 'COLOR';
+            }
+
+            if (options !== undefined) {
+                paramDefine.memo = options.MEMO;
+                paramDefine.min = options.MIN;
+                paramDefine.max = options.MAX;
+                paramDefine.step = options.STEP;
+            }
+            this.params.set(paramName, paramDefine);
+        }
+        return paramDefaultValue;
+    };
+    OUTS() {
+    };
+    ORDER() {
+    };
+    get_define() {
+        this.instance.next();
+        this.params.forEach((value) => this.define.params.push(value));
+        return this.define;
+    }
+}
+
+class IndicatorRunContext {
+    constructor(ind_func, instance_id, symbol, dur_nano, ds){
         //技术指标参数, 合约代码/周期也作为参数项放在这里面
+        this.ind = ind_func(this);
         this.instance_id = instance_id;
         this.symbol = symbol;
         this.dur_nano = dur_nano;
         this._ds = ds;   //基础序列, 用作输出序列的X轴
         this.DS = ds.d;  //提供给用户代码使用的ds proxy
-        this.PARAMS = params; //指标参数
+        this.PARAMS = {}; //指标参数
         this.outs = {}; //输出序列访问函数
         this.out_define = {}; //输出序列格式声明
         this.out_values = {}; //输出序列值
@@ -432,6 +491,42 @@ class Indicator {
         this.trade_at_close = false;
         this.trade_oc_cycle = false;
     }
+    init(){
+        this.ind.next();
+    }
+    DEFINE(){
+    }
+
+    PARAM(defaultValue, name){
+        if (!(name in this.PARAMS))
+            this.PARAMS[name] = defaultValue;
+        return this.PARAMS[name];
+    }
+
+    DRAW(id, params){
+        this.out_drawings[id] = params;
+    }
+    DRAW_LINE(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
+        this.out_drawings[id] = {type:"LINE", x1, y1, x2, y2, color, width, style};
+    };
+    DRAW_RAY(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
+        this.out_drawings[id] = {type:"RAY", x1, y1, x2, y2, color, width, style};
+    };
+    DRAW_SEG(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
+        this.out_drawings[id] = {type:"SEG", x1, y1, x2, y2, color, width, style};
+    };
+    DRAW_BOX(id, x1, y1, x2, y2, color=0xFFFFFF, width=1, style=0){
+        this.out_drawings[id] = {type:"BOX", x1, y1, x2, y2, color, width, style};
+    };
+    DRAW_PANEL(id, x1, y1, x2, y2, color=0xFFFFFF){
+        this.out_drawings[id] = {type:"PANEL", x1, y1, x2, y2, color};
+    };
+    DRAW_ICON(id, x1, y1, icon){
+        this.out_drawings[id] = {type:"ICON", x1, y1, icon};
+    };
+    DRAW_TEXT(id, x1, y1, text="", color=0xFFFFFF){
+        this.out_drawings[id] = {type:"TEXT", x1, y1, text, color};
+    };
 
     /**
      * 要求指标实例计算X范围从left到right(包含两端点)的结果值
@@ -467,7 +562,7 @@ class Indicator {
         //重算
         if (calc_right >= calc_left && calc_right != -1){
             for (let i=calc_left; i <= calc_right; i++) {
-                this.calc(i);
+                this.ind.next(i);
             }
         }
         return [calc_left, calc_right];
@@ -559,6 +654,36 @@ class Indicator {
                 });
         }
     };
+
+    // OUTS(style, serialName, options) {
+    //     this.out_series[serialName] = {};
+    //     let serial = this.out_series[serialName];
+    //     serial.style = style;
+    //     serial.width = 1;
+    //     serial.color = RGB(0xFF, 0x00, 0x00);
+    //     serial.yaxis = 0;
+    //     if (options) {
+    //         serial.width = options.width ? options.width : serial.width;
+    //         serial.color = options.color ? options.color : serial.color;
+    //         serial.yaxis = options.yaxis ? options.yaxis : serial.yaxis;
+    //         serial.memo = options.memo ? options.memo : serial.memo;
+    //     }
+    //
+    //     if (style === 'KLINE') {
+    //         let s = [new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL()];
+    //         this.out_datas[serialName] = s;
+    //         return s;
+    //     } else if (style === 'COLOR_BAR') {
+    //         let s = [new VALUESERIAL(), new VALUESERIAL()];
+    //         this.out_datas[serialName] = s;
+    //         return s;
+    //     } else {
+    //         let s = new VALUESERIAL();
+    //         this.out_datas[serialName] = [s];
+    //         return s;
+    //     }
+    // };
+
     OUTS(style, name, options = {}){
         options.style=style;
         this.out_define[name] = options;
@@ -635,21 +760,20 @@ class TaManager {
             this.calc_notify_func(end_msg);
     }
 
-    register_indicator_class(ind_class){
-        this.class_dict[ind_class.name] = ind_class;
+    register_indicator_class(ind_func){
+        this.class_dict[ind_func.name] = ind_func;
     };
 
-    unregister_indicator_class(ind_class_name) {
-        delete this.class_dict[ind_class_name];
+    unregister_indicator_class(ind_func_name) {
+        delete this.class_dict[ind_func_name];
     };
 
-    new_indicator_instance(ind_class, symbol, dur_nano, ds, params = {}, instance_id) {
-        var default_params = ind_class.define().params;
-        for(var p of default_params){
-            if (!params[p.name] && p.default) params[p.name] = p.default;
-        }
-        let ind_instance = new ind_class(instance_id, symbol, dur_nano, ds, params);
+    new_indicator_instance(ind_func, symbol, dur_nano, ds, params = {}, instance_id) {
+        let ind_instance = new IndicatorRunContext(ind_func, instance_id, symbol, dur_nano, ds);
         this.instance_dict[instance_id] = ind_instance;
+        for(let p in params){
+            ind_instance.PARAMS[p] = params[p];
+        }
         ind_instance.init();
         return ind_instance;
     };
@@ -1063,18 +1187,17 @@ class TQSDK {
 
     REGISTER_INDICATOR_CLASS(ind_class){
         this.ta.register_indicator_class(ind_class);
-        let classDefine = ind_class.define();
-        classDefine.aid = 'register_indicator_class';
-        classDefine.name = ind_class.name;
+        let define_context = new IndicatorDefineContext(ind_class);
+        let classDefine = define_context.get_define();
         this.ws.send_json(classDefine);
     }
     UNREGISTER_INDICATOR_CLASS(ind_class){
         this.ta.unregister_indicator_class(ind_class.name);
     }
-    NEW_INDICATOR_INSTANCE(ind_class, symbol, dur_sec, params, instance_id=RandomStr()) {
+    NEW_INDICATOR_INSTANCE(ind_func, symbol, dur_sec, params={}, instance_id=RandomStr()) {
         let dur_nano = dur_sec * 1000000000;
         let ds = this.dm.get_kline_serial(symbol, dur_nano);
-        return this.ta.new_indicator_instance(ind_class, symbol, dur_sec, ds, params, instance_id);
+        return this.ta.new_indicator_instance(ind_func, symbol, dur_sec, ds, params, instance_id);
     }
     DELETE_INDICATOR_INSTANCE(ind_instance){
         return this.ta.delete_indicator_instance(ind_instance);

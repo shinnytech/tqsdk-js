@@ -21,11 +21,10 @@ class MockWebsocket{
 var TQ = new TQSDK(new MockWebsocket());
 init_test_data(TQ);
 let symbol = "CFFEX.IF1801";
-batch_input_datas({TQ, symbol, dur:5, left_id:1000, right_id:3000, last_id:3000});
-
-TQ.REGISTER_INDICATOR_CLASS(ma);
 
 describe('技术指标与图表结合使用', function () {
+    TQ.REGISTER_INDICATOR_CLASS(ma);
+    batch_input_datas({TQ, symbol, dur:5, left_id:1000, right_id:3000, last_id:3000});
 
     it('常规流程', function () {
         //请求创建指标实例
@@ -53,10 +52,10 @@ describe('技术指标与图表结合使用', function () {
         assert.equal(send_obj.epoch, 1);
         assert.equal(send_obj.range_left, 2800);
         assert.equal(send_obj.range_right, 3000);
-        assert.equal(send_obj.datas.ma1[0].length, 201);
-        assert(!isNaN(send_obj.datas.ma1[0][0]));
-        assert.equal(send_obj.datas.ma1[0][10], 2805.5);
-        assert.equal(send_obj.datas.ma1[0][200], 2995.5);
+        assert.equal(send_obj.datas.ma10[0].length, 201);
+        assert(!isNaN(send_obj.datas.ma10[0][0]));
+        assert.equal(send_obj.datas.ma10[0][10], 2805.5);
+        assert.equal(send_obj.datas.ma10[0][200], 2995.5);
 
         //更新一波行情数据
         //预期会向主程序发送 set_indicator_data 包, 增补前次未发送的数据
@@ -64,7 +63,7 @@ describe('技术指标与图表结合使用', function () {
         let send_obj_2 = TQ.ws.send_objs.pop();
         assert.equal(send_obj_2.range_left, 3000);
         assert.equal(send_obj_2.range_right, 3001);
-        assert.equal(send_obj_2.datas.ma1[0][1], 2996.5);
+        assert.equal(send_obj_2.datas.ma10[0][1], 2996.5);
     });
 
     it('更新指标参数(只调整 view_left和 view_right)', function () {
@@ -90,7 +89,7 @@ describe('技术指标与图表结合使用', function () {
         let send_obj = TQ.ws.send_objs.pop();
         assert.equal(send_obj.range_left, 2600);
         assert.equal(send_obj.range_right, 3001);
-        assert.equal(send_obj.datas.ma1[0][0], 2595.5);
+        assert.equal(send_obj.datas.ma10[0][0], 2595.5);
     });
 
     it('更新指标参数(更换合约/周期)', function () {
@@ -125,7 +124,7 @@ describe('技术指标与图表结合使用', function () {
         let send_obj_1 = TQ.ws.send_objs.pop();
         assert.equal(send_obj_1.range_left, 2600);
         assert.equal(send_obj_1.range_right, 3000);
-        assert.equal(send_obj_1.datas.ma1[0][0], 2595.5);
+        assert.equal(send_obj_1.datas.ma10[0][0], 2595.5);
 
     });
 });

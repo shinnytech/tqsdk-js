@@ -1,27 +1,26 @@
-class ma extends Indicator {
-    static define() {
-        return {
-            type: "MAIN",
-            cname: "MA+NEW",
-            state: "KLINE",
-            params: [
-                {name: "N1", default: 3},
-                {name: "N2", default: 10},
-                {name: "N3", default: 30},
-                {name: "N4", default: 60},
-            ],
-        };
-    }
-    init(){
-        this.ma1 = this.OUTS("LINE", "ma1", {color: RED});
-        this.ma2 = this.OUTS("LINE", "ma2", {color: YELLOW});
-        this.ma3 = this.OUTS("LINE", "ma3", {color: GREEN});
-        this.ma4 = this.OUTS("LINE", "ma4", {color: LIGHTBLUE});
-    }
-    calc(i) {
-        this.ma1[i] = MA(i, this.DS.close, this.PARAMS.N1, this.ma1);
-        this.ma2[i] = MA(i, this.DS.close, this.PARAMS.N2, this.ma2);
-        this.ma3[i] = MA(i, this.DS.close, this.PARAMS.N3, this.ma3);
-        this.ma4[i] = MA(i, this.DS.close, this.PARAMS.N4, this.ma4);
+function* ma(C){
+    //指标定义
+    C.DEFINE({
+        type: "MAIN",
+        cname: "均线组",
+        state: "KLINE",
+    });
+    //参数
+    let n1 = C.PARAM(3, "N1");
+    let n2 = C.PARAM(5, "N2");
+    let n3 = C.PARAM(10, "N3");
+    let n4 = C.PARAM(20, "N4");
+    //输出序列
+    let s1 = C.OUTS("LINE", "ma" + n1, {color: RED});
+    let s2 = C.OUTS("LINE", "ma" + n2, {color: GREEN});
+    let s3 = C.OUTS("LINE", "ma" + n3, {color: BLUE});
+    let s4 = C.OUTS("LINE", "ma" + n4, {color: YELLOW});
+    //计算
+    while(true) {
+        let i = yield;
+        s1[i] = MA(i, C.DS.close, n1, s1);
+        s2[i] = MA(i, C.DS.close, n2, s2);
+        s3[i] = MA(i, C.DS.close, n3, s3);
+        s4[i] = MA(i, C.DS.close, n4, s4);
     }
 }

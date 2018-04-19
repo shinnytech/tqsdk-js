@@ -27,7 +27,7 @@ self.addEventListener('message', function (event) {
     switch (event.data.cmd) {
         case 'register_indicator_class':
             try {
-                var f = eval('(' + content.code + ')');
+                var f = eval(content.name + '=' + content.code);
                 TQ.REGISTER_INDICATOR_CLASS(f);
             } catch (e) {
                 postMessage({
@@ -35,7 +35,7 @@ self.addEventListener('message', function (event) {
                         error: true,
                         type: 'define',
                         message: e.message,
-                        func_name: f.name,
+                        func_name: content.name,
                     },
                 });
             }
@@ -44,7 +44,7 @@ self.addEventListener('message', function (event) {
                     error: false,
                     type: 'define',
                     message: 'success',
-                    func_name: f.name,
+                    func_name: content.name,
                 },
             });
             break;
