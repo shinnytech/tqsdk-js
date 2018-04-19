@@ -9,3 +9,4 @@ extensions/
 nohup.out
 buglist.md
 doc/make.log
+*.pyc

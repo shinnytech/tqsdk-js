@@ -288,6 +288,7 @@
                 var result = yield {
                     ORDER_CHANGED: function () { return !!TQ.GET_ORDER(null, TQ.CHANGING_DATA); },
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
+                    NEW_TRADE: ...,
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                 }
 

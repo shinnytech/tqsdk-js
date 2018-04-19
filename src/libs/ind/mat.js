@@ -8,6 +8,7 @@ class mat extends Indicator {
                 {name: "N1", default: 3},
                 {name: "N2", default: 10},
             ],
+
         };
     }
     init(){
