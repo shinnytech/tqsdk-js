@@ -331,22 +331,3 @@ const ErrorHandlers = (function () {
 }());
 
 ErrorHandlers.init();
-
-/*
- * webworker 返回的信息格式
- */
-const TqFeedback = function (e) {
-    this.error = e.error; // true | false
-    this.type = e.type; // define | run
-    this.message = e.message;
-    this.func_name = e.func_name;
-};
-
-TqFeedback.prototype.toString = function () {
-    if (this.error) {
-        // '报错类型: ' + this.type
-        return `报错函数: ${this.func_name}<br/>错误内容: ${this.message}`;
-    } else {
-        return `函数  ${this.func_name} 运行成功！`;
-    }
-};

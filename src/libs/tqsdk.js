@@ -204,8 +204,7 @@ class Task {
         // this.endTime = 0;
         this.stopped = false;
         this.events = {};
-        this.unit_id = null;
-        this.unit_mode = true;
+        this.orders = {};
     }
 
     pause() {
@@ -225,10 +224,23 @@ class TaskManager{
     constructor(){
         this.aliveTasks = {};
         this.intervalTime = 50; // 任务执行循环间隔
-        this.runningTask = null;
+        this.runningTask = null; // 正在执行的 Task
         this.events = {};
         this.GenTaskId = GenerateSequence();
-        // setInterval(this.ontimer, this.intervalTime);
+        this.interval = setInterval(function(){
+            for (var taskId in this.aliveTasks) {
+                var task = this.aliveTasks[taskId];
+                // 用户显示定义了 timeout 才记录 timeout 字段
+                if (task.timeout) {
+                    if (task.paused) {
+                        task.endTime += this.intervalTime;
+                    } else {
+                        var now = (new Date()).getTime();
+                        if (task.endTime <= now) this.runTask(task);
+                    }
+                }
+            }
+        }, this.intervalTime);
     }
 
     getEndTime(t) {
@@ -257,8 +269,8 @@ class TaskManager{
     }
 
     runTask(task) {
-        TaskManager.runningTask = task;
-        var waitResult = checkTask(task);
+        this.runningTask = task;
+        var waitResult = this.checkTask(task);
         /**
          * ret: { value, done }
          */
@@ -269,9 +281,9 @@ class TaskManager{
                 if (ret.done) {
                     task.stopped = true;
                     task.return = ret.value;
-                    TaskManager.any_task_stopped = true;
+                    this.any_task_stopped = true;
                 } else {
-                    if (task.timeout) task.endTime = getEndTime(task.timeout);
+                    if (task.timeout) task.endTime = this.getEndTime(task.timeout);
                     task.waitConditions = ret.value;
                 }
                 break;
@@ -281,45 +293,30 @@ class TaskManager{
 
     run(obj) {
         if (obj) {
-            if (!(obj.type in TaskManager.events)) TaskManager.events[obj.type] = {};
-            if (!(obj.id in TaskManager.events[obj.type])) TaskManager.events[obj.type][obj.id] = obj.data;
+            if (!(obj.type in this.events)) this.events[obj.type] = {};
+            if (!(obj.id in this.events[obj.type])) this.events[obj.type][obj.id] = obj.data;
         }
-        TaskManager.any_task_stopped = false; // 任何一个task 的状态改变，都重新 run
-        for (var taskId in aliveTasks) {
-            if (aliveTasks[taskId].paused || aliveTasks[taskId].stopped) continue;
+        this.any_task_stopped = false; // 任何一个task 的状态改变，都重新 run
+        for (var taskId in this.aliveTasks) {
+            if (this.aliveTasks[taskId].paused || this.aliveTasks[taskId].stopped) continue;
             try {
-                runTask(aliveTasks[taskId]);
+                this.runTask(this.aliveTasks[taskId]);
             } catch (err) {
                 if (err == 'not logined') Notify.error('未登录，请在软件中登录后重试。');
                 else console.log(err)
             }
         }
         if (obj) {
-            delete TaskManager.events[obj.type][obj.id];
+            delete this.events[obj.type][obj.id];
         }
-        if (TaskManager.any_task_stopped) TaskManager.run();
-    }
-
-    ontimer() {
-        for (var taskId in aliveTasks) {
-            var task = aliveTasks[taskId];
-            // 用户显示定义了 timeout 才记录 timeout 字段
-            if (task.timeout) {
-                if (task.paused) {
-                    task.endTime += intervalTime;
-                } else {
-                    var now = (new Date()).getTime();
-                    if (task.endTime <= now) runTask(task);
-                }
-            }
-        }
+        if (this.any_task_stopped) this.run();
     }
 
     add(func) {
         var task_id = GenTaskId.next().value;
         var task = new Task(task_id, func);
-        aliveTasks[task_id] = task;
-        TaskManager.runningTask = task;
+        this.aliveTasks[task_id] = task;
+        this.runningTask = task;
         var ret = task.func.next();
         if (ret.done) {
             task.stopped = true;
@@ -338,7 +335,7 @@ class TaskManager{
     }
 
     remove(task) {
-        delete aliveTasks[task.id];
+        delete this.aliveTasks[task.id];
     }
 
     start_task(func){
@@ -406,10 +403,7 @@ const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
 const ICON_BUY = 1;
 const ICON_SELL = 2;
 
-
-
-class Indicator
-{
+class Indicator {
     constructor(instance_id, symbol, dur_nano, ds, params){
         //技术指标参数, 合约代码/周期也作为参数项放在这里面
         this.instance_id = instance_id;
@@ -593,14 +587,13 @@ class Indicator
             if (right == null)
                 return out_serial[left];
             else
-                return out_serial.slice(left, right);
+                return out_serial.slice(left, right+1);
         };
         return out_serial;
     }
 }
 
-class TaManager
-{
+class TaManager {
     constructor(){
         this.class_dict = {};
         this.instance_dict = {};
@@ -650,7 +643,11 @@ class TaManager
         delete this.class_dict[ind_class_name];
     };
 
-    new_indicator_instance(ind_class, symbol, dur_nano, ds, params, instance_id) {
+    new_indicator_instance(ind_class, symbol, dur_nano, ds, params = {}, instance_id) {
+        var default_params = ind_class.define().params;
+        for(var p of default_params){
+            if (!params[p.name] && p.default) params[p.name] = p.default;
+        }
         let ind_instance = new ind_class(instance_id, symbol, dur_nano, ds, params);
         this.instance_dict[instance_id] = ind_instance;
         ind_instance.init();
@@ -658,7 +655,7 @@ class TaManager
     };
 
     delete_indicator_instance(ind_instance) {
-        delete this.instance_dict[ind_instance.id];
+        delete this.instance_dict[ind_instance.instance_id];
     };
 
 }
@@ -756,6 +753,7 @@ GLOBAL_CONTEXT = {
 
 class TQSDK {
     constructor(mock_ws) {
+        this.id = RandomStr(4);
         if(mock_ws){
             this.ws = mock_ws;
         } else {
@@ -780,6 +778,7 @@ class TQSDK {
             onclose: [],
         }
         this.ws.init();
+        this.orders = {};
     }
 
     register_ws_processor(evt, processor_func) {
@@ -800,10 +799,6 @@ class TQSDK {
         }
     }
     onopen() {
-        this.ws.send_json({
-            aid: 'sync_datas',
-            sync_datas: {},
-        });
         for(var f in this.ws_processor.onopen){
             f();
         }
@@ -834,8 +829,7 @@ class TQSDK {
                 this.send_indicator_data(instance, calc_left, calc_right);
             }
         }
-
-        // this.tm.run();
+        this.tm.run();
     }
     on_update_indicator_instance(pack){
         //重置指标参数
@@ -937,28 +931,91 @@ class TQSDK {
     }
 
     /**
-     * 提取符合单号符合条件的所有存活委托单
-     * @param order_id_prefix: 单号前缀, 单号以此字符串开头的委托单都会在结果集中
+     * 提取符合条件的所有存活委托单
+     * @param {
+     *      order_id_prefix: 单号前缀, 单号以此字符串开头的委托单都会在结果集中
+     *      status: ['ALIVE', 'FINISHED']
+     * }
      * @returns {*}
      */
-    GET_ORDER_DICT(order_id_prefix) {
+    GET_ORDER_DICT({order_id_prefix=this.id, status=['ALIVE','FINISHED']}={}) {
         let results = {};
-        let all_orders = this.dm.set_default({}, 'trade', this.dm.account_id, 'orders');
-        for (var ex_or_id in all_orders) {
-            var ord = all_orders[ex_or_id];
-            if (ord.status == 'ALIVE')
-                results[ex_or_id] = ord;
+        let all_orders = this.dm.get('trade', this.dm.account_id, 'orders');
+        for (var order_id in all_orders) {
+            var ord = all_orders[order_id];
+            if (status.includes(ord.status) && order_id.includes(order_id_prefix))
+                results[order_id] = ord;
         }
         return results;
     };
 
-    INSERT_ORDER({symbol, direction, offset, volume=1, price_type="LIMIT", limit_price, prefix=""}) {
+    CHANGED_ORDERS(){
+        var result = {};
+        for(var order_id in this.orders){
+            if (this.dm.is_changing(this.orders[order_id])){
+                result[order_id] = this.orders[order_id];
+                if (this.orders[order_id].status == 'FINISHED') {
+                    delete this.orders[order_id];
+                }
+            }
+        }
+        return result;
+    }
+
+    GET_ORDERS_SUMMARY(){
+        var orders = this.GET_ORDER_DICT({status: ['ALIVE', 'FINISHED']});
+        var result = {};
+        for(var order_id in orders){
+            var order = orders[order_id];
+            var symbol = order.exchange_id + '.' + order.instrument_id;
+            if (!result[symbol]) {
+                result[symbol] = {
+                    open_buy_price: 0,
+                    close_sell_price: 0,
+                    open_sell_price: 0,
+                    close_buy_price: 0,
+                    open_buy_volume: 0,
+                    close_sell_volume: 0,
+                    open_sell_volume: 0,
+                    close_buy_volume: 0,
+                }
+            }
+            var vol_changed = order.volume_orign - order.volume_left;
+            if (vol_changed > 0) {
+                var opt = '';
+                if (order.direction == 'BUY') {
+                    opt = (order.offset == 'OPEN') ?
+                        'open_buy' :
+                        'close_buy';
+                } else if (order.direction == 'SELL') {
+                    opt = (order.offset == 'OPEN') ?
+                        'open_sell' :
+                        'close_sell';
+                }
+                result[symbol][opt + '_volume'] += vol_changed;
+                result[symbol][opt + '_price'] += (order.limit_price * vol_changed);
+            }
+        }
+        for(var symbol in result){
+            result[symbol].open_buy_price = result[symbol].open_buy_volume > 0 ? result[symbol].open_buy_price / result[symbol].open_buy_volume : 0;
+            result[symbol].close_sell_price = result[symbol].close_sell_volume > 0 ? result[symbol].close_sell_price / result[symbol].close_sell_volume : 0;
+            result[symbol].open_sell_price = result[symbol].open_sell_volume > 0 ? result[symbol].open_sell_price / result[symbol].open_sell_volume : 0;
+            result[symbol].close_buy_price = result[symbol].close_buy_volume > 0 ? result[symbol].close_buy_price / result[symbol].close_buy_volume : 0;
+        }
+        if(Object.keys(result).length == 1){
+            return result[Object.keys(result)[0]];
+        }else{
+            return result;
+        }
+    }
+
+    INSERT_ORDER({symbol, direction, offset, volume=1, price_type="LIMIT", limit_price, prefix=""}={}) {
         if (!this.dm.account_id) {
             Notify.error('未登录，请在软件中登录后重试。');
             return null;
         }
         let {exchange_id, instrument_id} = ParseSymbol(symbol);
-        let order_id = prefix + RandomStr(8);
+        let order_id = prefix + '_' + this.id + '_' + RandomStr(8);
         let send_obj = {
             "aid": "insert_order",
             "order_id": order_id,
@@ -971,9 +1028,10 @@ class TQSDK {
             "limit_price": limit_price
         };
         this.ws.send_json(send_obj);
+
         let order = this.dm.set_default({
             order_id: order_id,
-            status: "ALIVE",
+            status: "ALIVE", // todo: 这里不需要 UNDEFINED 吗
             volume_orign: volume,
             volume_left: volume,
             exchange_id: exchange_id,
@@ -981,6 +1039,7 @@ class TQSDK {
             limit_price: limit_price,
             price_type: "LIMIT",
         }, "trade", this.dm.account_id, "orders", order_id);
+        this.orders[order_id] = order;
         return order;
     };
 
@@ -988,9 +1047,11 @@ class TQSDK {
         let orders = {};
         if (typeof order == 'object') {
             orders[order.order_id] = order;
-        }else {
-            orders = this.GET_ORDER_DICT(order);
+        } else if (typeof order == 'string')  {
+            orders = this.GET_ORDER_DICT({order_id_prefix: order});
         }
+        console.log(order)
+        console.log(orders)
         for (let order_id in orders) {
             this.ws.send_json({
                 "aid": "cancel_order",
@@ -1008,7 +1069,7 @@ class TQSDK {
         this.ws.send_json(classDefine);
     }
     UNREGISTER_INDICATOR_CLASS(ind_class){
-        this.ta.unregister_indicator_class();
+        this.ta.unregister_indicator_class(ind_class.name);
     }
     NEW_INDICATOR_INSTANCE(ind_class, symbol, dur_sec, params, instance_id=RandomStr()) {
         let dur_nano = dur_sec * 1000000000;
