@@ -17,7 +17,8 @@ self.addEventListener('error', function (event) {
     postMessage({
         cmd: 'error_all', content: {
             type: event.type,
-        },
+            message: event.error.stack
+        }
     });
 });
 
@@ -25,8 +26,27 @@ self.addEventListener('message', function (event) {
     var content = event.data.content;
     switch (event.data.cmd) {
         case 'register_indicator_class':
-            var f = eval('(' + content.code + ')');
-            TQ.REGISTER_INDICATOR_CLASS(f);
+            try {
+                var f = eval('(' + content.code + ')');
+                TQ.REGISTER_INDICATOR_CLASS(f);
+            } catch (e) {
+                postMessage({
+                    cmd: 'feedback', content: {
+                        error: true,
+                        type: 'define',
+                        message: e.message,
+                        func_name: f.name,
+                    },
+                });
+            }
+            postMessage({
+                cmd: 'feedback', content: {
+                    error: false,
+                    type: 'define',
+                    message: 'success',
+                    func_name: f.name,
+                },
+            });
             break;
         case 'unregister_indicator_class':
             TQ.UNREGISTER_INDICATOR_CLASS(content);

@@ -15,6 +15,7 @@ const type = (d) => Object.prototype.toString.call(d).slice(8, -1);
  *    "info", "information",
  *    "noty", "notification"
  */
+
 const Notify = (function () {
     let debug = false;
 
@@ -30,7 +31,22 @@ const Notify = (function () {
 
     function getNotyFun(type) {
         if (!debug) {
-            return function (text) {
+            return function (content) {
+                var text = null;
+                if (typeof content == 'string'){
+                    text = content;
+                } else {
+                    /**
+                     * content = {
+                     *      error: true, // true | false
+                     *      type: 'define', // define | run
+                     *      message: 'xxxxxxxxxxxx',
+                     *      func_name: 'ma'
+                     * }
+                     */
+                    text = `函数 ${content.func_name} 运行`;
+                    text += type == 'error' ? `失败，<br/>错误内容: ${content.message}` : '成功！';
+                }
                 return noty(Object.assign(defaults, { text, type }));
             };
         } else {

@@ -43,7 +43,7 @@ const initWorker = function () {
                 break;
             case 'feedback':
                 if (content.error) {
-                    Notify.error((new TqFeedback(content)).toString());
+                    Notify.error(content);
                     ErrorHandlers.add(content.func_name);
                     CMenu.update();
                     if (content.type === 'run' || content.type === 'define') {
@@ -52,15 +52,16 @@ const initWorker = function () {
                     }
                 } else {
                     if (content.type === 'define' && WAITING_RESULR.has(content.func_name)) {
-                        Notify.success((new TqFeedback(content)).toString());
+                        Notify.success(content);
                         WAITING_RESULR.delete(content.func_name);
                         ErrorHandlers.remove(content.func_name);
                         // 定义成功之后更新 Final
                         CMenu.saveFinalIndicator(content.func_name);
                     }
                 }
-
                 break;
+            case 'error_all':
+                Notify.error('error in webworker \n' + content.type + ' : ' + content.message);
             default:
                 break;
         }

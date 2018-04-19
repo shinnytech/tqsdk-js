@@ -218,6 +218,42 @@
 
     <script type="text/javascript" src="tqsdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
+        class Task {
+            constructor (task_id, func, waitConditions = null) {
+                this.id = task_id;
+                this.func = func;
+                this.paused = false;
+                this.waitConditions = waitConditions;
+                // this.timeout = 6000000; // 每个任务默认时间
+                // this.endTime = 0;
+                this.stopped = false;
+                this.events = {};
+                this.orders = {};
+            }
+
+            pause () {
+                this.paused = true;
+            }
+
+            resume () {
+                this.paused = false;
+            }
+
+            stop () {
+                this.stopped = true;
+            }
+        }
+
+        class taskOrder extends Task{
+            * run (){
+
+
+            }
+        }
+
+
+
+
         function* TaskQuote() {
             while (true) {
                 var result = yield {
@@ -289,7 +325,7 @@
                     ORDER_CHANGED: function () { return !!TQ.GET_ORDER(null, TQ.CHANGING_DATA); },
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
-                }
+                };
 
                 for (var order of orders) {
                     if (order.status == 'FINISHED' && order.exchange_order_id == '') {
@@ -309,7 +345,7 @@
             }
             // 任务结束
             TQ.SET_STATE('STOP');
-            return;
+
         }
 
         $(function () {
