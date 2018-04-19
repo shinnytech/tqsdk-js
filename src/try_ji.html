@@ -9,8 +9,7 @@
     <!--<script type="text/javascript" src="lib/ta.js"></script>-->
     <!--<script type="text/javascript" src="lib/websocket.js"></script>-->
     <script type="text/javascript" src="libs/tqsdk.js"></script>
-
-    <!--<script type="text/javascript" src="libs/func/basefuncs.js"></script>-->
+    <script type="text/javascript" src="libs/func/basefuncs.js"></script>
     <!--<script type="text/javascript" src="libs/ind/kdj.js"></script>-->
 
     <script>
@@ -31,22 +30,32 @@
                     cname: "JI",
                     state: "KLINE",
                     params: [
+                        {name: "V", default: 10},
+
                         {name: "N1", default: 3},
                         {name: "N2", default: 5},
                         {name: "N3", default: 8},
+                        {name: "N4", default: 15},
 
-                        {name: "B1", default: 1},
-                        {name: "B2", default: 2},
-                        {name: "B3", default: 3},
+                        {name: "X1", default: 3},
+                        {name: "X2", default: 5},
+                        {name: "X3", default: 8},
+                        {name: "X4", default: 8},
+                        {name: "X5", default: 100},
+                        {name: "X6", default: 200},
+                        {name: "X7", default: 10},
 
                         {name: "OVER", default: 1},
                     ],
                 }
             }
             init() {
+                this.TRADE_AT_CLOSE(false);
+                this.TRADE_OC_CYCLE(true);
                 this.ma1 = this.OUTS("LINE", "ma1", {color: RED});
-                this.ma2 = this.OUTS("LINE", "ma2", {color: RED});
-                this.ma3 = this.OUTS("LINE", "ma3", {color: RED});
+                this.ma2 = this.OUTS("LINE", "ma2", {color: YELLOW});
+                this.ma3 = this.OUTS("LINE", "ma3", {color: BLUE});
+                this.ma4 = this.OUTS("LINE", "ma4", {color: GREEN});
                 this.q = TQ.GET_QUOTE(this.symbol);
                 this.cancel_count = 0;
             }
@@ -54,9 +63,10 @@
                 this.ma1[i] = MA(i, this.DS.close, this.PARAMS.N1, this.ma1);
                 this.ma2[i] = MA(i, this.DS.close, this.PARAMS.N2, this.ma2);
                 this.ma3[i] = MA(i, this.DS.close, this.PARAMS.N3, this.ma3);
+                this.ma4[i] = MA(i, this.DS.close, this.PARAMS.N4, this.ma4);
                 //优先处理停止条件
-                if (  this.q.bid_price1 >= this.q.upper_limit - 50
-                    ||this.q.ask_price1 <= this.q.lower_limit + 50      //价格接近停板
+                if (  this.DS.close[i] >= this.q.upper_limit - 50
+                    ||this.DS.close[i] <= this.q.lower_limit + 50      //价格接近停板
 //                    ||TIME(this.DS[-1].datetime) > 145900                       //接近收盘
                     ||this.cancel_count > 480                           //撤单数过高
                 ){
@@ -64,15 +74,29 @@
                     return;
                 }
                 //正常运行
-                let buy_open_condition = (this.q.bid_price1 > this.ma1[i]) && (this.q.bid_price1 > this.ma2[i]);
-                let sell_close_condition = (this.q.ask_price1 < this.ma1[i]) && (this.q.ask_price1 < this.ma2[i]);
+                let buy_open_condition = (this.DS.close[i] >= this.ma1[i] + this.PARAMS.X1)
+                    && (this.DS.close[i] >= this.ma2[i] + this.PARAMS.X2)
+                    && (this.DS.close[i] >= this.ma3[i] + this.PARAMS.X3)
+                    && (this.DS.close[i] >= this.ma4[i] + this.PARAMS.X4)
+                    && (this.DS.close[i] <= this.ma1[i] + this.PARAMS.X5)
+                    && (this.DS.close[i] <= this.ma2[i] + this.PARAMS.X6)
+                ;
+                let sell_close_condition = (this.DS.close[i] <= this.ma1[i] - this.PARAMS.X1)
+                    || (this.DS.close[i] <= this.ma2[i] - this.PARAMS.X2)
+                    || (this.DS.close[i] <= this.ma3[i] - this.PARAMS.X3)
+                    || (this.DS.close[i] <= this.ma4[i] - this.PARAMS.X4)
+                ;
+                let sell_close_condition_2 = (this.DS.close[i] >= this.ma1[i] + this.PARAMS.X7);
+
                 if (!buy_open_condition && !sell_close_condition){
                     //开仓下单及平仓下单条件均不满足, 撤单
                     this.cancel_count += TQ.CANCEL_ORDER("JI");
                 }else if (buy_open_condition){
-                    this.ORDER(i, "BUY", "OPEN", 1, this.q.bid_price1 - this.PARAMS.OVER);
+                    this.ORDER(i, "BUY", "OPEN", 1, this.DS.close[i] + this.PARAMS.OVER);
+                } else if (sell_close_condition_2) {
+                    this.ORDER(i, "SELL", "CLOSE", 1, this.DS.close[i]);
                 } else if (sell_close_condition) {
-                    this.ORDER(i, "SELL", "CLOSETODAY", 1, this.q.ask_price1 + this.PARAMS.OVER);
+                    this.ORDER(i, "SELL", "CLOSE", 1, this.DS.close[i] - this.PARAMS.OVER);
                 }
             }
             stop(){
@@ -83,15 +107,14 @@
                     TQ.INSERT_ORDER({
                         prefix: "JI",
                         direction: "SELL",
-                        offset: "CLOSETODAY",
+                        offset: "CLOSE",
                         volume: 1,
-                        limit_price: this.q.bid_price1 + this.PARAMS.OVER
+                        limit_price: this.DS.close[i] + this.PARAMS.OVER
                     });
             }
         }
         TQ.REGISTER_INDICATOR_CLASS(JI);
     </script>
-
 </body>
 
 </html>
