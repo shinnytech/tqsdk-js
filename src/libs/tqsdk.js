@@ -435,6 +435,8 @@ class Indicator
         this.long_position_volume = 0;
         this.short_position_volume = 0;
         this.is_error = false;
+        this.trade_at_close = false;
+        this.trade_oc_cycle = false;
     }
 
     /**
@@ -477,6 +479,24 @@ class Indicator
         return [calc_left, calc_right];
     };
 
+    /**
+     * 设定是否只在K线完成时刻发出交易信号
+     * @param b : b==true,只在一根K线结束的时刻,才会发出交易信号, 一根K线最多只发出一个交易信号; b==false, K线每次变化时都可能发出交易信号, 一根K线可以发出多个交易信号
+     *
+     * 默认值为 false
+     */
+    TRADE_AT_CLOSE(b){
+        this.trade_at_close = b;
+    }
+    /**
+     * 设定是否强制使用开平循环模式
+     * @param b : b==true,在未持仓情况下只会发出开仓信号, 有持仓时只会发出平仓信号. b==false, 有持仓时也可以发出开仓信号
+     *
+     * 默认值为 false
+     */
+    TRADE_OC_CYCLE(b){
+        this.trade_oc_cycle = b;
+    }
     ORDER(current_i, direction, offset, volume, limit_price = undefined, order_symbol = this.trade_symbol) {
         if (this.is_error || !this._ds || this._ds.last_id == -1)
             return;
@@ -484,58 +504,55 @@ class Indicator
             this.out_series_mark = this.OUTS('MARK', 'mk', {});
         }
         this.out_series_mark[current_i] = direction === "BUY" ? ICON_BUY : ICON_SELL;
-        if (!this.enable_trade || current_i <= this.last_i || this._ds.last_id != current_i + 1)
+        if (!this.enable_trade)
             return;
-        //@note: 代码跑到这里时, i应该是首次指向序列的倒数第二个柱子
+        //要求在K线完成的时刻满足下单条件才会动作
+        if (this.trade_at_close && (current_i <= this.last_i || this._ds.last_id != current_i + 1))
+            return;
+        //要求任意时刻满足下单条件都会动作
+        if (!this.trade_at_close && this._ds.last_id != current_i)
+            return;
         this.last_i = current_i;
-        let quote = TQ.GET_QUOTE(order_symbol);
         if (!limit_price){
+            let quote = TQ.GET_QUOTE(order_symbol);
             let price_field = direction == "BUY" ? 'ask_price1' : 'bid_price1';
             if (!quote[price_field]) // 取不到对应的价格 包括 NaN 、 undefined
                 return;
             limit_price = quote[price_field];
         }
+        let position = TQ.GET_POSITION(order_symbol);
+        let short_position_volume = position.volume_short_today?position.volume_short_today:0;
+        let long_position_volume = position.volume_long_today?position.volume_long_today:0;
         let volume_open = 0;
         let volume_close = 0;
         if (offset == "CLOSE" || offset == "CLOSEOPEN") {
             if (direction == "BUY") {
-                volume_close = Math.min(this.short_position_volume, volume);
-                this.short_position_volume -= volume_close;
+                volume_close = Math.min(short_position_volume, volume);
             } else {
-                volume_close = Math.min(this.long_position_volume, volume);
-                this.long_position_volume -= volume_close;
+                volume_close = Math.min(long_position_volume, volume);
             }
-            if (volume_close > 0)
+            if (volume_close > 0){
                 TQ.INSERT_ORDER({
                     symbol: order_symbol,
                     direction: direction,
-                    offset: "CLOSE",
+                    offset: order_symbol.startsWith("SHFE.")?"CLOSETODAY":"CLOSE",
                     volume: volume_close,
                     limit_price: limit_price,
                     prefix: this.order_id_prefix,
                 });
+            }
         }
         if (offset == "OPEN" || offset == "CLOSEOPEN") {
-            if (direction == "BUY") {
+            let pos_volume = (direction == "BUY")?long_position_volume:short_position_volume;
+            if (pos_volume == 0 || !this.trade_oc_cycle){
                 if (this.volume_limit) {
-                    if (this.volume_limit > this.long_position_volume)
-                        volume_open = Math.min(this.volume_limit - this.long_position_volume, volume);
+                    if (this.volume_limit > pos_volume)
+                        volume_open = Math.min(this.volume_limit - pos_volume, volume);
                     else
                         volume_open = 0;
                 } else {
                     volume_open = volume;
                 }
-                this.long_position_volume += volume_open;
-            } else {
-                if (this.volume_limit) {
-                    if (this.volume_limit > this.short_position_volume)
-                        volume_open = Math.min(this.volume_limit - this.short_position_volume, volume);
-                    else
-                        volume_open = 0;
-                } else {
-                    volume_open = volume;
-                }
-                this.short_position_volume += volume_open;
             }
             if (volume_open > 0)
                 TQ.INSERT_ORDER({
@@ -880,15 +897,15 @@ class TQSDK {
     }
 
     GET_ACCOUNT() {
-        return this.dm.get('trade', this.dm.account_id, 'accounts', 'CNY');
+        return this.dm.set_default({}, 'trade', this.dm.account_id, 'accounts', 'CNY');
     };
 
     GET_POSITION(symbol) {
-        return this.dm.get('trade', this.dm.account_id, 'positions', symbol);
+        return this.dm.set_default({}, 'trade', this.dm.account_id, 'positions', symbol);
     };
 
     GET_POSITION_DICT(symbol) {
-        return this.dm.get('trade', this.dm.account_id, 'positions');
+        return this.dm.set_default({}, 'trade', this.dm.account_id, 'positions');
     }
 
     GET_QUOTE(symbol){
