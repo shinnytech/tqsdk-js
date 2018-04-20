@@ -42,6 +42,32 @@ function ParseSymbol(str) {
     }
 }
 
+/**
+ * 返回array的一个proxy，以支持负数下标，并可选的为每个数据项提供一个读取转换函数
+ * @param data_array
+ * @param item_func
+ * @returns {Proxy}
+ */
+function make_array_proxy(data_array, item_func=undefined){
+    let handler = {
+        get: function (target, property, receiver) {
+            if (!isNaN(property)) {
+                let i = Number(property);
+                if (i < 0)
+                    i = target.length + i;
+                if (item_func)
+                    return item_func(data_array[i]);
+                else
+                    return data_array[i];
+            } else{
+                return target[property];
+            }
+        }
+    };
+    let p = new Proxy(data_array, handler);
+    return p;
+}
+
 //dm----------------------------------------------------------------------
 class DataManager{
     constructor(){
@@ -151,39 +177,20 @@ class DataManager{
         return node;
     }
 
-    make_array_proxy(data_array, item_func=undefined){
-        let handler = {
-            get: function (target, property, receiver) {
-                if (!isNaN(property)) {
-                    let i = Number(property);
-                    if (i < 0)
-                        i = target.length + i;
-                    if (item_func)
-                        return item_func(data_array[i]);
-                    else
-                        return data_array[i];
-                } else{
-                    return target[property];
-                }
-            }
-        };
-        let p = new Proxy(data_array, handler);
-        return p;
-    }
     /**
      * 获取 k线序列
      */
     get_kline_serial(symbol, dur_nano) {
         let ks = this.set_default({last_id: -1, data:[]}, "klines", symbol, dur_nano);
         if (! ks.d){
-            ks.d = this.make_array_proxy(ks.data);
-            ks.d.open = this.make_array_proxy(ks.data, k => k?k.open:undefined);
-            ks.d.high = this.make_array_proxy(ks.data, k => k?k.high:undefined);
-            ks.d.low = this.make_array_proxy(ks.data, k => k?k.low:undefined);
-            ks.d.close = this.make_array_proxy(ks.data, k => k?k.close:undefined);
-            ks.d.volume = this.make_array_proxy(ks.data, k => k?k.volume:undefined);
-            ks.d.close_oi = this.make_array_proxy(ks.data, k => k?k.close_oi:undefined);
-            ks.d.open_oi = this.make_array_proxy(ks.data, k => k?k.open_oi:undefined);
+            ks.d = make_array_proxy(ks.data);
+            ks.d.open = make_array_proxy(ks.data, k => k?k.open:undefined);
+            ks.d.high = make_array_proxy(ks.data, k => k?k.high:undefined);
+            ks.d.low = make_array_proxy(ks.data, k => k?k.low:undefined);
+            ks.d.close = make_array_proxy(ks.data, k => k?k.close:undefined);
+            ks.d.volume = make_array_proxy(ks.data, k => k?k.volume:undefined);
+            ks.d.close_oi = make_array_proxy(ks.data, k => k?k.close_oi:undefined);
+            ks.d.open_oi = make_array_proxy(ks.data, k => k?k.open_oi:undefined);
         }
         return ks;
     }
@@ -231,7 +238,8 @@ class TaskManager{
                         task.endTime += this.intervalTime;
                     } else {
                         var now = (new Date()).getTime();
-                        if (task.endTime <= now) this.runTask(task);
+                        if (task.endTime <= now)
+                            this.runTask(task);
                     }
                 }
             }
@@ -293,18 +301,22 @@ class TaskManager{
         }
         this.any_task_stopped = false; // 任何一个task 的状态改变，都重新 run
         for (var taskId in this.aliveTasks) {
-            if (this.aliveTasks[taskId].paused || this.aliveTasks[taskId].stopped) continue;
+            if (this.aliveTasks[taskId].paused || this.aliveTasks[taskId].stopped)
+                continue;
             try {
                 this.runTask(this.aliveTasks[taskId]);
             } catch (err) {
-                if (err == 'not logined') Notify.error('未登录，请在软件中登录后重试。');
-                else console.log(err)
+                if (err == 'not logined')
+                    Notify.error('未登录，请在软件中登录后重试。');
+                else
+                    console.log(err)
             }
         }
         if (obj) {
             delete this.events[obj.type][obj.id];
         }
-        if (this.any_task_stopped) this.run();
+        if (this.any_task_stopped)
+            this.run();
     }
 
     add(func) {
@@ -474,14 +486,12 @@ class IndicatorRunContext {
 
         this.enable_trade = false;
         this.trade_symbol = symbol;
-        this.order_id_prefix = "";
+        this.unit_id = "TA." + this.instance_id;
         this.volume_limit = 10;
 
         this.epoch = 0;
         this.view_left = -1;
         this.view_right = -1;
-        this.long_position_volume = 0;
-        this.short_position_volume = 0;
         this.is_error = false;
         this.trade_at_close = false;
         this.trade_oc_cycle = false;
@@ -622,7 +632,7 @@ class IndicatorRunContext {
                     offset: order_symbol.startsWith("SHFE.")?"CLOSETODAY":"CLOSE",
                     volume: volume_close,
                     limit_price: limit_price,
-                    prefix: this.order_id_prefix,
+                    unit_id: this.unit_id,
                 });
             }
         }
@@ -645,7 +655,7 @@ class IndicatorRunContext {
                     offset: "OPEN",
                     volume: volume_open,
                     limit_price: limit_price,
-                    prefix: this.order_id_prefix,
+                    unit_id: this.unit_id,
                 });
         }
     };
@@ -1081,17 +1091,17 @@ class TQSDK {
     /**
      * 提取符合条件的所有存活委托单
      * @param {
-     *      order_id_prefix: 单号前缀, 单号以此字符串开头的委托单都会在结果集中
+     *      unit_id: 单号前缀, 单号以此字符串开头的委托单都会在结果集中
      *      status: ['ALIVE', 'FINISHED']
      * }
      * @returns {*}
      */
-    GET_ORDER_DICT({order_id_prefix=this.id, status=['ALIVE','FINISHED']}={}) {
+    GET_ORDER_DICT({unit_id, status=['ALIVE','FINISHED']}={}) {
         let results = {};
         let all_orders = this.dm.get('trade', this.dm.account_id, 'orders');
         for (var order_id in all_orders) {
             var ord = all_orders[order_id];
-            if (status.includes(ord.status) && order_id.includes(order_id_prefix))
+            if (status.includes(ord.status) && order_id.startsWith(unit_id))
                 results[order_id] = ord;
         }
         return results;
@@ -1182,13 +1192,14 @@ class TQSDK {
         }
     }
 
-    INSERT_ORDER({symbol, direction, offset, volume=1, price_type="LIMIT", limit_price, prefix=""}={}) {
+    INSERT_ORDER({symbol, direction, offset, volume=1, price_type="LIMIT", limit_price, order_id=undefined, unit_id="EXT"}={}) {
         if (!this.dm.account_id) {
             Notify.error('未登录，请在软件中登录后重试。');
             return null;
         }
+        if (!order_id)
+            order_id = unit_id + '.' + RandomStr(8);
         let {exchange_id, instrument_id} = ParseSymbol(symbol);
-        let order_id = prefix + '_' + this.id + '_' + RandomStr(8);
         let send_obj = {
             "aid": "insert_order",
             "order_id": order_id,
