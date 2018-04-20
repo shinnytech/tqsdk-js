@@ -1,16 +1,15 @@
 function* TaskSplit(params) {
-    var {exchange_id, instrument_id} = ParseSymbol(params.symbol);
     // 价格设定为对手价格
     var price_field = (params.direction === 'SELL') ? 'bid_price1' : 'ask_price1' ;
 
     var order_params = {
-        exchange_id: exchange_id,
-        instrument_id: instrument_id,
+        symbol: params.symbol,
         direction: params.direction,
-        offset: params.offset ? params.offset :'OPEN',
+        offset: params.offset ? params.offset : 'OPEN', // 默认开
     };
-    
+
     var quote = TQ.GET_QUOTE(params.symbol);
+
     var orders = []; // 记录这个 Task 下的单
 
     while (true) {
@@ -38,7 +37,7 @@ function* TaskSplit(params) {
 
         var result = yield {
             PRICE_CHANGED: function () {
-                return quote[price_field] !== order_params.limit_price 
+                return quote[price_field] !== order_params.limit_price
             }
         }
 

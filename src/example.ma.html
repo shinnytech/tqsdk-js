@@ -129,72 +129,52 @@
     <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
     <script type="text/javascript" src="assets/noty.js"></script>
 
-    <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
-    <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
-    <script type="text/javascript" src="/ta/js/utils.js"></script>
-    <script type="text/javascript" src="/ta/defaults/basefuncs.js"></script>
-    <script type="text/javascript" src="/ta/defaults/ma.js"></script>
+    <script type="text/javascript" src="ta/js/utils.js"></script>
+    <script type="text/javascript" src="libs/func/basefuncs.js"></script>
+    <script type="text/javascript" src="libs/ind/ma.js"></script>
     <!-- concat:end -->
-
-    <script type="text/javascript" src="tqsdk.js"></script>
-    <script type="text/javascript" src="tqklines.js"></script>
+    <script type="text/javascript" src="libs/tqsdk.js"></script>
 
     <script type="text/javascript" id='TRADE-CODE'>
+        const TQ = new TQSDK();
 
         function* TaskMA() {
-            var quote = TQ.GET_QUOTE(TQ.UI.symbol);
-            if (!quote) return;
-
             TQ.SET_STATE('START');
+            var quote = TQ.GET_QUOTE(TQ.UI.symbol);
+
+            var indicator_ma = TQ.NEW_INDICATOR_INSTANCE(ma, TQ.UI.symbol, TQ.UI.duration);
 
             var params = TQ.UI(); // 读取页面参数
-            var { exchange_id, instrument_id } = ParseSymbol(TQ.UI.symbol).exchange_id;
-            params.exchange_id = ParseSymbol(TQ.UI.symbol).exchange_id;
-            params.instrument_id = ParseSymbol(TQ.UI.symbol).instrument_id;
             params.offset = 'OPEN';
-
-            var kseq = TQ.GET_KLINE({
-                symbol: TQ.UI.symbol,
-                duration: TQ.UI.duration,
-                width: 100
-            });
-
-            var ma_params = {
-                "N1": { "value": 3 },
-                "N2": { "value": 5 },
-                "N3": { "value": 10 },
-                "N4": { "value": 20 },
-            }
-
-            var ma = TQ.GET_Indicator('myindicator', kseq, 'ma', ma_params);
 
             while (true) {
                 var result = yield {
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
                     SHOW: function () {
-                        if (ma[-1]) {
-                            TQ.UI.ma3 = ma[-1].ma3;
-                            TQ.UI.ma20 = ma[-1].ma20;
-                        }
+                        TQ.UI.ma3 = indicator_ma.outs.ma3(-1);
+                        TQ.UI.ma20 = indicator_ma.outs.ma20(-1);
                         return false;
                     },
                     BUY: function () {
-                        if (ma[-1] && ma[-2]) {
-                            if (params.offset == 'OPEN')
-                                return ma[-2].ma3 < ma[-2].ma20 && ma[-1].ma3 > ma[-1].ma20;
-                            else if (params.direction == 'SELL')
-                                return ma[-2].ma3 < ma[-2].ma20 && ma[-1].ma3 > ma[-1].ma20;
-
-                        }
+                        var short_last = indicator_ma.outs.ma3(-2);
+                        var long_last = indicator_ma.outs.ma20(-2);
+                        var short = indicator_ma.outs.ma3(-1);
+                        var long = indicator_ma.outs.ma20(-1);
+                        if (params.offset == 'OPEN')
+                            return short_last < long_last && short > long;
+                        else if (params.direction == 'SELL')
+                            return short_last > long_last && short < long;
                         return false;
                     },
                     SELL: function () {
-                        if (ma[-1] && ma[-2]) {
-                            if (params.offset == 'OPEN')
-                                return ma[-2].ma3 > ma[-2].ma20 && ma[-1].ma3 < ma[-1].ma20;
-                            else if (params.direction == 'BUY')
-                                return ma[-2].ma3 > ma[-2].ma20 && ma[-1].ma3 < ma[-1].ma20;
-                        }
+                        var short_last = indicator_ma.outs.ma3(-2);
+                        var long_last = indicator_ma.outs.ma20(-2);
+                        var short = indicator_ma.outs.ma3(-1);
+                        var long = indicator_ma.outs.ma20(-1);
+                        if (params.offset == 'OPEN')
+                            return short_last > long_last && short < long;
+                        else if (params.direction == 'BUY')
+                            return short_last > long_last && short < long;
                         return false;
                     }
                 };

@@ -112,10 +112,6 @@ class DataManager{
         this.datas = {};
     }
 
-    get_combine(ins_id) {
-        return this.get('combines/USER.' + ins_id, from);
-    };
-
     /**
      * 收到aid=="rtn_data"的数据包时, 由本函数处理
      * @param message_rtn_data
@@ -204,7 +200,6 @@ class Task {
         // this.endTime = 0;
         this.stopped = false;
         this.events = {};
-        this.orders = {};
     }
 
     pause() {
@@ -313,7 +308,7 @@ class TaskManager{
     }
 
     add(func) {
-        var task_id = GenTaskId.next().value;
+        var task_id = this.GenTaskId.next().value;
         var task = new Task(task_id, func);
         this.aliveTasks[task_id] = task;
         this.runningTask = task;
@@ -349,7 +344,7 @@ class TaskManager{
             }
             var f = func.apply(null, args);
             if (f.next && (typeof f.next === 'function')) {
-                return TaskManager.add(f);
+                return this.add(f);
             } else {
                 console.log('task 参数类型错误');
             }
@@ -888,12 +883,10 @@ class TQSDK {
         this.tm = new TaskManager();
         this.ta = new TaManager();
 
-        this.GET_COMBINE = this.dm.get_combine;
-
-        this.START_TASK = this.tm.start_task;
-        this.PAUSE_TASK = this.tm.pause_task;
-        this.RESUME_TASK = this.tm.resume_task;
-        this.STOP_TASK = this.tm.stop_task;
+        this.START_TASK = this.tm.start_task.bind(this.tm);
+        this.PAUSE_TASK = this.tm.pause_task.bind(this.tm);
+        this.RESUME_TASK = this.tm.resume_task.bind(this.tm);
+        this.STOP_TASK = this.tm.stop_task.bind(this.tm);
 
         this.ws_processor = {
             onmessage: [],
@@ -902,7 +895,27 @@ class TQSDK {
             onclose: [],
         }
         this.ws.init();
-        this.orders = {};
+        this.UI = new Proxy(() => null, {
+            get: function (target, key, receiver) {
+                let res = UiUtils.readNodeBySelector('input#' + key);
+                if (res[key]) return res[key];
+                res = UiUtils.readNodeBySelector('input[name="' + key + '"]'); // radio
+                if (res[key]) return res[key];
+                res = UiUtils.readNodeBySelector('span#' + key);
+                if (res[key]) return res[key];
+                return undefined;
+            },
+            set: function (target, key, value, receiver) {
+                UiUtils.writeNode(key, value);
+            },
+            apply: function (target, ctx, args) {
+                let params = args[0];
+                if (params) for (let key in params) UiUtils.writeNode(key, params[key]);
+                else return UiUtils.readNodeBySelector('input');
+                return args[0];
+            }
+        });
+        this.init_ui(this);
     }
 
     register_ws_processor(evt, processor_func) {
@@ -915,6 +928,9 @@ class TQSDK {
                 this.on_rtn_data(message);
             case "update_indicator_instance":
                 this.on_update_indicator_instance(message);
+            case "update_custom_combine":
+                if(!this.dm.datas.combines) this.dm.datas.combines = {};
+                this.dm.datas.combines[message.symbol] = message.weights;
             default:
                 return;
         }
@@ -1014,6 +1030,10 @@ class TQSDK {
         this.ws.send_json(set_data);
     }
 
+    IS_CHANGING(obj){
+        return this.dm.is_changing(obj);
+    }
+
     GET_ACCOUNT() {
         return this.dm.set_default({}, 'trade', this.dm.account_id, 'accounts', 'CNY');
     };
@@ -1021,6 +1041,10 @@ class TQSDK {
     GET_POSITION(symbol) {
         return this.dm.set_default({}, 'trade', this.dm.account_id, 'positions', symbol);
     };
+
+    GET_COMBINE(combine_id){
+        return this.dm.set_default({}, 'combines', 'USER.' + combine_id);
+    }
 
     GET_POSITION_DICT(symbol) {
         return this.dm.set_default({}, 'trade', this.dm.account_id, 'positions');
@@ -1075,19 +1099,21 @@ class TQSDK {
 
     CHANGED_ORDERS(){
         var result = {};
-        for(var order_id in this.orders){
-            if (this.dm.is_changing(this.orders[order_id])){
-                result[order_id] = this.orders[order_id];
-                if (this.orders[order_id].status == 'FINISHED') {
-                    delete this.orders[order_id];
+        var orders = this.GET_ORDER_DICT({status: ['ALIVE', 'FINISHED']});
+        for(var order_id in orders){
+            if (this.dm.is_changing(orders[order_id])){
+                result[order_id] = orders[order_id];
+                if (orders[order_id].status == 'FINISHED') {
+                    delete orders[order_id];
                 }
             }
         }
         return result;
     }
 
-    GET_ORDERS_SUMMARY(){
-        var orders = this.GET_ORDER_DICT({status: ['ALIVE', 'FINISHED']});
+    GET_ORDERS_SUMMARY(orders){
+        if (!orders)
+            orders = this.GET_ORDER_DICT({status: ['ALIVE', 'FINISHED']});
         var result = {};
         for(var order_id in orders){
             var order = orders[order_id];
@@ -1102,22 +1128,29 @@ class TQSDK {
                     close_sell_volume: 0,
                     open_sell_volume: 0,
                     close_buy_volume: 0,
+                    open_buy_pending_volume: 0,
+                    close_sell_pending_volume: 0,
+                    open_sell_pending_volume: 0,
+                    close_buy_pending_volume: 0,
                 }
             }
             var vol_changed = order.volume_orign - order.volume_left;
+            var opt = '';
+            if (order.direction == 'BUY') {
+                opt = (order.offset == 'OPEN') ?
+                    'open_buy' :
+                    'close_buy';
+            } else if (order.direction == 'SELL') {
+                opt = (order.offset == 'OPEN') ?
+                    'open_sell' :
+                    'close_sell';
+            }
             if (vol_changed > 0) {
-                var opt = '';
-                if (order.direction == 'BUY') {
-                    opt = (order.offset == 'OPEN') ?
-                        'open_buy' :
-                        'close_buy';
-                } else if (order.direction == 'SELL') {
-                    opt = (order.offset == 'OPEN') ?
-                        'open_sell' :
-                        'close_sell';
-                }
                 result[symbol][opt + '_volume'] += vol_changed;
                 result[symbol][opt + '_price'] += (order.limit_price * vol_changed);
+            }
+            if (order.status == 'ALIVE' && order.volume_left > 0) {
+                result[symbol][opt + '_pending_volume'] += order.volume_left;
             }
         }
         for(var symbol in result){
@@ -1126,8 +1159,24 @@ class TQSDK {
             result[symbol].open_sell_price = result[symbol].open_sell_volume > 0 ? result[symbol].open_sell_price / result[symbol].open_sell_volume : 0;
             result[symbol].close_buy_price = result[symbol].close_buy_volume > 0 ? result[symbol].close_buy_price / result[symbol].close_buy_volume : 0;
         }
+
         if(Object.keys(result).length == 1){
             return result[Object.keys(result)[0]];
+        }else if(Object.keys(result).length == 0){
+            return {
+                open_buy_price: 0,
+                close_sell_price: 0,
+                open_sell_price: 0,
+                close_buy_price: 0,
+                open_buy_volume: 0,
+                close_sell_volume: 0,
+                open_sell_volume: 0,
+                close_buy_volume: 0,
+                open_buy_pending_volume: 0,
+                close_sell_pending_volume: 0,
+                open_sell_pending_volume: 0,
+                close_buy_pending_volume: 0,
+            }
         }else{
             return result;
         }
@@ -1163,7 +1212,6 @@ class TQSDK {
             limit_price: limit_price,
             price_type: "LIMIT",
         }, "trade", this.dm.account_id, "orders", order_id);
-        this.orders[order_id] = order;
         return order;
     };
 
@@ -1174,8 +1222,6 @@ class TQSDK {
         } else if (typeof order == 'string')  {
             orders = this.GET_ORDER_DICT({order_id_prefix: order});
         }
-        console.log(order)
-        console.log(orders)
         for (let order_id in orders) {
             this.ws.send_json({
                 "aid": "cancel_order",
@@ -1196,10 +1242,147 @@ class TQSDK {
     }
     NEW_INDICATOR_INSTANCE(ind_func, symbol, dur_sec, params={}, instance_id=RandomStr()) {
         let dur_nano = dur_sec * 1000000000;
+        if (Object.keys(this.ta.class_dict) == 0){
+            // 如果是 task 新建 NEW_INDICATOR_INSTANCE
+            this.ws.send_json({
+                "aid": "set_chart",
+                "chart_id": RandomStr(),
+                "ins_list": symbol,
+                "duration": dur_nano,
+                "view_width": 100, // 默认为 100
+            });
+        }
         let ds = this.dm.get_kline_serial(symbol, dur_nano);
         return this.ta.new_indicator_instance(ind_func, symbol, dur_sec, ds, params, instance_id);
     }
     DELETE_INDICATOR_INSTANCE(ind_instance){
         return this.ta.delete_indicator_instance(ind_instance);
     }
+
+    /**
+     * UI 相关
+     */
+    SET_STATE(cmd) {
+        cmd = cmd.toUpperCase();
+        if (cmd === 'START' || cmd === 'RESUME') {
+            $('.panel-title .STATE').html('<span class="label label-success">运行中</span>');
+            $('input').attr('disabled', true);
+            $('button.START').attr('disabled', true);
+        } else if (cmd === 'PAUSE') {
+            $('.panel-title .STATE').html('<span class="label label-warning">已暂停</span>');
+            $('input').attr('disabled', true);
+            $('button.START').attr('disabled', true);
+        } else if (cmd === 'STOP') {
+            $('.panel-title .STATE').html('<span class="label label-danger">已停止</span>');
+            $('input').attr('disabled', false);
+            $('button.START').attr('disabled', false);
+        }
+    }
+
+    ON_CLICK(dom_id) {
+        var this_tq = this;
+        return function () {
+            if (this_tq.tm.events['click'] && this_tq.tm.events['click'][dom_id]) {
+                var d = Object.assign({}, this_tq.tm.events['click'][dom_id]);
+                return true;
+            }
+            return false;
+        }
+    }
+
+    ON_CHANGE(dom_id) {
+        var this_tq = this;
+        return function () {
+            if (this_tq.tm.events['change'] && this_tq.tm.events['change'][dom_id]) {
+                var d = Object.assign({}, this_tq.tm.events['change'][dom_id]);
+                return true;
+            }
+            return false;
+        }
+    }
+
+    init_ui(){
+        if ($) {
+            var this_tq = this;
+            $(() => {
+                // init code
+                var lines = $('#TRADE-CODE').text().split('\n');
+                lines.forEach((el, i, arr) => lines[i] = el.replace(/\s{8}/, ''));
+                var html = hljs.highlightAuto(lines.join('\n'));
+                $('#code_container code').html(html.value);
+
+                $('#collapse').on('hide.bs.collapse', () => $('#collapse_arrow').removeClass('glyphicon-menu-up').addClass('glyphicon-menu-down'));
+                $('#collapse').on('show.bs.collapse', () => $('#collapse_arrow').removeClass('glyphicon-menu-down').addClass('glyphicon-menu-up'));
+
+                $(document).on('click', function (e) {
+                    // 页面 Click 事件统一处理 4 类按钮 START RESUME PAUSE END
+                    var dataSet = Object.assign({}, e.target.dataset);
+                    this_tq.tm.run({ type: e.type, id: e.target.id, data: dataSet });
+                });
+                $('input').on('change', function (e) {
+                    var dataSet = Object.assign({}, e.target.dataset);
+                    this_tq.tm.run({ type: e.type, id: e.target.id, data: dataSet });
+                });
+            });
+        }
+    }
+
 }
+
+
+/************************************************************
+ * UI 部分
+ *************************************************************/
+
+const UiUtils = (function () {
+    function _writeBySelector(sel, value) {
+        let nodeList = document.querySelectorAll(sel);
+        let success = false;
+        nodeList.forEach((node, index, array) => {
+            if (node.nodeName === 'SPAN' || node.nodeName === 'DIV') {
+                node.innerText = value;
+                success = true;
+            } else if (node.nodeName === 'INPUT') {
+                if (node.type === 'text' || node.type === 'number') {
+                    node.value = value;
+                    success = true;
+                } else if (node.type === 'radio' && node.value === value) {
+                    node.checked = true;
+                    success = true;
+                }
+            }
+        });
+        return success;
+    }
+    return {
+        readNodeBySelector (sel) {
+            let nodeList = document.querySelectorAll(sel);
+            let params = {};
+            nodeList.forEach((node, index, array) => {
+                Object.assign(params, UiUtils.readNode(node));
+            });
+            return params;
+        },
+        readNode (node) {
+            if (node.nodeName == 'INPUT')
+                switch (node.type) {
+                    case 'number':
+                        return {[node.id]: node.valueAsNumber};
+                    case 'text':
+                        return {[node.id]: node.value};
+                    case 'radio':
+                        return node.checked ?
+                            {[node.name]: node.value} :
+                            {};
+                    default:
+                        return {[node.id]: undefined};
+                }
+            else if (node.nodeName == 'SPAN')
+                return {[node.id]: node.innerText}
+        },
+        writeNode (key, value) {
+            if (!_writeBySelector('#' + key, value))
+                _writeBySelector('input[type="radio"][name=' + key + ']', value);
+        }
+    }
+})();

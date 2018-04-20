@@ -121,28 +121,21 @@
     <script type="text/javascript" src="assets/noty.js"></script>
 
     <script type="text/javascript" src="ta/js/utils.js"></script>
-    <script type="text/javascript" src="lib/func/basefuncs.js"></script>
-    <script type="text/javascript" src="lib/tqsdk.js"></script>
-
-
+    <script type="text/javascript" src="libs/func/basefuncs.js"></script>
     <!-- concat:end -->
-
-    <script type="text/javascript" src="tqsdk.js"></script>
+    <script type="text/javascript" src="libs/tqsdk.js"></script>
 
     <script type="text/javascript" id='TRADE-CODE'>
         const TQ = new TQSDK();
-
-
         function* TaskOrder(direction, offset) {
             TQ.SET_STATE('START');
 
             var params = TQ.UI(); // 读取页面参数
             params.direction = direction;
             params.offset = offset;
-            params.exchange_id = ParseSymbol(TQ.UI.symbol).exchange_id;
-            params.instrument_id = ParseSymbol(TQ.UI.symbol).instrument_id;
 
             var order = TQ.INSERT_ORDER(params);
+
             var result = yield {
                 FINISHED: function () { return order.status === "FINISHED" },
                 USER_CLICK_STOP: TQ.ON_CLICK('STOP'),

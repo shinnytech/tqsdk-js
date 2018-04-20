@@ -32,7 +32,7 @@
                             <span class="pull-right">合约代码A</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control input-sm" placeholder="合约代码A" value="SHFE.rb1805" id="insA">
+                            <input type="text" class="form-control input-sm" placeholder="合约代码A" value="SHFE.rb1805" id="symbolA">
                         </div>
                     </div>
                     <div class="row">
@@ -40,7 +40,7 @@
                             <span class="pull-right">合约代码B</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control input-sm" placeholder="合约代码B" value="SHFE.rb1810" id="insB">
+                            <input type="text" class="form-control input-sm" placeholder="合约代码B" value="SHFE.rb1810" id="symbolB">
                         </div>
                     </div>
                     <div class="row">
@@ -177,23 +177,22 @@
     <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
     <script type="text/javascript" src="assets/noty.js"></script>
 
-    <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
-    <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
-    <script type="text/javascript" src="/ta/js/utils.js"></script>
+    <script type="text/javascript" src="ta/js/utils.js"></script>
+    <script type="text/javascript" src="libs/func/basefuncs.js"></script>
     <!-- concat:end -->
-
-    <script type="text/javascript" src="tqsdk.js"></script>
+    <script type="text/javascript" src="libs/tqsdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
-        function* TaskQuote(C) {
+        const TQ = new TQSDK();
+
+        function* TaskQuote() {
+            let quoteA = TQ.GET_QUOTE(TQ.UI.symbolA);
+            let quoteB = TQ.GET_QUOTE(TQ.UI.symbolB);
             while (true) {
                 let result = yield {
-                    QUOTE_UPDATED_A: function () { return !!TQ.GET_QUOTE(TQ.UI.insA, TQ.CHANGING_DATA); },
-                    QUOTE_UPDATED_B: function () { return !!TQ.GET_QUOTE(TQ.UI.insB, TQ.CHANGING_DATA); },
-                    SYMBOL_CHANGED_A: TQ.ON_CHANGE('insA'),
-                    SYMBOL_CHANGED_B: TQ.ON_CHANGE('insB'),
+                    QUOTE_UPDATED: function () { return TQ.IS_CHANGING(quoteA) || TQ.IS_CHANGING(quoteB); },
+                    SYMBOL_CHANGED_A: TQ.ON_CHANGE('symbolA'),
+                    SYMBOL_CHANGED_B: TQ.ON_CHANGE('symbolB'),
                 };
-                let quoteA = TQ.GET_QUOTE(TQ.UI.insA);
-                let quoteB = TQ.GET_QUOTE(TQ.UI.insB);
                 if (quoteA && quoteB) {
                     TQ.UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
                     TQ.UI.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
@@ -202,24 +201,16 @@
         }
 
         function* TaskSpread(C) {
-            let quoteA = TQ.GET_QUOTE(TQ.UI.insA);
-            let quoteB = TQ.GET_QUOTE(TQ.UI.insB);
-            if (!quoteA || !quoteB)
-                return;
-            TQ.SET_STATE('START');
-            let short_volume = 0, long_volume = 0;
-            // 参数设定
-            let match_arr_a = TQ.UI.insA.match(/([^\.]+)\.(.*)/);
-            let exchange_id_a = match_arr_a[1]; // 交易所代码
-            let instrument_id_a = match_arr_a[2]; // 合约代码
+            let quoteA = TQ.GET_QUOTE(TQ.UI.symbolA);
+            let quoteB = TQ.GET_QUOTE(TQ.UI.symbolB);
 
-            let match_arr_b = TQ.UI.insB.match(/([^\.]+)\.(.*)/);
-            let exchange_id_b = match_arr_b[1]; // 交易所代码
-            let instrument_id_b = match_arr_b[2]; // 合约代码
+            TQ.SET_STATE('START');
+
+            let short_volume = 0, long_volume = 0;
 
             let volume = parseInt(TQ.UI.volume);
-            let order_a = { ins_id: TQ.UI.insA, exchange_id: exchange_id_a, instrument_id: instrument_id_a, volume: volume };
-            let order_b = { ins_id: TQ.UI.insB, exchange_id: exchange_id_b, instrument_id: instrument_id_b, volume: volume };
+            let order_a = { symbol: TQ.UI.symbolA, volume};
+            let order_b = { symbol: TQ.UI.symbolB, volume};
             let buy_open = { direction: 'BUY', offset: 'OPEN', price_field: 'ask_price1' };
             let sell_close = { direction: 'SELL', offset: 'CLOSE', price_field: 'bid_price1' };
             let sell_open = { direction: 'SELL', offset: 'OPEN', price_field: 'bid_price1' };
@@ -237,23 +228,23 @@
                 if (result.USER_CLICK_STOP)
                     break;
                 if(result.BUY_OPEN){
-                    task_a = TQ.START_TASK(TaskSingleOrder, Object.assign({}, order_a, buy_open));
-                    task_b = TQ.START_TASK(TaskSingleOrder, Object.assign({}, order_b, sell_open));
+                    task_a = TQ.START_TASK(TaskOrder, Object.assign({}, order_a, buy_open));
+                    task_b = TQ.START_TASK(TaskOrder, Object.assign({}, order_b, sell_open));
                     long_volume = volume;
                 }
                 if(result.SELL_CLOSE){
-                    task_a = TQ.START_TASK(TaskSingleOrder, Object.assign({}, order_a, sell_close));
-                    task_b = TQ.START_TASK(TaskSingleOrder, Object.assign({}, order_b, buy_close));
+                    task_a = TQ.START_TASK(TaskOrder, Object.assign({}, order_a, sell_close));
+                    task_b = TQ.START_TASK(TaskOrder, Object.assign({}, order_b, buy_close));
                     long_volume = 0;
                 }
                 if(result.SELL_OPEN){
-                    task_a = TQ.START_TASK(TaskSingleOrder, Object.assign({}, order_a, sell_open));
-                    task_b = TQ.START_TASK(TaskSingleOrder, Object.assign({}, order_b, buy_open));
+                    task_a = TQ.START_TASK(TaskOrder, Object.assign({}, order_a, sell_open));
+                    task_b = TQ.START_TASK(TaskOrder, Object.assign({}, order_b, buy_open));
                     short_volume = volume;
                 }
                 if(result.BUY_CLOSE){
-                    task_a = TQ.START_TASK(TaskSingleOrder, Object.assign({}, order_a, buy_close));
-                    task_b = TQ.START_TASK(TaskSingleOrder, Object.assign({}, order_b, sell_close));
+                    task_a = TQ.START_TASK(TaskOrder, Object.assign({}, order_a, buy_close));
+                    task_b = TQ.START_TASK(TaskOrder, Object.assign({}, order_b, sell_close));
                     short_volume = 0;
                 }
                 let wait_subtask_finish = yield {
@@ -272,16 +263,18 @@
             TQ.SET_STATE('STOP');
         }
 
-        function* TaskSingleOrder(order_param) {
-            let quote = TQ.GET_QUOTE(order_param.ins_id);
-            // 设定为当前对手价
-            let price_field = order_param.price_field;
-            order_param.limit_price = quote[price_field];
-            let order = TQ.INSERT_ORDER(order_param);
+        function* TaskOrder(order_params) {
+            var quote = TQ.GET_QUOTE(order_params.symbol);
+            order_params.limit_price = quote[order_params.price_field];
+            var order = TQ.INSERT_ORDER(order_params);
+
             while (true) {
                 let result = yield {
-                    ORDER_UPDATED: function () { return !!TQ.GET_ORDER(order.order_id, TQ.CHANGING_DATA); },
-                    PRICE_CHANGED: function () { return quote[price_field] !== order_param.limit_price },
+                    ORDER_TRADE: function () { return order.volume_orign > order.volume_left; },
+                    PRICE_CHANGED: function () {
+                        var new_price  = order_params.direction === 'SELL' ? quote.bid_price1 : quote.ask_price1;
+                        return new_price !== order_params.limit_price;
+                    },
                 };
                 // 错单
                 if (order.status == 'FINISHED' && order.exchange_order_id == '')
@@ -294,9 +287,9 @@
                     ORDER_CANCELED: function () { return order.status == 'FINISHED'; },
                 };
                 if (order.volume_left > 0) {
-                    order_param.limit_price = quote[price_field];
-                    order_param.volume = order.volume_left;
-                    order = TQ.INSERT_ORDER(order_param);
+                    order_params.limit_price = order_params.direction === 'SELL' ? quote.bid_price1 : quote.ask_price1;
+                    order_params.volume = order.volume_left;
+                    order = TQ.INSERT_ORDER(order_params);
                 }
             }
         }

@@ -116,28 +116,18 @@
     <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
     <script type="text/javascript" src="assets/noty.js"></script>
 
-    <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
-    <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
-    <script type="text/javascript" src="/ta/js/utils.js"></script>
+    <script type="text/javascript" src="ta/js/utils.js"></script>
+    <script type="text/javascript" src="libs/func/basefuncs.js"></script>
     <!-- concat:end -->
-
-    <script type="text/javascript" src="tqsdk.js"></script>
+    <script type="text/javascript" src="libs/tqsdk.js"></script>
 
     <script type="text/javascript" id='TRADE-CODE'>
+        const TQ = new TQSDK();
 
         function* TaskKLine() {
-            var quote = TQ.GET_QUOTE(TQ.UI.symbol);
-            if (!quote) return;
-
             TQ.SET_STATE('START');
-            
-            var kseq = TQ.GET_KLINE({
-                kline_id: 'abcdefg',
-                symbol: TQ.UI.symbol,
-                duration: TQ.UI.duration,
-                width: 100
-            });
 
+            var kseq = TQ.GET_KLINE(TQ.UI());
             while (true) {
                 var result = yield {
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP'),

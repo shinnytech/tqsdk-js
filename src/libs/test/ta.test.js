@@ -19,6 +19,7 @@ class MockWebsocket{
 }
 
 var TQ = new TQSDK(new MockWebsocket());
+
 init_test_data(TQ);
 batch_input_datas({TQ, symbol: 'SHFE.rb1810', dur:5, left_id:1000, right_id:10000, last_id:10000});
 

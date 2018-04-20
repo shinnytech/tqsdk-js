@@ -33,7 +33,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control  input-sm" id="instrument" placeholder="合约代码" value='SHFE.rb1805'>
+                            <input type="text" class="form-control  input-sm" id="symbol" placeholder="合约代码" value='SHFE.rb1805'>
                         </div>
                     </div>
                     <div class="row">
@@ -211,142 +211,67 @@
     <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
     <script type="text/javascript" src="assets/noty.js"></script>
 
-    <script type="text/javascript" src="/ta/js/worker/datamanager.js"></script>
-    <script type="text/javascript" src="/ta/js/worker/websocket.js"></script>
-    <script type="text/javascript" src="/ta/js/utils.js"></script>
+    <script type="text/javascript" src="ta/js/utils.js"></script>
+    <script type="text/javascript" src="libs/func/basefuncs.js"></script>
     <!-- concat:end -->
-
-    <script type="text/javascript" src="tqsdk.js"></script>
+    <script type="text/javascript" src="libs/tqsdk.js"></script>
     <script type="text/javascript" id='TRADE-CODE'>
-        class Task {
-            constructor (task_id, func, waitConditions = null) {
-                this.id = task_id;
-                this.func = func;
-                this.paused = false;
-                this.waitConditions = waitConditions;
-                // this.timeout = 6000000; // 每个任务默认时间
-                // this.endTime = 0;
-                this.stopped = false;
-                this.events = {};
-                this.orders = {};
-            }
-
-            pause () {
-                this.paused = true;
-            }
-
-            resume () {
-                this.paused = false;
-            }
-
-            stop () {
-                this.stopped = true;
-            }
-        }
-
-        class taskOrder extends Task{
-            * run (){
-
-
-            }
-        }
-
-
-
+        const TQ = new TQSDK();
 
         function* TaskQuote() {
+            var quote = TQ.GET_QUOTE(TQ.UI.symbol);
             while (true) {
                 var result = yield {
-                    UPDATED_QUOTE: function () { return !!TQ.GET_QUOTE(TQ.UI.instrument, TQ.CHANGING_DATA) },
-                    CHANGED: TQ.ON_CHANGE('instrument')
+                    UPDATED_QUOTE: function () { return TQ.IS_CHANGING(quote) },
+                    CHANGED: TQ.ON_CHANGE('symbol')
                 };
-                var quote = TQ.GET_QUOTE(TQ.UI.instrument);
+                var quote = TQ.GET_QUOTE(TQ.UI.symbol);
                 TQ.UI(quote);
             }
         }
 
         function* TaskSplit() {
-            var quote = TQ.GET_QUOTE(TQ.UI.instrument);
-            if (!quote)
-                return;
             TQ.SET_STATE('START');
-
-            var match_arr = TQ.UI.instrument.match(/([^\.]+)\.(.*)/);
-            var exchange_id = match_arr[1]; // 交易所代码
-            var instrument_id = match_arr[2]; // 合约代码
-
+            var quote = TQ.GET_QUOTE(TQ.UI.symbol);
             var max_price = Math.max(TQ.UI.price_from, TQ.UI.price_to);
             var min_price = Math.min(TQ.UI.price_from, TQ.UI.price_to);
             // 价格设定为跟盘价格
             var price_field = (TQ.UI.direction === 'SELL') ? 'ask_price1' : 'bid_price1';
+            var order_params = Object.assign(TQ.UI(), {prefix: 'split'});
+            var offset_dir = (TQ.UI.offset + '_' + TQ.UI.direction).toLowerCase();
 
-            var order_params = {
-                exchange_id: exchange_id,
-                instrument_id: instrument_id,
-                direction: TQ.UI.direction,
-                offset: TQ.UI.offset,
-            };
+            while(true){
+                var orders = TQ.GET_ORDER_DICT({order_id_prefix:'split', status:['ALIVE','FINISHED']});
+                var summary = TQ.GET_ORDERS_SUMMARY(orders);
+                var traded_volume = summary[ offset_dir + '_volume'];
+                var traded_avgprice = summary[ offset_dir + '_price'];
+                TQ.UI({ traded_volume, traded_avgprice}); // 更新显示已成交手数、已成交均价
 
-            var orders = []; // 记录这个 Task 下的单
-            var kline = TQ.GETKLINE(...);
-            var ind = TQ.NEW_INDICATOR_INSTANCE(kdj, 10, 20, symbol, dur);
-            while (true) {
-                if (ind.outs.ks[-1] < 50){
-                    Sleep(100);
-                    continue;
-                }
+                var left_volume = TQ.UI.all_volume - summary[ offset_dir + '_volume'];
+                if(left_volume == 0) break;
 
-                var pending_volume = 0; // 挂单手数
-                var traded_sum = 0; // 已成交的总金额
-                var traded_volume = 0; // 已成交的总手数
-
-                for (var order of orders) {
-                    // 已撤单且未成交的不考虑
-                    if (order.status == 'FINISHED' && order.volume_orign == order.volume_left) continue;
-                    var vol = order.volume_orign - order.volume_left;
-                    traded_volume += vol;
-                    pending_volume += order.volume_left;
-                    traded_sum += order.limit_price * vol;
-                }
-
-                // 成交均价
-                traded_avgprice = traded_volume == 0 ? 0 : Math.round(traded_sum / traded_volume * 100) / 100;
-                TQ.UI({ traded_volume, traded_avgprice }); // 更新显示已成交手数、已成交均价
-                if (TQ.UI.all_volume - traded_volume == 0) break; // Task结束
                 if (quote[price_field] <= max_price && quote[price_field] >= min_price) {
-                    order_params.volume = Math.min(TQ.UI.max_one_volume, TQ.UI.all_volume - traded_volume) - pending_volume; // 设置手数
+                    order_params.volume = Math.min(TQ.UI.max_one_volume, left_volume) - summary[ offset_dir + '_pending_volume']; // 设置手数
                     if (order_params.volume > 0) {
                         order_params.limit_price = quote[price_field]; // 设置价格
-                        orders.push(TQ.INSERT_ORDER(order_params)); // 记录这个 Task 下的单
+                        TQ.INSERT_ORDER(order_params);
                     }
                 }
-
                 var result = yield {
-                    ORDER_CHANGED: function () { return !!TQ.GET_ORDER(null, TQ.CHANGING_DATA); },
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
-                    NEW_TRADE: ...,
+                    NEW_TRADE: function(){
+                        var new_traded_volume = TQ.GET_ORDERS_SUMMARY(orders)[ offset_dir + '_volume'];
+                        return new_traded_volume > traded_volume;
+                    },
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                 };
-
-                for (var order of orders) {
-                    if (order.status == 'FINISHED' && order.exchange_order_id == '') {
-                        // 发生错单， 直接退出 - 任务结束
-                        TQ.SET_STATE('STOP');
-                        return;
-                    }
-                }
-
                 if (result.PRICE_CHANGED || result.USER_CLICK_STOP) {
-                    // 撤单
-                    for (var order of orders) {
-                        if (order.status == 'ALIVE' || order.status == "UNDEFINED") TQ.CANCEL_ORDER(order);
-                    }
+                    TQ.CANCEL_ORDER('split');
                     if (result.USER_CLICK_STOP) break;
                 }
             }
             // 任务结束
             TQ.SET_STATE('STOP');
-
         }
 
         $(function () {
