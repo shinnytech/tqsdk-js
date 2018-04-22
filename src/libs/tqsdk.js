@@ -161,7 +161,7 @@ class DataManager{
                 if (i+1 == path.length)
                     node[path[i]] = default_value;
                 else
-                    node[path[i]] = {}
+                    node[path[i]] = {};
             node = node[path[i]];
         }
         return node;
@@ -461,6 +461,10 @@ class IndicatorDefineContext {
     };
     ORDER() {
     };
+    TRADE_AT_CLOSE(){
+    };
+    TRADE_OC_CYCLE(){
+    };
     get_define() {
         this.instance.next();
         this.params.forEach((value) => this.define.params.push(value));
@@ -607,6 +611,7 @@ class IndicatorRunContext {
         if (!this.trade_at_close && this._ds.last_id != current_i)
             return;
         this.last_i = current_i;
+        //确定下单价格
         if (!limit_price){
             let quote = TQ.GET_QUOTE(order_symbol);
             let price_field = direction == "BUY" ? 'ask_price1' : 'bid_price1';
@@ -614,16 +619,17 @@ class IndicatorRunContext {
                 return;
             limit_price = quote[price_field];
         }
-        let position = TQ.GET_POSITION(order_symbol);
-        let short_position_volume = position.volume_short_today?position.volume_short_today:0;
-        let long_position_volume = position.volume_long_today?position.volume_long_today:0;
+        //
+        let position = TQ.GET_UNIT_POSITION(this.unit_id, order_symbol);
         let volume_open = 0;
         let volume_close = 0;
         if (offset == "CLOSE" || offset == "CLOSEOPEN") {
+            let long_closeable_volume = position.volume_long?position.volume_long - position.order_volume_sell_close:0;
+            let short_closeable_volume = position.volume_short?position.volume_short - position.order_volume_buy_close:0;
             if (direction == "BUY") {
-                volume_close = Math.min(short_position_volume, volume);
+                volume_close = Math.min(short_closeable_volume, volume);
             } else {
-                volume_close = Math.min(long_position_volume, volume);
+                volume_close = Math.min(long_closeable_volume, volume);
             }
             if (volume_close > 0){
                 TQ.INSERT_ORDER({
@@ -637,6 +643,8 @@ class IndicatorRunContext {
             }
         }
         if (offset == "OPEN" || offset == "CLOSEOPEN") {
+            let long_position_volume = (position.volume_long + position.order_volume_buy_open)?position.volume_long + position.order_volume_buy_open:0;
+            let short_position_volume = (position.volume_short + position.order_volume_sell_open)?position.volume_short + position.order_volume_sell_open:0;
             let pos_volume = (direction == "BUY")?long_position_volume:short_position_volume;
             if (pos_volume == 0 || !this.trade_oc_cycle){
                 if (this.volume_limit) {
@@ -648,7 +656,7 @@ class IndicatorRunContext {
                     volume_open = volume;
                 }
             }
-            if (volume_open > 0)
+            if (volume_open > 0) {
                 TQ.INSERT_ORDER({
                     symbol: order_symbol,
                     direction: direction,
@@ -657,9 +665,12 @@ class IndicatorRunContext {
                     limit_price: limit_price,
                     unit_id: this.unit_id,
                 });
+            }
         }
     };
-
+    CANCEL_ALL(){
+        return TQ.CANCEL_ORDER(this.unit_id);
+    };
     // OUTS(style, serialName, options) {
     //     this.out_series[serialName] = {};
     //     let serial = this.out_series[serialName];
@@ -1052,6 +1063,10 @@ class TQSDK {
         return this.dm.set_default({}, 'trade', this.dm.account_id, 'positions', symbol);
     };
 
+    GET_UNIT_POSITION(unit_id, symbol) {
+        return this.dm.set_default({}, 'trade', this.dm.account_id, 'units', unit_id, 'positions', symbol);
+    };
+
     GET_COMBINE(combine_id){
         return this.dm.set_default({}, 'combines', 'USER.' + combine_id);
     }
@@ -1231,7 +1246,7 @@ class TQSDK {
         if (typeof order == 'object') {
             orders[order.order_id] = order;
         } else if (typeof order == 'string')  {
-            orders = this.GET_ORDER_DICT({order_id_prefix: order});
+            orders = this.GET_ORDER_DICT({unit_id: order, status:['ALIVE']});
         }
         for (let order_id in orders) {
             this.ws.send_json({
@@ -1313,7 +1328,7 @@ class TQSDK {
     }
 
     init_ui(){
-        if ($) {
+        if (false) {
             var this_tq = this;
             $(() => {
                 // init code

@@ -53,7 +53,6 @@ describe('dm', function () {
                                     "commission": 123,                            //本交易日内交纳的手续费
                                     "preminum": 123,                              //本交易日内交纳的权利金
                                     "static_balance": 124895,                     //静态权益
-                                    "position_profit": 12345,                     //持仓盈亏
                                     "float_profit": 8910.231,                     //浮动盈亏
                                     "risk_ratio": 0.048482375,                    //风险度
                                     "margin": 11232.23,                           //占用资金

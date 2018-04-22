@@ -14,103 +14,92 @@
 
     <script>
         TQ = new TQSDK();
-        class JI extends Indicator
-        {
-            /*
-            要点:
-                总手数管理, 开仓总手数上限
-                接近收盘时停止开仓并清仓
-                接近涨跌停时停止开仓并清仓
-                撤单总数控制
-            先在策略中手动实现, 再逐渐往基类迁移
-            */
-            static define() {
-                return {
-                    type: "MAIN",
-                    cname: "JI",
-                    state: "KLINE",
-                    params: [
-                        {name: "V", default: 10},
-
-                        {name: "N1", default: 3},
-                        {name: "N2", default: 5},
-                        {name: "N3", default: 8},
-                        {name: "N4", default: 15},
-
-                        {name: "X1", default: 3},
-                        {name: "X2", default: 5},
-                        {name: "X3", default: 8},
-                        {name: "X4", default: 8},
-                        {name: "X5", default: 100},
-                        {name: "X6", default: 200},
-                        {name: "X7", default: 10},
-
-                        {name: "OVER", default: 1},
-                    ],
-                }
-            }
-            init() {
-                this.TRADE_AT_CLOSE(false);
-                this.TRADE_OC_CYCLE(true);
-                this.ma1 = this.OUTS("LINE", "ma1", {color: RED});
-                this.ma2 = this.OUTS("LINE", "ma2", {color: YELLOW});
-                this.ma3 = this.OUTS("LINE", "ma3", {color: BLUE});
-                this.ma4 = this.OUTS("LINE", "ma4", {color: GREEN});
-                this.q = TQ.GET_QUOTE(this.symbol);
-                this.cancel_count = 0;
-            }
-            calc(i) {
-                this.ma1[i] = MA(i, this.DS.close, this.PARAMS.N1, this.ma1);
-                this.ma2[i] = MA(i, this.DS.close, this.PARAMS.N2, this.ma2);
-                this.ma3[i] = MA(i, this.DS.close, this.PARAMS.N3, this.ma3);
-                this.ma4[i] = MA(i, this.DS.close, this.PARAMS.N4, this.ma4);
-                //优先处理停止条件
-                if (  this.DS.close[i] >= this.q.upper_limit - 50
-                    ||this.DS.close[i] <= this.q.lower_limit + 50      //价格接近停板
-//                    ||TIME(this.DS[-1].datetime) > 145900                       //接近收盘
-                    ||this.cancel_count > 480                           //撤单数过高
-                ){
-                    this.stop();
-                    return;
-                }
-                //正常运行
-                let buy_open_condition = (this.DS.close[i] >= this.ma1[i] + this.PARAMS.X1)
-                    && (this.DS.close[i] >= this.ma2[i] + this.PARAMS.X2)
-                    && (this.DS.close[i] >= this.ma3[i] + this.PARAMS.X3)
-                    && (this.DS.close[i] >= this.ma4[i] + this.PARAMS.X4)
-                    && (this.DS.close[i] <= this.ma1[i] + this.PARAMS.X5)
-                    && (this.DS.close[i] <= this.ma2[i] + this.PARAMS.X6)
-                ;
-                let sell_close_condition = (this.DS.close[i] <= this.ma1[i] - this.PARAMS.X1)
-                    || (this.DS.close[i] <= this.ma2[i] - this.PARAMS.X2)
-                    || (this.DS.close[i] <= this.ma3[i] - this.PARAMS.X3)
-                    || (this.DS.close[i] <= this.ma4[i] - this.PARAMS.X4)
-                ;
-                let sell_close_condition_2 = (this.DS.close[i] >= this.ma1[i] + this.PARAMS.X7);
-
-                if (!buy_open_condition && !sell_close_condition){
-                    //开仓下单及平仓下单条件均不满足, 撤单
-                    this.cancel_count += TQ.CANCEL_ORDER("JI");
-                }else if (buy_open_condition){
-                    this.ORDER(i, "BUY", "OPEN", 1, this.DS.close[i] + this.PARAMS.OVER);
-                } else if (sell_close_condition_2) {
-                    this.ORDER(i, "SELL", "CLOSE", 1, this.DS.close[i]);
-                } else if (sell_close_condition) {
-                    this.ORDER(i, "SELL", "CLOSE", 1, this.DS.close[i] - this.PARAMS.OVER);
-                }
-            }
-            stop(){
+        function* JI(C){
+            //指标定义
+            C.DEFINE({
+                type: "JI",
+                cname: "JI",
+                state: "KLINE",
+            });
+            //参数
+            let v = C.PARAM(10, "V", {memo: "单笔下单手数"});
+            let n1 = C.PARAM(3, "N1", {memo: "N1"});
+            let n2 = C.PARAM(5, "N2", {memo: "N2"});
+            let n3 = C.PARAM(8, "N3", {memo: "N3"});
+            let n4 = C.PARAM(15, "N4", {memo: "N4"});
+            let x1 = C.PARAM(3, "X1", {memo: "X1"});
+            let x2 = C.PARAM(5, "X2", {memo: "X1"});
+            let x3 = C.PARAM(8, "X3", {memo: "X1"});
+            let x4 = C.PARAM(8, "X4", {memo: "X1"});
+            let x5 = C.PARAM(100, "X5", {memo: "X1"});
+            let x6 = C.PARAM(200, "X6", {memo: "X1"});
+            let x7 = C.PARAM(10, "X7", {memo: "X1"});
+            let over = C.PARAM(0, "OVER", {memo: "下单超价"});
+            //输出序列
+            let ma1 = C.OUTS("LINE", "ma1", {color: RED});
+            let ma2 = C.OUTS("LINE", "ma2", {color: YELLOW});
+            let ma3 = C.OUTS("LINE", "ma3", {color: BLUE});
+            let ma4 = C.OUTS("LINE", "ma4", {color: GREEN});
+            //临时序列
+            C.TRADE_AT_CLOSE(false);
+            C.TRADE_OC_CYCLE(true);
+            let q = TQ.GET_QUOTE(C.symbol);
+            let cancel_count = 0;
+            function stop(){
                 //策略停止
-                TQ.CANCEL_ORDER("JI");
-                let position = TQ.GET_POSITION(this.symbol);
+                C.CANCEL_ALL();
+                let position = TQ.GET_POSITION(C.symbol);
                 if (position && position.volume_long > 0)
                     TQ.INSERT_ORDER({
                         prefix: "JI",
                         direction: "SELL",
                         offset: "CLOSE",
                         volume: 1,
-                        limit_price: this.DS.close[i] + this.PARAMS.OVER
+                        limit_price: C.DS.close[i] + over,
                     });
+            }
+            //计算
+            while(true) {
+                let i = yield;
+                //计算指标值
+                ma1[i] = MA(i, C.DS.close, n1, ma1);
+                ma2[i] = MA(i, C.DS.close, n2, ma2);
+                ma3[i] = MA(i, C.DS.close, n3, ma3);
+                ma4[i] = MA(i, C.DS.close, n4, ma4);
+                //优先处理停止条件
+                if (  C.DS.close[i] >= q.upper_limit - 50
+                    ||C.DS.close[i] <= q.lower_limit + 50      //价格接近停板
+//                    ||TIME(this.DS[-1].datetime) > 145900                       //接近收盘
+                    ||cancel_count > 480                           //撤单数过高
+                ){
+                    stop();
+                    return;
+                }
+                //正常运行
+                let buy_open_condition = (C.DS.close[i] >= ma1[i] + x1)
+                    && (C.DS.close[i] >= ma2[i] + x2)
+                    && (C.DS.close[i] >= ma3[i] + x3)
+                    && (C.DS.close[i] >= ma4[i] + x4)
+                    && (C.DS.close[i] <= ma1[i] + x5)
+                    && (C.DS.close[i] <= ma2[i] + x6)
+                ;
+                let sell_close_condition = (C.DS.close[i] <= ma1[i] - x1)
+                    || (C.DS.close[i] <= ma2[i] - x2)
+                    || (C.DS.close[i] <= ma3[i] - x3)
+                    || (C.DS.close[i] <= ma4[i] - x4)
+                ;
+                let sell_close_condition_2 = (C.DS.close[i] >= ma1[i] + x7);
+
+                if (!buy_open_condition && !sell_close_condition){
+                    //开仓下单及平仓下单条件均不满足, 撤单
+                    cancel_count += C.CANCEL_ALL();
+                }else if (buy_open_condition){
+                    C.ORDER(i, "BUY", "OPEN", 1, C.DS.close[i] + over);
+                } else if (sell_close_condition_2) {
+                    C.ORDER(i, "SELL", "CLOSE", 1, C.DS.close[i]);
+                } else if (sell_close_condition) {
+                    C.ORDER(i, "SELL", "CLOSE", 1, C.DS.close[i] - over);
+                }
             }
         }
         TQ.REGISTER_INDICATOR_CLASS(JI);
