@@ -1024,7 +1024,8 @@ class TQSDK {
         instance.enable_trade = pack.enable_trade;
         if (pack.trade_symbol)
             instance.trade_symbol = pack.trade_symbol;
-        instance.order_id_prefix = pack.order_id_prefix;
+        if (pack.unit_id)
+            instance.unit_id = pack.unit_id;
         instance.volume_limit = pack.volume_limit;
 
         let [calc_left, calc_right] = instance.calc_range(pack.view_left, pack.view_right);
