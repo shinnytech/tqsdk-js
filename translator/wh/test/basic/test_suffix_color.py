@@ -27,8 +27,6 @@ yaxis: [],
 });
 //定义指标参数
 
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
 //输出序列
 let EMA1 = C.OUTS("LINE", "EMA1", {color: WHITE});
 let EMA22 = C.OUTS("LINE", "EMA22", {color: YELLOW});
@@ -37,8 +35,8 @@ let EMA22 = C.OUTS("LINE", "EMA22", {color: YELLOW});
 //指标计算
 while(true){
 let i = yield;
-EMA1[i]=EMA(i, CLOSE, 10, EMA1);
-EMA22[i]=EMA(i, CLOSE, 25, EMA22);
+EMA1[i]=EMA(i, C.DS.close, 10, EMA1);
+EMA22[i]=EMA(i, C.DS.close, 25, EMA22);
 }
 }        
          """,

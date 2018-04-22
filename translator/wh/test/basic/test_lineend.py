@@ -34,8 +34,6 @@ yaxis: [],
 });
 //定义指标参数
 
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
 //输出序列
 let MA3 = C.OUTS("LINE", "MA3", {color: RED});
 let MA1 = C.OUTS("LINE", "MA1", {color: GREEN});
@@ -46,10 +44,10 @@ let MA4 = C.OUTS("LINE", "MA4", {color: CYAN});
 //指标计算
 while(true){
 let i = yield;
-MA3[i]=MA(i, CLOSE, 3, MA3);
-MA1[i]=MA(i, CLOSE, 1, MA1);
-MA2[i]=MA(i, CLOSE, 2, MA2);
-MA4[i]=MA(i, CLOSE, 4, MA4);
+MA3[i]=MA(i, C.DS.close, 3, MA3);
+MA1[i]=MA(i, C.DS.close, 1, MA1);
+MA2[i]=MA(i, C.DS.close, 2, MA2);
+MA4[i]=MA(i, C.DS.close, 4, MA4);
 }
 }        
         

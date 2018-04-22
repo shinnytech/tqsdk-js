@@ -45,9 +45,6 @@ yaxis: [],
 });
 //定义指标参数
 
-//输入序列
-let OPEN = C.SERIAL("OPEN");
-let CLOSE = C.SERIAL("CLOSE");
 //输出序列
 
 //临时序列
@@ -55,7 +52,7 @@ let CLOSE = C.SERIAL("CLOSE");
 //指标计算
 while(true){
 let i = yield;
-if(((OPEN[i] - CLOSE[i]) > 0))C.DRAW_PANEL("BAR" + i, i, OPEN[i], i, CLOSE[i], CYAN);
+if(((C.DS.open[i] - C.DS.close[i]) > 0))C.DRAW_PANEL("BAR" + i, i, C.DS.open[i], i, C.DS.close[i], CYAN);
 }
 }        
     

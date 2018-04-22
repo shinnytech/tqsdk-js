@@ -86,8 +86,6 @@ yaxis: [],
 });
 //定义指标参数
 
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
 //输出序列
 let MA5 = C.OUTS("LINE", "MA5", {color: CYAN, style: PS_DOT});
 let MA5 = C.OUTS("LINE", "MA5", {color: GREEN, style: PS_DOT});
@@ -96,8 +94,8 @@ let MA5 = C.OUTS("LINE", "MA5", {color: GREEN, style: PS_DOT});
 //指标计算
 while(true){
 let i = yield;
-MA5[i]=MA(i, CLOSE, 5, MA5);
-MA5[i]=MA(i, CLOSE, 5, MA5);
+MA5[i]=MA(i, C.DS.close, 5, MA5);
+MA5[i]=MA(i, C.DS.close, 5, MA5);
 }
 }        
        

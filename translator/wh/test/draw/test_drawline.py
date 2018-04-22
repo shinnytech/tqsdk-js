@@ -51,9 +51,6 @@ yaxis: [],
 });
 //定义指标参数
 
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
-let OPEN = C.SERIAL("OPEN");
 //输出序列
 
 //临时序列
@@ -62,9 +59,9 @@ let MA10 = [];
 //指标计算
 while(true){
 let i = yield;
-MA5[i]=MA(i, CLOSE, 5, MA5);
-MA10[i]=MA(i, CLOSE, 10, MA10);
-if((MA10[i] < CLOSE[i]) && (MA5[i] > CLOSE[i]))C.DRAW_LINE("LINE" + i, i, OPEN[i], i, CLOSE[i], CYAN, 1, 0);
+MA5[i]=MA(i, C.DS.close, 5, MA5);
+MA10[i]=MA(i, C.DS.close, 10, MA10);
+if((MA10[i] < C.DS.close[i]) && (MA5[i] > C.DS.close[i]))C.DRAW_LINE("LINE" + i, i, C.DS.open[i], i, C.DS.close[i], CYAN, 1, 0);
 }
 }        
      

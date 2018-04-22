@@ -55,11 +55,6 @@ yaxis: [],
 });
 //定义指标参数
 
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
-let OPEN = C.SERIAL("OPEN");
-let HIGH = C.SERIAL("HIGH");
-let LOW = C.SERIAL("LOW");
 //输出序列
 
 //临时序列
@@ -67,8 +62,8 @@ let LOW = C.SERIAL("LOW");
 //指标计算
 while(true){
 let i = yield;
-if((CLOSE[i] > OPEN[i]))C.DRAW_SEG("LINE" + i, i, HIGH[i], i+2, HIGH[i] + 0, YELLOW, 1, 0);
-if((LOW[i] == LOWEST(i, LOW, 50)))C.DRAW_RAY("LINE" + i, i, LOW[i], i+3, LOW[i] + 5, RED, 5, 0);
+if((C.DS.close[i] > C.DS.open[i]))C.DRAW_SEG("LINE" + i, i, C.DS.high[i], i+2, C.DS.high[i] + 0, YELLOW, 1, 0);
+if((C.DS.low[i] == LOWEST(i, C.DS.low, 50)))C.DRAW_RAY("LINE" + i, i, C.DS.low[i], i+3, C.DS.low[i] + 5, RED, 5, 0);
 }
 }        
    

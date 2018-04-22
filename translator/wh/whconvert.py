@@ -58,20 +58,20 @@ class WhProgram(object):
         "BACKGROUNDSTYLE": [["NV", "C.BACKGROUNDSTYLE({0});"]],
     }
     inserial_selector_map = {
-        "O": "OPEN",
-        "H": "HIGH",
-        "L": "LOW",
-        "C": "CLOSE",
-        "VOL": "VOLUME",
-        "OPI": "CLOSE_OI",
-        "OPEN": "OPEN",
-        "HIGH": "HIGH",
-        "LOW": "LOW",
-        "CLOSE": "CLOSE",
-        "VOLUME": "VOLUME",
-        "CLOSE_OI": "CLOSE_OI",
-        "DATE": "DATE",
-        "TIME": "TIME",
+        "O": "open",
+        "H": "high",
+        "L": "low",
+        "C": "close",
+        "VOL": "volume",
+        "OPI": "close_oi",
+        "OPEN": "open",
+        "HIGH": "high",
+        "LOW": "low",
+        "CLOSE": "close",
+        "VOLUME": "volume",
+        "CLOSE_OI": "close_oi",
+        # "DATE": "DATE",
+        # "TIME": "TIME",
     }
     order_map = {
         # WH交易指令到本地指令映射表
@@ -119,7 +119,6 @@ class WhProgram(object):
         self.params = params
         self.params_ids = set([p[0] for p in self.params])
         self.source_code_lines = src.split("\n")
-        self.input_serials = []  # 所有输入序列
         self.output_serials = []
         self.output_axis_list = []
         self.temp_serials = []
@@ -274,10 +273,7 @@ class WhProgram(object):
             id = ast[1]
             if id in self.inserial_selector_map:
                 serial_id = self.inserial_selector_map.get(id)
-                self.define_serial(serial_id, False)
-                if serial_id not in self.input_serials:
-                    self.input_serials.append(serial_id)
-                return [self.IS_SERIAL, serial_id]
+                return [self.IS_SERIAL, "C.DS." + serial_id]
             elif id in self.serials:
                 return [self.IS_SERIAL, id]
             elif id in self.params_ids:
@@ -399,8 +395,6 @@ yaxis: [{axis_lines}],
 }});
 //定义指标参数
 {param_lines}
-//输入序列
-{input_serial_lines}
 //输出序列
 {output_serial_lines}
 //临时序列
@@ -417,7 +411,6 @@ let i = yield;
                        param_lines="\n".join(
                            ['let %s = C.PARAM(%f, "%s", {"MIN": %f, "MAX":%f});' % (p[0], p[3], p[0], p[1], p[2]) for p
                             in self.params]),
-                       input_serial_lines="\n".join(['let %s = C.SERIAL("%s");' % (p, p) for p in self.input_serials]),
                        output_serial_lines="\n".join([self.format_output_serial(p) for p in self.output_serials]),
                        temp_serial_declare_lines="\n".join(['let %s = [];' % (p) for p in self.temp_serials]),
                        body="\n".join(self.body_lines))

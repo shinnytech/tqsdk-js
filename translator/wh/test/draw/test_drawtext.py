@@ -53,11 +53,6 @@ yaxis: [],
 });
 //定义指标参数
 
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
-let OPEN = C.SERIAL("OPEN");
-let VOLUME = C.SERIAL("VOLUME");
-let LOW = C.SERIAL("LOW");
 //输出序列
 
 //临时序列
@@ -65,8 +60,8 @@ let LOW = C.SERIAL("LOW");
 //指标计算
 while(true){
 let i = yield;
-if((((CLOSE[i] < OPEN[i]) && (REF(i, CLOSE, 1) < REF(i, OPEN, 1))) && ((REF(i, VOLUME, 1) * 1.1) < VOLUME[i])))C.DRAW_TEXT("TEXT" + i, i, LOW[i], '注', WHITE);
-if((LOW[i] <= LOWEST(i, LOW, 10)))C.DRAW_TEXT("TEXT" + i, i, LOW[i], '新低', RED);
+if((((C.DS.close[i] < C.DS.open[i]) && (REF(i, C.DS.close, 1) < REF(i, C.DS.open, 1))) && ((REF(i, C.DS.volume, 1) * 1.1) < C.DS.volume[i])))C.DRAW_TEXT("TEXT" + i, i, C.DS.low[i], '注', WHITE);
+if((C.DS.low[i] <= LOWEST(i, C.DS.low, 10)))C.DRAW_TEXT("TEXT" + i, i, C.DS.low[i], '新低', RED);
 }
 }        
 
