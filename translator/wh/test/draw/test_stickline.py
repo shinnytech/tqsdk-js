@@ -20,9 +20,6 @@ class TestConvertIndicator(TestConvert):
 
     例1：
     STICKLINE(OPEN-CLOSE>0,OPEN,CLOSE,COLORCYAN,0);//表示当开盘价大于收盘价时，从开盘价到收盘价画青色的实心柱，即K线阴线的实体部分。
-
-    方案:
-        实现一个双值柱类型的序列
     """
     def test_dmi(self):
         case = {
@@ -43,13 +40,6 @@ cname: "FUNC",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
-
-//输出序列
-
-//临时序列
-
-//指标计算
 while(true){
 let i = yield;
 if(((C.DS.open[i] - C.DS.close[i]) > 0))C.DRAW_PANEL("BAR" + i, i, C.DS.open[i], i, C.DS.close[i], CYAN);

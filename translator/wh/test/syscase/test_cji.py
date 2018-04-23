@@ -26,24 +26,17 @@ cname: "CJI",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
 
-//输入序列
-let VOLUME = C.SERIAL("VOLUME");
-let CLOSE_OI = C.SERIAL("CLOSE_OI");
-//输出序列
 let S_1 = C.OUTS("PCBAR", "S_1", {color: RED});
 let OPID = C.OUTS("LINE", "OPID", {color: GREEN});
-//临时序列
 
-//指标计算
 while(true){
 let i = yield;
-S_1[i] = VOLUME[i];
-OPID[i] = CLOSE_OI[i];
+S_1[i] = C.DS.volume[i];
+OPID[i] = C.DS.close_oi[i];
 }
 }        
-                
+               
       
               """,
         }

@@ -21,7 +21,7 @@ class TestConvertIndicator(TestConvert):
                 DRAWICON(B,V9,5);
                 """,
                 "expected": """
-                
+          
 function* cctv(C){
 C.DEFINE({
 type: "MAIN",
@@ -29,29 +29,24 @@ cname: "cctv",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
 
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
-//输出序列
 let V6 = C.OUTS("LINE", "V6", {color: YELLOW, width: 1});
 let V9 = C.OUTS("LINE", "V9", {color: RGB(0, 128, 0), width: 1});
 let V18 = C.OUTS("LINE", "V18", {color: RED, width: 1});
-//临时序列
 let A = [];
 let B = [];
-//指标计算
 while(true){
 let i = yield;
-V6[i]=EMA(i, CLOSE, 60, V6);
-V9[i]=EMA(i, CLOSE, 90, V9);
-V18[i]=EMA(i, CLOSE, 180, V18);
+V6[i]=EMA(i, C.DS.close, 60, V6);
+V9[i]=EMA(i, C.DS.close, 90, V9);
+V18[i]=EMA(i, C.DS.close, 180, V18);
 A[i]=(V6[i] > V9[i] && V6[i-1] < V9[i-1]);
 B[i]=(V9[i] > V6[i] && V9[i-1] < V6[i-1]);
 if(A[i])C.DRAW_ICON("ICON" + i, i, V6[i], ICON_BLOCK);
 if(B[i])C.DRAW_ICON("ICON" + i, i, V9[i], ICON_BLOCK);
 }
 }        
+        
                 
                 """,
                 }

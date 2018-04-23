@@ -31,11 +31,11 @@ class WhProgram(object):
         "LLV": [["iSV", "LOWEST(i, {0}, {1})"]],
         "BARSLAST": [["iS", "(i - NEAREST(i, {0}))"]],
         "EVERY": [["iSV", "EVERY(i, {0}, {1})"]],
-        "ISLASTBAR": [["i", "ISLASTBAR(i)"]],
+        "ISLASTBAR": [["i", "C.ISLAST(i)"]],
         "VALUEWHEN": [["iSS", "{1}[NEAREST(i, {0})]"]],
         "BARPOS": [["i", "i"]],
-        "DATE": [["iV", "DATE(i)"]],
-        "TIME": [["iV", "TIME(i)"]],
+        "DATE": [["i", "DATE(C.DS[i].datetime)"]],
+        "TIME": [["i", "TIME(C.DS[i].datetime)"]],
         "MA": [["ISV", "MA(i, {0}, {1}, {2})"]],
         "STD": [["ISV", "STDEV(i, {0}, {1}, {2})"]],
         "EMA": [["ISV", "EMA(i, {0}, {1}, {2})"]],
@@ -75,12 +75,12 @@ class WhProgram(object):
     }
     order_map = {
         # WH交易指令到本地指令映射表
-        "BP": 'C.ORDER("BUY", "CLOSE", {volume})',
-        "BK": 'C.ORDER("BUY", "OPEN", {volume})',
-        "BPK": 'C.ORDER("BUY", "CLOSEOPEN", {volume})',
-        "SP": 'C.ORDER("SELL", "CLOSE", {volume})',
-        "SK": 'C.ORDER("SELL", "OPEN", {volume})',
-        "SPK": 'C.ORDER("SELL", "CLOSEOPEN", {volume})',
+        "BP": 'C.ORDER(i, "BUY", "CLOSE", {volume})',
+        "BK": 'C.ORDER(i, "BUY", "OPEN", {volume})',
+        "BPK": 'C.ORDER(i, "BUY", "CLOSEOPEN", {volume})',
+        "SP": 'C.ORDER(i, "SELL", "CLOSE", {volume})',
+        "SK": 'C.ORDER(i, "SELL", "OPEN", {volume})',
+        "SPK": 'C.ORDER(i, "SELL", "CLOSEOPEN", {volume})',
     }
     color_map = {
         # WH名到本地名映射表
@@ -200,7 +200,7 @@ class WhProgram(object):
             if wh_func_name == "DRAWICON":
                 self.current_draw = 'if({0})C.DRAW_ICON("ICON" + i, i, {1}, ICON_BLOCK);'.format(*params)
             elif wh_func_name == "DRAWLINE":
-                self.current_draw = 'if({0} && {2})C.DRAW_LINE("LINE" + i, i, {1}, i, {3}, {4}, %LINEWIDTH%, %LINESTYLE%);'.format(*params)
+                self.current_draw = 'if({0} && {2})C.DRAW_SEG("LINE" + i, i, {1}, i, {3}, {4}, %LINEWIDTH%, %LINESTYLE%);'.format(*params)
             elif wh_func_name == "DRAWSL":
                 # cond = params[0]
                 # data = params[1]
@@ -262,7 +262,7 @@ class WhProgram(object):
             c = self.color_map.get(ast[1], ast[1])
             return [self.IS_SERIAL_OR_VALUE, c]
         elif aid == "AUTOFILTER":
-            self.set_ind_option("occycle", 1)
+            self.body_lines.append("C.TRADE_OC_CYCLE(true);")
             return [None, None]
         elif aid == "BACKGROUNDSTYLE":
             if ast[1] == "1":
@@ -307,7 +307,12 @@ class WhProgram(object):
                     wh_func_name, len(ast) - 2))
             add_error(0, 0, "'%s' 不是变量或函数名" % id)
         elif aid == "BINOP":
-            op = ast[1] if ast[1] != "=" else "=="
+            if ast[1] == "=":
+                op = "=="
+            elif ast[1] == "<>":
+                op = "!="
+            else:
+                op = ast[1]
             if ret_style == "S":
                 if not serial_id:
                     serial_id = self.get_auto_serial_name()
@@ -393,13 +398,9 @@ C.DEFINE({{
 {ind_options},
 yaxis: [{axis_lines}],
 }});
-//定义指标参数
 {param_lines}
-//输出序列
 {output_serial_lines}
-//临时序列
 {temp_serial_declare_lines}
-//指标计算
 while(true){{
 let i = yield;
 {body}

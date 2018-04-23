@@ -35,29 +35,24 @@ cname: "MACD",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
 let SHORT = C.PARAM(12.000000, "SHORT", {"MIN": 1.000000, "MAX":100.000000});
 let LONG = C.PARAM(26.000000, "LONG", {"MIN": 1.000000, "MAX":100.000000});
 let M = C.PARAM(9.000000, "M", {"MIN": 1.000000, "MAX":100.000000});
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
-//输出序列
 let DIFF = C.OUTS("LINE", "DIFF", {color: RED});
 let DEA = C.OUTS("LINE", "DEA", {color: GREEN});
 let S_3 = C.OUTS("RGBAR", "S_3", {color: BLUE});
-//临时序列
 let S_1 = [];
 let S_2 = [];
-//指标计算
 while(true){
 let i = yield;
-S_1[i]=EMA(i, CLOSE, SHORT, S_1);
-S_2[i]=EMA(i, CLOSE, LONG, S_2);
+S_1[i]=EMA(i, C.DS.close, SHORT, S_1);
+S_2[i]=EMA(i, C.DS.close, LONG, S_2);
 DIFF[i]=S_1[i] - S_2[i];
 DEA[i]=EMA(i, DIFF, M, DEA);
 S_3[i]=2 * (DIFF[i] - DEA[i]);
 }
 }        
+        
           
             """,
         }

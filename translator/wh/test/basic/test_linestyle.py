@@ -84,14 +84,8 @@ cname: "FUNC",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
-
-//输出序列
 let MA5 = C.OUTS("LINE", "MA5", {color: CYAN, style: PS_DOT});
 let MA5 = C.OUTS("LINE", "MA5", {color: GREEN, style: PS_DOT});
-//临时序列
-
-//指标计算
 while(true){
 let i = yield;
 MA5[i]=MA(i, C.DS.close, 5, MA5);

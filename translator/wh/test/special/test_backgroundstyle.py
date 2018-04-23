@@ -55,22 +55,15 @@ cname: "FUNC",
 state: "KLINE",
 yaxis: [{'mid': 0, 'id': 0}],
 });
-//定义指标参数
-
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
-//输出序列
 let DIFF = C.OUTS("LINE", "DIFF", {color: RED});
 let DEA = C.OUTS("LINE", "DEA", {color: GREEN});
 let S_3 = C.OUTS("RGBAR", "S_3", {color: BLUE});
-//临时序列
 let S_1 = [];
 let S_2 = [];
-//指标计算
 while(true){
 let i = yield;
-S_1[i]=EMA(i, CLOSE, 12, S_1);
-S_2[i]=EMA(i, CLOSE, 26, S_2);
+S_1[i]=EMA(i, C.DS.close, 12, S_1);
+S_2[i]=EMA(i, C.DS.close, 26, S_2);
 DIFF[i]=S_1[i] - S_2[i];
 DEA[i]=EMA(i, DIFF, 9, DEA);
 S_3[i]=2 * (DIFF[i] - DEA[i]);

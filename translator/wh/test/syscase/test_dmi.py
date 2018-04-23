@@ -42,21 +42,14 @@ cname: "趋向指标",
 state: "KLINE",
 yaxis: [{'min': 0, 'max': 100, 'id': 0}],
 });
-//定义指标参数
 let N = C.PARAM(14.000000, "N", {"MIN": 1.000000, "MAX":100.000000});
 let M = C.PARAM(6.000000, "M", {"MIN": 1.000000, "MAX":100.000000});
 let N0 = C.PARAM(20.000000, "N0", {"MIN": 1.000000, "MAX":100.000000});
 let M0 = C.PARAM(20.000000, "M0", {"MIN": 1.000000, "MAX":100.000000});
-//输入序列
-let HIGH = C.SERIAL("HIGH");
-let LOW = C.SERIAL("LOW");
-let CLOSE = C.SERIAL("CLOSE");
-//输出序列
 let PDI = C.OUTS("LINE", "PDI", {color: RED});
 let MDI = C.OUTS("LINE", "MDI", {color: GREEN});
 let ADX = C.OUTS("LINE", "ADX", {color: BLUE});
 let ADXR = C.OUTS("LINE", "ADXR", {color: CYAN});
-//临时序列
 let TR = [];
 let S_1 = [];
 let HD = [];
@@ -66,13 +59,12 @@ let S_2 = [];
 let DMM = [];
 let S_3 = [];
 let S_4 = [];
-//指标计算
 while(true){
 let i = yield;
-S_1[i]=MAX(MAX((HIGH[i] - LOW[i]), ABS((HIGH[i] - REF(i, CLOSE, 1)))), ABS((LOW[i] - REF(i, CLOSE, 1))));
+S_1[i]=MAX(MAX((C.DS.high[i] - C.DS.low[i]), ABS((C.DS.high[i] - REF(i, C.DS.close, 1)))), ABS((C.DS.low[i] - REF(i, C.DS.close, 1))));
 TR[i]=SUM(i, S_1, N, TR);
-HD[i]=HIGH[i] - REF(i, HIGH, 1);
-LD[i]=REF(i, LOW, 1) - LOW[i];
+HD[i]=C.DS.high[i] - REF(i, C.DS.high, 1);
+LD[i]=REF(i, C.DS.low, 1) - C.DS.low[i];
 S_2[i]=(((HD[i] > 0) && (HD[i] > LD[i])) ? HD[i] : 0);
 DMP[i]=SUM(i, S_2, N, DMP);
 S_3[i]=(((LD[i] > 0) && (LD[i] > HD[i])) ? LD[i] : 0);
@@ -83,8 +75,7 @@ S_4[i]=(ABS((MDI[i] - PDI[i])) / (MDI[i] + PDI[i])) * 100;
 ADX[i]=MA(i, S_4, M, ADX);
 ADXR[i]=(ADX[i] + REF(i, ADX, M)) / 2;
 }
-}        
-           
+}            
            """,
         }
         self.assert_convert(case)

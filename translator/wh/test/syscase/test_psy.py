@@ -32,26 +32,21 @@ cname: "心理线",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
 let N = C.PARAM(12.000000, "N", {"MIN": 2.000000, "MAX":100.000000});
 let M = C.PARAM(6.000000, "M", {"MIN": 2.000000, "MAX":100.000000});
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
-//输出序列
 let PSY = C.OUTS("LINE", "PSY", {color: RED});
 let PSYMA = C.OUTS("LINE", "PSYMA", {color: GREEN});
-//临时序列
 let S_1 = [];
 let S_2 = [];
-//指标计算
 while(true){
 let i = yield;
-S_1[i]=CLOSE[i] > REF(i, CLOSE, 1);
+S_1[i]=C.DS.close[i] > REF(i, C.DS.close, 1);
 S_2[i]=COUNT(i, S_1, N, S_2);
 PSY[i]=(S_2[i] / N) * 100;
 PSYMA[i]=MA(i, PSY, M, PSYMA);
 }
 }        
+       
             """,
         }
         self.assert_convert(case)

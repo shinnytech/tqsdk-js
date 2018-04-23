@@ -28,33 +28,26 @@ class TestConvertIndicator(TestConvert):
                 ("P", 1, 10, 2),
             ],
             "expected": """
+
 function* BOLL(C){
 C.DEFINE({
 type: "MAIN",
 cname: "布林通道线",
 state: "KLINE",
-yaxis: [
-
-],
+yaxis: [],
 });
-//定义指标参数
 let N = C.PARAM(26.000000, "N", {"MIN": 5.000000, "MAX":100000.000000});
 let M = C.PARAM(26.000000, "M", {"MIN": 1.000000, "MAX":100000.000000});
 let P = C.PARAM(2.000000, "P", {"MIN": 1.000000, "MAX":10.000000});
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
-//输出序列
 let MID = C.OUTS("LINE", "MID", {color: RED});
 let TOP = C.OUTS("LINE", "TOP", {color: GREEN});
 let BOTTOM = C.OUTS("LINE", "BOTTOM", {color: BLUE});
 let BOTTOM2 = C.OUTS("LINE", "BOTTOM2", {color: CYAN});
-//临时序列
 let TMP2 = [];
-//指标计算
 while(true){
 let i = yield;
-MID[i]=MA(i, CLOSE, N, MID);
-TMP2[i]=STDEV(i, CLOSE, M, TMP2);
+MID[i]=MA(i, C.DS.close, N, MID);
+TMP2[i]=STDEV(i, C.DS.close, M, TMP2);
 TOP[i]=MID[i] + (P * TMP2[i]);
 BOTTOM[i]=MID[i] - (P * TMP2[i]);
 BOTTOM2[i]=MA(i, MID, N, BOTTOM2);

@@ -44,17 +44,9 @@ cname: "FUNC",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
-
-//输入序列
-
-//输出序列
 let S_1 = C.OUTS("LINE", "S_1", {color: RED});
 let S_2 = C.OUTS("LINE", "S_2", {color: GREEN});
 let S_3 = C.OUTS("LINE", "S_3", {color: BLUE});
-//临时序列
-
-//指标计算
 while(true){
 let i = yield;
 S_1[i]=ROUND(125.345, 2);
