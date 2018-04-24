@@ -226,3 +226,17 @@ module.exports.batch_input_datas = function({TQ, symbol='SHFE.rb1810', dur=5, le
         });
     }
 }
+
+module.exports.MockWebsocket = class MockWebsocket{
+    constructor(url, callbacks){
+        this.send_objs = [];
+    }
+    send_json(obj) {
+        this.send_objs.push(obj);
+    };
+    isReady() {
+        return true;
+    };
+    init() {
+    };
+}

@@ -1,47 +1,39 @@
 var assert = require('assert');
-var {init_test_data, batch_input_datas} = require('./test_data.js');
+var {init_test_data, batch_input_datas, MockWebsocket} = require('./test_data.js');
 var importScripts = require('./importScripts.js');
 importScripts('src/libs/func/basefuncs.js', 'src/libs/tqsdk.js');
 
-
-class MockWebsocket{
-    constructor(url, callbacks){
-        this.send_objs = [];
-    }
-    send_json(obj) {
-        this.send_objs.push(obj);
-    };
-    isReady() {
-        return true;
-    };
-    init() {
-    };
-}
-
 var TQ = new TQSDK(new MockWebsocket());
 init_test_data(TQ);
-let symbol = "CFFEX.IF1801";
-// batch_input_datas({TQ, symbol, dur:5, left_id:1000, right_id:3000, last_id:3000});
 
-class IndOrder extends Indicator {
-    static define() {
-        return {
-            type: "MAIN",
-            cname: "indOrder",
-            state: "KLINE",
-            params: [
-                {name: "N", default: 3},
-            ],
-        };
-    }
-    init(){
-    }
-    calc(i) {
-        this.ORDER(i, "SELL", "CLOSEOPEN", 1);
+let symbol = "CFFEX.IF1801";
+batch_input_datas({TQ, symbol, dur:5, left_id:1000, right_id:3000, last_id:3000});
+
+
+function* mat(C){
+    //指标定义
+    C.DEFINE({
+        type: "MAIN",
+        cname: "下单指标",
+        state: "KLINE",
+    });
+    //参数
+    let n1 = C.PARAM(3, "N1");  //短均线周期
+    let n2 = C.PARAM(10, "N2"); //长均线周期
+    //输出序列
+    let m1 = C.OUTS("LINE", "ma" + n1, {color: RED});
+    let m2 = C.OUTS("LINE", "ma" + n2, {color: GREEN});
+    //计算
+    while(true) {
+        let i = yield;
+        m1[i] = MA(i, C.DS.close, n1, m1);  //计算短均线值
+        m2[i] = MA(i, C.DS.close, n2, m2);  //计算长均线值
+        if (m1[i] > m2[i] && m1[i-1] <= m2[i-1])  //短均线上穿长均线，买进
+            C.ORDER("BUY", "CLOSEOPEN", 1);
+        if (m1[i] < m2[i] && m1[i-1] >= m2[i-1])  //短均线下穿长均线，卖出
+            C.ORDER("SELL", "CLOSEOPEN", 1);
     }
 }
-
-TQ.REGISTER_INDICATOR_CLASS(IndOrder);
 
 describe('指标中下单', function () {
 

@@ -23,7 +23,7 @@ function REF(i, serial, n) {
 }
 
 function MA(i, serial, n, cache) {
-    if (cache.length == 0 || isNaN(cache[i - 1]))
+    if (cache.length == 0 || !cache[i - 1])
         return _sum(serial, n, i) / n;
     return cache[i - 1] - serial[i - n] / n + serial[i] / n;
 }

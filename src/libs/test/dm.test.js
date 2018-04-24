@@ -1,21 +1,7 @@
 var assert = require('assert');
-var {init_test_data, batch_input_datas} = require('./test_data.js');
+var {init_test_data, batch_input_datas, MockWebsocket} = require('./test_data.js');
 var importScripts = require('./importScripts.js');
 importScripts('src/libs/tqsdk.js');
-
-class MockWebsocket{
-    constructor(url, callbacks){
-        this.send_objs = [];
-    }
-    send_json(obj) {
-        this.send_objs.push(obj);
-    };
-    isReady() {
-        return true;
-    };
-    init() {
-    };
-}
 
 var TQ = new TQSDK(new MockWebsocket());
 init_test_data(TQ);

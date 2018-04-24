@@ -19,6 +19,7 @@ function* ma(C){
     while(true) {
         let i = yield;
         s1[i] = MA(i, C.DS.close, n1, s1);
+        console.log(i, s1[i])
         s2[i] = MA(i, C.DS.close, n2, s2);
         s3[i] = MA(i, C.DS.close, n3, s3);
         s4[i] = MA(i, C.DS.close, n4, s4);

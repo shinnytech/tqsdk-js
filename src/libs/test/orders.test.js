@@ -1,22 +1,7 @@
 var assert = require('assert');
-var {init_test_data, batch_input_datas} = require('./test_data.js');
+var {init_test_data, batch_input_datas, MockWebsocket} = require('./test_data.js');
 var importScripts = require('./importScripts.js');
 importScripts('src/libs/func/basefuncs.js', 'src/libs/tqsdk.js');
-
-
-class MockWebsocket{
-    constructor(url, callbacks){
-        this.send_objs = [];
-    }
-    send_json(obj) {
-        this.send_objs.push(obj);
-    };
-    isReady() {
-        return true;
-    };
-    init() {
-    };
-}
 
 var TQ = new TQSDK(new MockWebsocket());
 init_test_data(TQ);
@@ -33,11 +18,13 @@ describe('下单', function () {
             direction: "BUY",
             offset: "OPEN",
             volume: 2,
+            price_type: "LIMIT",
             limit_price: 2000,
             prefix: "abc",
+            unit_id: "EXT"
         });
 
-        assert.ok(order1.order_id.includes(TQ.id));
+        assert.ok(order1.order_id.includes('EXT'));
         assert.equal(order1.volume_orign, 2);
 
         order_ids.push(order1.order_id);
@@ -56,7 +43,7 @@ describe('下单', function () {
             offset: "OPEN",
             volume: 2,
             limit_price: 2200,
-            prefix: "abc",
+            unit_id: "EXT",
         });
         TQ.CANCEL_ORDER(order2);
 
@@ -91,7 +78,7 @@ describe('下单', function () {
             offset: "OPEN",
             volume: 2,
             limit_price: 2200,
-            prefix: "abc",
+            unit_id: "EXT",
         });
         order_ids.push(order3.order_id);
         let order4 = TQ.INSERT_ORDER({
@@ -100,26 +87,29 @@ describe('下单', function () {
             offset: "OPEN",
             volume: 2,
             limit_price: 2100,
-            prefix: "def",
+            unit_id: "def",
         });
         order_ids.push(order4.order_id);
-        let orders = TQ.GET_ORDER_DICT();
-        assert.equal(Object.keys(orders).length, 4);
+        // let orders = TQ.GET_ORDER_DICT({
+        //
+        // });
+        // assert.equal(Object.keys(orders).length, 4);
 
         let orders_abc = TQ.GET_ORDER_DICT({
-            order_id_prefix: 'abc'
+            unit_id: 'EXT'
         });
         assert.equal(Object.keys(orders_abc).length, 3);
 
         var orders_def = TQ.GET_ORDER_DICT({
-            order_id_prefix: 'def'
+            unit_id: 'def'
         });
         assert.equal(Object.keys(orders_def).length, 1);
 
     });
 
     it('统计已发送 order', function () {
-        let result = TQ.GET_ORDERS_SUMMARY();
+        var orders = TQ.GET_ORDER_DICT({unit_id:'EXT'})
+        let result = TQ.GET_ORDERS_SUMMARY(orders);
         assert.equal(result.open_buy_volume, 0);
         assert.equal(result.open_buy_price, 0);
 
@@ -144,9 +134,8 @@ describe('下单', function () {
                     }]
             });
         }
-
-        let result2 = TQ.GET_ORDERS_SUMMARY();
-        assert.equal(result2.open_buy_volume, 6);
+        let result2 = TQ.GET_ORDERS_SUMMARY(orders);
+        assert.equal(result2.open_buy_volume, 4);
         assert.equal(result2.open_buy_price, 2100)
         assert.equal(result2.open_sell_volume, 0);
         assert.equal(result2.open_sell_price, 0);
@@ -154,8 +143,30 @@ describe('下单', function () {
     });
 
     it('批量撤单', function () {
-        console.log(TQ.ws.send_objs)
-        for (var i=0; i<3; i++){
+        var length = TQ.CANCEL_ORDER('EXT');
+        assert.equal(length, 0);
+
+        let order5 = TQ.INSERT_ORDER({
+            symbol,
+            direction: "BUY",
+            offset: "OPEN",
+            volume: 2,
+            limit_price: 2100,
+            unit_id: "abc",
+        });
+        let order6 = TQ.INSERT_ORDER({
+            symbol,
+            direction: "BUY",
+            offset: "OPEN",
+            volume: 2,
+            limit_price: 2100,
+            unit_id: "abc",
+        });
+
+        var length = TQ.CANCEL_ORDER('abc');
+        assert.equal(length, 2);
+
+        for (var i=0; i<2; i++){
             let send_obj = TQ.ws.send_objs.pop();
             assert.equal(send_obj.aid, 'cancel_order');
         }

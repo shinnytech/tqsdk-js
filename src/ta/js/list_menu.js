@@ -1,730 +1,569 @@
-const CMenu = (function () {
-    return {
-        $container: null,
-        sys_dom: null,
-        dom: null,
-        editor: null,
-        codeTemplate: '',
-
+class IndCtrl{
+    constructor (menu_id, editor_id, webworker_url){
+        this.sys_dom = $('table#' + menu_id).find('#system-indicators');
+        this.dom = $('table#' + menu_id).find('#custom-indicators');
+        this.editor = ace.edit(editor_id);
+        this.errStore = new ErrorStore('err');
+        this.webworker = new TqWebWorker(webworker_url, {
+            websocket_reconnect: this.workerWsReconnectCB.bind(this),
+            calc_start: this.workerCalcStartCB.bind(this),
+            calc_end: this.workerCalcEndCB.bind(this),
+            feedback: this.workerFeedbackCB.bind(this)
+        });
+        this.codeTemplate = '';
         // 指标数据存储
-        sys_datas: [],
-        datas: [],
-
-        // 左侧指标节点
-        sys_item_doms: [],
-        item_doms: {},
-
+        this.sys_datas = {};
+        this.waitingResult = new Set();
+        this.indStore = new Store('ind');
+        this.datas = new Proxy(this.indStore.get(), {
+            set: (function (target, key, value, receiver) {
+                var ret = Reflect.set(target, key, value, receiver);
+                // 更新UI
+                this.updateUI();
+                this.dom.find('tr.' + key + ' td:first').click();
+                this.indStore.save(target);
+                return ret;
+            }).bind(this),
+            deleteProperty: (function(target, propKey){
+                // 更新UI
+                let $delTr = this.dom.find('tr.' + propKey);
+                let $nextTr = null;
+                if (propKey == this.editing.key){
+                    // 选择另一个指标
+                    $nextTr = $delTr.next('tr');
+                    if ($nextTr.length === 0) {
+                        $nextTr = $delTr.prev('tr');
+                        if ($nextTr.length === 0) $nextTr = 0;
+                    }
+                }
+                $delTr.remove(); // UI 删除界面
+                if ($nextTr == 0){
+                    this.sys_dom.find('td:first').click();
+                } else if ($nextTr) {
+                    $nextTr.find('td:first').click();
+                }
+                var ret = Reflect.deleteProperty(target, propKey);
+                this.indStore.save(target);
+                return ret;
+            }).bind(this)
+        });
         // 删除对话框
-        $trashModal: null,
-
-        editing: {},
-        doing: '', // edit / new / copy
-    };
-}());
-
-CMenu.init = function (div) {
-    // 初始化对象
-    CMenu.$container = $('table#' + div);
-    CMenu.sys_dom = CMenu.$container.find('#system-indicators');
-    CMenu.sys_dom.append($('<div><h5>Loading...</h5></div>'));
-    CMenu.dom = CMenu.$container.find('#custom-indicators');
-    CMenu.dom.append($('<div><h5>Loading...</h5></div>'));
-
-    // 初始化系统指标
-    // 初始化时默认选中第一个系统指标
-    let promiseSys = CMenu.initSysIndicators();
-
-    // 初始化用户自定义指标
-    CMenu.$trashModal = $('#TrashModal');
-    let promiseCus = CMenu.initCustomIndicators();
-
-    Promise.all([promiseCus, promiseSys]).then(function () {
-        //初始化指标类
-        register_all_indicators();
-    });
-
-    // 初始化代码编辑区域
-    CMenu.editor = ace.edit('editor');
-    CMenu.editor.getSession().setMode('ace/mode/javascript');
-    ace.require('ace/ext/language_tools');
-    CMenu.editor.$blockScrolling = Infinity;
-    let session = CMenu.editor.getSession();
-    var interval = setInterval(() => {
-        if (session.$worker) {
-            session.$worker.send('changeOptions', [{
-                strict: false,
-            },]);
-            clearInterval(interval);
-        }
-    }, 50);
-
-    CMenu.editor.setOptions({
-        enableBasicAutocompletion: true,
-        enableSnippets: true,
-        enableLiveAutocompletion: true,
-        enableLinking: true,
-    });
-
-    /*************** breakpoints ***************/
-
-    CMenu.editor.on('guttermousedown', function (e) {
-        if (CMenu.editor.getReadOnly()) return;
-
-        var target = e.domEvent.target;
-
-        if (target.className.indexOf('ace_gutter-cell') == -1) return;
-
-        if (!CMenu.editor.isFocused()) return;
-
-        if (e.clientX > 25 + target.getBoundingClientRect().left) return;
-
-        var row = e.getDocumentPosition().row;
-        var breakpointsArray = e.editor.session.getBreakpoints();
-        if (!(row in breakpointsArray)) {
-            e.editor.session.setBreakpoint(row);
-        } else {
-            e.editor.session.clearBreakpoint(row);
-        }
-
-        e.stop();
-    });
-
-    /*************** keywords link Click ***************/
-    CMenu.editor.on('linkClick', function (data) {
-        var types = ['support.function.tianqin', 'constant.language.function'];
-        var functype = ['cfunc', 'efunc'];
-        var index = types.indexOf(data.token.type);
-        if (data && data.token && index > -1) {
-            let lowerCase = data.token.value.toLowerCase();
-            window.open(`http://doc.tq18.cn/ta/latest/${functype[index]}/${lowerCase}.html`);
-        }
-
-    });
-
-    /*************** mousemove + tooltips ***************/
-
-    CMenu.editor.on('mousemove', function (e) {
-        var position = e.getDocumentPosition();
-        var token = CMenu.editor.getSession().getTokenAt(position.row, position.column);
-        if (position && token) {
-            var types = Object.keys(CMenu.tooltips);
-            if (types.indexOf(token.type) > -1) {
-                let pixelPosition = CMenu.editor.renderer.textToScreenCoordinates(position);
-                pixelPosition.pageY += CMenu.editor.renderer.lineHeight;
-                CMenu.updateTooltip(pixelPosition, token);
-            } else {
-                CMenu.updateTooltip(CMenu.editor.renderer.textToScreenCoordinates(position));
+        this.$trashModal = $('#TrashModal');
+        // 当前编辑的指标
+        this.editing = '';
+        this.IndKeyManager = (function(){
+            var keys = Object.keys(this.datas);
+            var max = Math.max.apply(null, keys);
+            max = max > -1 ? max : 0;
+            return {
+                get: () => max += 1
             }
-        }
-    });
-
-    /*************** Command-S / Ctrl-S ***************/
-    CMenu.editor.commands.addCommand({
-        name: 'saverun',
-        bindKey: { win: 'Ctrl-Shift-S', mac: 'Command-Shift-S', sender: 'editor|cli' },
-        exec: function (editor) {
-            $('#btn_editor_run').click();
-        },
-
-        readOnly: false,
-    });
-
-    CMenu.editor.commands.addCommand({
-        name: 'saverun',
-        bindKey: { win: 'Ctrl-S', mac: 'Command-S', sender: 'editor|cli' },
-        exec: function (editor) {
-            $('#btn_editor_run').click();
-        },
-
-        readOnly: false,
-    });
-
-    CMenu.editor.commands.addCommand({
-        name: 'saverun',
-        bindKey: { win: 'Ctrl-S', mac: 'Command-S', sender: 'editor|cli' },
-        exec: function (editor) {
-            $('#btn_editor_run').click();
-        },
-
-        readOnly: false,
-    });
-
-    CMenu.initThemeContainer();
-};
-
-CMenu.updateTooltip = function (position, token) {
-    //example with container creation via JS
-    var div = document.getElementById('tooltip_0');
-    if (div === null) {
-        div = document.createElement('div');
-        div.setAttribute('id', 'tooltip_0');
-        div.setAttribute('class', 'seecoderun_tooltip'); // and make sure myclass has some styles in css
-        document.body.appendChild(div);
+        }).call(this);
+        this.init();
+        this.init_editor();
+        this.init_editor_theme();
     }
-
-    div.style.display = 'block';
-    div.style.left = position.pageX + 'px';
-    div.style.top = position.pageY + 'px';
-    div.style.visibility = 'hidden';
-
-    var types = ['support.function.tianqin', 'constant.language.function'];
-
-
-    if (token) {
-        var color = CMenu.getTooltipColor(token);
-        var typeIndex = types.indexOf(token.type);
-        if (color) {
-            div.style.backgroundColor = color;
-            div.style.visibility = 'visible';
-            div.innerText = '   ';
-        } else {
-            div.style.backgroundColor = '#FFFFFF';
-            var text = CMenu.getTooltipText(token);
-
-            if (text && text.length > 0) {
-                if (typeIndex > -1) text = text += ' (按住Ctrl单击打开链接)';
-                div.style.visibility = 'visible';
-                div.innerText = text;
-            }
-        }
-
-    }
-};
-
-CMenu.selectCallback = function (tr, data) {
-    for (let k in CMenu.sys_item_doms) {
-        CMenu.sys_item_doms[k][0].classList.remove('active');
-    }
-
-    for (let k in CMenu.item_doms) {
-        CMenu.item_doms[k][0].classList.remove('active');
-    }
-
-    tr.classList.add('active');
-    if (data.type === 'system') {
-        $('#btn_editor_save').attr('disabled', true);
-        $('#btn_editor_run').attr('disabled', true);
-        $('#btn_editor_reset').attr('disabled', true);
-        CMenu.editing = data;
-        CMenu.editor.setValue(data.draft.code, 1);
-        CMenu.editor.setReadOnly(true);
-    } else {
-        $('#btn_editor_save').attr('disabled', false);
-        $('#btn_editor_run').attr('disabled', false);
-        $('#btn_editor_reset').attr('disabled', false);
-        IStore.getByKey(data.key).then(function (result) {
-            CMenu.editing = result;
-            if (data.type === 'custom') {
-                CMenu.editor.setValue('', 1);
-                CMenu.editor.insertSnippet(result.draft.code);
-            } else {
-                CMenu.editor.setValue(result.draft.code, 1);
-            }
-            CMenu.editor.setReadOnly(false);
-        });
-    }
-
-    CMenu.editor.focus();
-    // 清空全部断点
-    CMenu.editor.session.clearBreakpoints();
-    if (data.type === 'system' || data.type === 'custom') {
-        let center = $('div.main-container div.content-container')[0];
-        center.classList.remove('col-xs-6');
-        center.classList.add('col-xs-9');
-        $('div.main-container div.right-menu')[0].classList.add('hide');
-    }
-};
-
-CMenu.initSysIndicators = function () {
-    return new Promise((resolve, reject) => {
-        $.get('/libs/ind/defaults.json').then(function (response) {
-            for (let name in response) {
-                if (name === 'template') {
-                    CMenu.codeTemplate = response[name];
-                } else {
-                    CMenu.sys_datas.push({
-                        name: name,
-                        type: 'system',
-                        draft: {
+    init(){
+        this.sys_dom.append($('<div><h5>Loading...</h5></div>'));
+        this.dom.append($('<div><h5>Loading...</h5></div>'));
+        var _this = this;
+        var proSys = new Promise((resolve, reject) => {
+            $.get('/libs/ind/defaults.json').then(function (response) {
+                var key = -1;
+                for (let name in response) {
+                    if (name === 'template'){
+                        _this.codeTemplate = response[name];
+                    } else {
+                        _this.sys_datas[name] = {
+                            key,
+                            name: name,
+                            type: 'system',
                             code: response[name]
-                        }
-                    });
+                        };
+                        key -= 1;
+                    }
                 }
-            }
-
-            // 初始化界面
-            CMenu.sys_dom.empty();
-            for (let i = 0; i < CMenu.sys_datas.length; i++) {
-                let tr = CMenuUtils.getIndicatorTr(CMenu.sys_datas[i], {
-                    select: CMenu.selectCallback,
-                    copy: CMenu.copyCallback,
-                });
-                CMenu.sys_item_doms.push(tr);
-                CMenu.sys_dom.append(tr);
-            }
-
-            // 初始化时默认选中第一个系统指标
-            CMenu.sys_item_doms[0].find('td:first').click();
-            resolve();
-        });
-    });
-
-};
-
-CMenu.initCustomIndicators = function () {
-    return new Promise((resolve, reject) => {
-        IStore.init().then(function () {
-            IStore.getAll().then(function (list) {
-                // 显示UI
-                CMenu.datas = list;
-                CMenu.dom.empty();
-                CMenu.updateUI();
                 resolve();
-            }, function (e) {
-                console.error(e);
             });
         });
-
-    });
-
-};
-
-CMenu.addAction = function () {
-    CMenu.doing = 'new';
-
-    let name = 'untitled';
-    let codeDefault = CMenu.codeTemplate.replace('${1:indicator_name}', name);
-    let type = 'custom'; // 没有文华，只保留天勤 @20180409
-
-    IStore.add({
-        name: name,
-        type: type,
-        draft: {
-            code: codeDefault,
-        },
-    }).then(function (i) {
-        CMenu.update(() => {
-            CMenu.dom.find('tr.' + name + ' td')[0].click();
-        });
-    }, function (e) {
-        if (e === 'ConstraintError') {
-            name = name + '_' + RandomStr(4);
-            IStore.add({
-                name: name,
-                type: type,
-                draft: {
-                    code:  CMenu.codeTemplate.replace('${1:function_name}', name)
-                },
-            }).then(function (i) {
-                CMenu.update(() => {
-                    CMenu.dom.find('tr.' + name + ' td')[0].click();
+        proSys.then(function(){
+            //初始所有化指标类
+            IndCtrl.registerIndicator(_this.webworker, _this.sys_datas);
+            IndCtrl.registerIndicator(_this.webworker, _this.datas);
+            // 更新系统指标ui
+            _this.sys_dom.empty();
+            for(var name in _this.sys_datas){
+                let tr = IndCtrl.getIndicatorTr(_this.sys_datas[name], {
+                    select: _this.selectCallback.bind(_this),
+                    copy: _this.copyCallback.bind(_this),
                 });
-            }, function (e) {
-                if (e === 'ConstraintError') {
-                    Notify.error('指标名称重复');
-                } else {
-                    Notify.error(e);
-                }
-            });
-        } else {
-            Notify.error(e);
-        }
-    });
-};
-
-CMenu.copyCallback = function (tr, data) {
-    CMenu.doing = 'copy';
-
-    let name = data.name + '_copy';
-    let code = data.draft.code.trim();
-    let re = /^(function\s*\*\s*).*(\s*\(\s*C\s*\)\s*\{[\s\S]*\})$/g;
-    let type = 'custom'; // 没有文华，只保留天勤 @20180409
-
-    IStore.add({
-        name: name,
-        type: type,
-        draft: {
-            code: code.replace(re, '$1' + name + '$2'),
-        },
-    }).then(function (i) {
-        CMenu.update(() => {
-            CMenu.dom.find('tr.' + name + ' td')[0].click();
+                _this.sys_dom.append(tr);
+            }
+            // 初始化时默认选中第一个系统指标
+            _this.sys_dom.find('td:first').click();
         });
-    }, function (e) {
-        if (e === 'ConstraintError') {
-            name += '_' + RandomStr(4);
-            IStore.add({
-                name: name,
-                type: type,
-                draft: {
-                    code: code.replace(re, '$1' + name + '$2'),
-                },
-            }).then(function (i) {
-                CMenu.update(() => {
-                    CMenu.dom.find('tr.' + name + ' td')[0].click();
-                });
-            }, function (e) {
-                if (e === 'ConstraintError') {
-                    Notify.error('指标名称重复');
-                } else {
-                    Notify.error(e);
-                }
-            });
-        } else {
-            Notify.error(e);
-        }
-    });
-};
-
-// 检查 系统指标 和 用户自定义指标 是否有指标名称是 name
-CMenu.hasClassName = function (name) {
-    let lists = ['sys_datas', 'datas'];
-    for (let i = 0; i < lists.length; i++) {
-        for (let j = 0; j < CMenu[lists[i]].length; j++) {
-            if (name === CMenu[lists[i]][j].name) return true;
-        }
+        // 初始化用户自定义指标ui
+        _this.dom.empty();
+        _this.updateUI();
     }
+    init_editor(){
+        // 初始化代码编辑区域
+        this.editor.getSession().setMode('ace/mode/javascript');
+        ace.require('ace/ext/language_tools');
+        this.editor.$blockScrolling = Infinity;
+        let session = this.editor.getSession();
+        var interval = setInterval(() => {
+            if (session.$worker) {
+                session.$worker.send('changeOptions', [{
+                    strict: false,
+                },]);
+                clearInterval(interval);
+            }
+        }, 50);
 
-    return false;
-};
+        this.editor.setOptions({
+            enableBasicAutocompletion: true,
+            enableSnippets: true,
+            enableLiveAutocompletion: true,
+            enableLinking: true,
+        });
 
-// 删除当前编辑的指标
-CMenu.trashIndicator = function (e) {
-    let indicatorName = CMenu.editing.name;
-
-    // UI界面 删除DOM
-    let $nextTr = CMenu.item_doms[CMenu.editing.key].next('tr');
-    if ($nextTr.length === 0) {
-        $nextTr = CMenu.item_doms[CMenu.editing.key].prev('tr');
-        if ($nextTr.length === 0) $nextTr = null;
-    };
-
-    CMenu.item_doms[CMenu.editing.key].remove();
-
-    // 删除内存数据
-    delete CMenu.item_doms[CMenu.editing.key];
-
-    // 删除数据库存储数据
-    IStore.remove(CMenu.editing.key).then(function (i) {
-        // 更新界面
-        CMenu.update(() => {
-            if ($nextTr) {
-                $nextTr.find('td:first').click();
+        /*************** breakpoints ***************/
+        this.editor.on('guttermousedown', function (e) {
+            if (this.editor.getReadOnly()) return;
+            var target = e.domEvent.target;
+            if (target.className.indexOf('ace_gutter-cell') == -1) return;
+            if (!this.editor.isFocused()) return;
+            if (e.clientX > 25 + target.getBoundingClientRect().left) return;
+            var row = e.getDocumentPosition().row;
+            var breakpointsArray = e.editor.session.getBreakpoints();
+            if (!(row in breakpointsArray)) {
+                e.editor.session.setBreakpoint(row);
             } else {
-                CMenu.sys_item_doms[0].find('td:first').click();
+                e.editor.session.clearBreakpoint(row);
+            }
+            e.stop();
+        });
+
+        /*************** keywords link Click ***************/
+        this.editor.on('linkClick', function (data) {
+            var types = ['support.function.tianqin', 'constant.language.function'];
+            var functype = ['cfunc', 'efunc'];
+            var index = types.indexOf(data.token.type);
+            if (data && data.token && index > -1) {
+                let lowerCase = data.token.value.toLowerCase();
+                window.open(`http://doc.tq18.cn/ta/latest/${functype[index]}/${lowerCase}.html`);
             }
         });
 
+        /*************** mousemove + tooltips ***************/
+        this.editor.on('mousemove', (function (e) {
+            var position = e.getDocumentPosition();
+            var token = this.editor.getSession().getTokenAt(position.row, position.column);
+            if (position && token) {
+                var types = Object.keys(TqTooltips);
+                if (types.indexOf(token.type) > -1) {
+                    let pixelPosition = this.editor.renderer.textToScreenCoordinates(position);
+                    pixelPosition.pageY += this.editor.renderer.lineHeight;
+                    IndCtrl.updateTooltip(pixelPosition, token);
+                } else {
+                    IndCtrl.updateTooltip(this.editor.renderer.textToScreenCoordinates(position));
+                }
+            }
+        }).bind(this));
+
+        /*************** Command-S / Ctrl-S ***************/
+        this.editor.commands.addCommand({
+            name: 'saverun',
+            bindKey: { win: 'Ctrl-S', mac: 'Command-S', sender: 'editor|cli' },
+            exec: function (editor) {
+                $('#btn_editor_run').click();
+            },
+            readOnly: false,
+        });
+    }
+    init_editor_theme(){
+        let themes = [
+            'ambiance',
+            'chaos',
+            'chrome',
+            'clouds',
+            'clouds_midnight',
+            'cobalt',
+            'crimson_editor',
+            'dawn',
+            'dreamweaver',
+            'eclipse',
+            'github',
+            'gruvbox',
+            'idle_fingers',
+            'iplastic',
+            'katzenmilch',
+            'kr_theme',
+            'kuroir',
+            'merbivore',
+            'merbivore_soft',
+            'mono_industrial',
+            'monokai',
+            'pastel_on_dark',
+            'solarized_dark',
+            'solarized_light',
+            'sqlserver',
+            'terminal',
+            'textmate',
+            'tomorrow',
+            'tomorrow_night',
+            'tomorrow_night_blue',
+            'tomorrow_night_bright',
+            'tomorrow_night_eighties',
+            'twilight',
+            'vibrant_ink',
+            'xcode',
+        ];
+        let the = localStorage.getItem('theme');
+        if (the === null) {
+            the = 'textmate';
+            localStorage.setItem('theme', the);
+        }
+        $('.theme-container .show-theme').text(the);
+        this.editor.setTheme('ace/theme/' + the);
+
+        let str = '';
+        let $ul = $('.theme-container .dropdown-menu');
+        for (let i = 0; i < themes.length; i++) {
+            str += ('<li><a href="#" class="' + themes[i] + '">' + themes[i] + '</a></li>');
+        }
+        $ul.html(str);
+        $ul.css({ height: '200px', overflow: 'scroll'});
+        $ul.on('click', (function (e) {
+            let the = e.target.className;
+            $('.theme-container .show-theme').text(the);
+            this.editor.setTheme('ace/theme/' + the);
+            localStorage.setItem('theme', the);
+        }).bind(this));
+    }
+    workerWsReconnectCB (){
+        IndCtrl.registerIndicator(this.webworker, this.sys_datas);
+        IndCtrl.registerIndicator(this.webworker, this.datas);
+    }
+    workerCalcStartCB (content){
+        this.errStore.records[content.id] = setTimeout((function(){
+            Notify.error(content.className + ' 运行超时！');
+            this.errStore.add(content.className);
+            this.updateUI();
+            this.webworker.worker.terminate();
+            this.webworker.init();
+        }).bind(this), CODE_RUN_TIMEOUT);
+    }
+    workerCalcEndCB(content){
+        clearTimeout(this.errStore.records[content.id]);
+        delete this.errStore.records[content.id];
+    }
+    workerFeedbackCB(content){
+        if (content.error) {
+            Notify.error(content);
+            this.errStore.add(content.func_name);
+            this.updateUI();
+            if (content.type === 'run' || content.type === 'define') {
+                this.webworker.worker.terminate();
+                this.webworker.init();
+            }
+        } else {
+            this.errStore.remove(content.func_name);
+            if(this.waitingResult.has(content.func_name)) {
+                Notify.success(content);
+                this.waitingResult.delete(content.func_name);
+            }
+        }
+    }
+    selectCallback(tr, table, data){
+        var trs = table.getElementsByTagName('tr');
+        for(var _tr of trs){
+            _tr.classList.remove('active');
+        }
+        tr.classList.add('active');
+
+        this.editing = data;
+        this.editor.setValue(data.code, 1);
+
+        if (data.type === 'system') {
+            $('#btn_editor_save').attr('disabled', true);
+            $('#btn_editor_run').attr('disabled', true);
+            this.editor.setReadOnly(true);
+        } else {
+            $('#btn_editor_save').attr('disabled', false);
+            $('#btn_editor_run').attr('disabled', false);
+            this.editor.setReadOnly(false);
+        }
+        this.editor.focus();
+    }
+    copyCallback(tr, data){
+        let copy_i = 1;
+        let name = data.name + '_' + copy_i;
+        while (this.existIndicatorName(name)){
+            copy_i++;
+            name = data.name + '_' + copy_i;
+        }
+        let re = /^(function\s*\*\s*).*(\s*\(\s*C\s*\)\s*\{[\s\S]*\})$/g;
+        let code = data.code.trim().replace(re, '$1' + name + '$2');
+        let key = this.IndKeyManager.get();
+        this.datas[key] = {
+            key,
+            name,
+            type: 'custom',
+            code,
+        };
+        this.webworker.register_indicator_class(name, code);
+    }
+    trashCallback(tr, data){
+        this.$trashModal.find('#trash-indicator-name').text(data.name);
+        this.$trashModal.dataSet = data;
+        this.$trashModal.modal('show');
+    }
+    addNewIndicator (e){
+        let copy_i = 1;
+        let name = 'untitled';
+        while (this.existIndicatorName(name)){
+            name = 'untitled_' + copy_i++;
+        }
+        let code = this.codeTemplate.replace('${1:function_name}', name);
+        let key = this.IndKeyManager.get();
+        this.datas[key] = {
+            key,
+            name,
+            type: 'custom',
+            code,
+        };
+    }
+    trashIndicator (e){
+        let deleting_ind = this.$trashModal.dataSet;
+        delete this.datas[deleting_ind.key];
         // 关闭确认框
-        CMenu.$trashModal.modal('hide');
-
+        this.$trashModal.modal('hide');
         // 通知webworker unregister_indicator_class
-        worker.postMessage({ cmd: 'unregister_indicator_class', content: indicatorName });
-    },        function (e) {
-            Notify.error(e.toString());
-        });
-};
-
-CMenu.saveDraftIndicator = function (e) {
-    IStore.saveDraft({
-        key: CMenu.editing.key,
-        name: CMenu.editing.name,
-        draft: {
-            code: CMenu.editor.getValue(),
+        this.webworker.unregister_indicator_class(deleting_ind.name);
+    }
+    saveIndicator (e){
+        let old_name = this.editing.name;
+        let code = this.editor.getSession().getValue().trim();
+        let new_name = IndCtrl.checkCode(code, this.editor);
+        if (new_name) {
+            if(old_name !== new_name){
+                if (this.existIndicatorName(new_name)){
+                    Notify.error('指标名称重复!');
+                    return;
+                }
+                // 通知webworker unregister_indicator_class
+                this.webworker.unregister_indicator_class(old_name)
+                this.datas[this.editing.key].name = new_name;
+            }
+            this.datas[this.editing.key].code = code;
+            this.updateUI();
+            this.indStore.save(this.datas);
+            this.webworker.register_indicator_class(new_name, code);
+            this.waitingResult.add(new_name);
+            this.editing = this.datas[this.editing.key];
         }
-    }).then(function (result) {
-        CMenu.editing = result;
-        worker.postMessage({ cmd: 'indicator', content: result });
-    }, function (e) {
-
-        Notify.error(e);
-    });
-};
-
-CMenu.saveFinalIndicator = function (e) {
-    IStore.saveFinal({
-        key: CMenu.editing.key,
-        name: CMenu.editing.name,
-        draft: {
-            code: CMenu.editor.getValue(),
-        }
-    }).then(function (result) {
-        CMenu.update()
-    }, function (e) {
-        Notify.error(e);
-    });
-};
-
-CMenu.resetIndicator = function (e) {
-    IStore.reset(CMenu.editing.key).then(function (result) {
-        CMenu.editing = result;
-        CMenu.editor.setValue(result.draft.code, 1);
-        CMenu.editor.focus();
-    });
-};
-
-CMenu.trashCallback = function (tr, key) {
-    CMenu.doing = 'edit';
-    IStore.getByKey(key).then(function (result) {
-        CMenu.$trashModal.find('#trash-indicator-name').text(result.name);
-        CMenu.$trashModal.modal('show');
-    });
-};
-
-CMenu.update = function (fun) {
-    IStore.getAll().then(function (list) {
-        CMenu.datas = list;
-        CMenu.updateUI();
-        if (fun) fun();
-    }, function (e) {
-        console.log(e);
-    });
-};
-
-CMenu.updateUI = function (indicator) {
-    for (let i = 0; i < CMenu.datas.length; i++) {
-        if (indicator && CMenu.datas[i].key === indicator.key) {
-            CMenu.datas[i] = indicator;
-            CMenu.editing = indicator;
-        } else {
-            indicator = CMenu.datas[i];
-            if (indicator.key === CMenu.editing.key) {
-                CMenu.editing = indicator;
+        this.editor.focus();
+    }
+    updateUI () {
+        for (let k in this.datas){
+            let ind = this.datas[k];
+            let tr = this.dom.find('tr.' + ind.key);
+            if(tr.length == 0){
+                tr = IndCtrl.getIndicatorTr(ind, {
+                    select: this.selectCallback.bind(this),
+                    trash: this.trashCallback.bind(this),
+                });
+                this.dom.append(tr);
+            }else{
+                tr.find('td:first').empty().append(ind.name);
+            }
+            if (this.errStore.has(ind.name)) {
+                let timeout = IndCtrl.getBrandTag('错误', 'danger');
+                this.dom.find('tr.' + k + ' td:first').append(timeout);
             }
         }
-
-        if (!CMenu.item_doms[indicator.key]) {
-            CMenu.item_doms[indicator.key] = CMenuUtils.getIndicatorTr(indicator, {
-                select: CMenu.selectCallback,
-                trash: CMenu.trashCallback,
-            });
-            CMenu.dom.append(CMenu.item_doms[indicator.key]);
+    };
+    existIndicatorName (name) {
+        // 检查 系统指标 和 用户自定义指标 是否有指标名称是 name
+        for (let k in this.sys_datas)
+            if (k === name) return true;
+        for (let k in this.datas)
+            if (this.datas[k].name === name) return true;
+        return false;
+    };
+    /**
+     * 静态方法
+     */
+    static registerIndicator(worker, indicators){
+        if (indicators.name && indicators.code){
+            worker.register_indicator_class(indicators.name, indicators.code);
         } else {
-            let type = CMenuUtils.getBrandTag(indicator.type);
-            CMenu.item_doms[indicator.key].find('td:first').empty().append(type).append(indicator.name);
-            CMenu.item_doms[indicator.key].find('td:first').empty().append(indicator.name);
-        }
-
-        if (ErrorHandlers.has(indicator.name)) {
-            let timeout = CMenuUtils.getBrandTag('timeout');
-            CMenu.item_doms[indicator.key].find('td:first').append(timeout);
+            for(var i in indicators){
+                worker.register_indicator_class(indicators[i].name, indicators[i].code);
+            }
         }
     }
-};
-
-CMenu.initThemeContainer = function () {
-    let themes = [
-        'ambiance',
-        'chaos',
-        'chrome',
-        'clouds',
-        'clouds_midnight',
-        'cobalt',
-        'crimson_editor',
-        'dawn',
-        'dreamweaver',
-        'eclipse',
-        'github',
-        'gruvbox',
-        'idle_fingers',
-        'iplastic',
-        'katzenmilch',
-        'kr_theme',
-        'kuroir',
-        'merbivore',
-        'merbivore_soft',
-        'mono_industrial',
-        'monokai',
-        'pastel_on_dark',
-        'solarized_dark',
-        'solarized_light',
-        'sqlserver',
-        'terminal',
-        'textmate',
-        'tomorrow',
-        'tomorrow_night',
-        'tomorrow_night_blue',
-        'tomorrow_night_bright',
-        'tomorrow_night_eighties',
-        'twilight',
-        'vibrant_ink',
-        'xcode',
-    ];
-    let the = localStorage.getItem('theme');
-    if (the === null) {
-        the = 'textmate';
-        localStorage.setItem('theme', the);
+    static checkCode(code, editor){
+        // 检查代码是否符合规范，并返回 function name
+        let reg = /^function\s*\*\s*(\S*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}\n*$/g;
+        let result = reg.exec(code);
+        if (result && result[0] === result.input) {
+            if (!result[2].includes('yield')) {
+                Notify.error('函数中返回使用 yield 关键字!');
+                return false;
+            } else if (editor) {
+                let annotations = editor.getSession().getAnnotations();
+                for (let i = 0; i < annotations.length; i++) {
+                    if (annotations[i].type === 'error') {
+                        Notify.error(annotations[i].row + ':' + annotations[i].colume + ' ' + annotations[i].text);
+                        return false;
+                    }
+                }
+                if(result[1]){
+                    return result[1];
+                } else {
+                    Notify.error('指标名称不能为空');
+                    return false;
+                }
+            }
+        } else {
+            Notify.error('代码不符合规范!');
+            return false;
+        }
     }
-
-    $('.theme-container .show-theme').text(the);
-    CMenu.editor.setTheme('ace/theme/' + the);
-    let str = '';
-    let $ul = $('.theme-container .dropdown-menu');
-    for (let i = 0; i < themes.length; i++) {
-        str += ('<li><a href="#" class="' + themes[i] + '">' + themes[i] + '</a></li>');
-    }
-
-    $ul.html(str);
-    $ul.css({
-        height: '200px',
-        overflow: 'scroll',
-    });
-    $ul.on('click', function (e) {
-        CMenu.changeEditorTheme(e.target.className);
-    });
-};
-
-CMenu.changeEditorTheme = function (the) {
-    $('.theme-container .show-theme').text(the);
-    CMenu.editor.setTheme('ace/theme/' + the);
-    localStorage.setItem('theme', the);
-};
-
-CMenuUtils = (function () {
-    let validVariableName = function (name) {
+    static validVariableName (name) {
         // 匹配变量名的正则
         // 长度1-20，数字、字母、_、$ 组成，数字不能开头
         let regExp = /^[a-zA-Z\_\$][0-9a-zA-Z\_\$]{0,19}$/;
         return regExp.test(name);
-    };
-
-    let getBrandTag = function (type) {
-        let setting = {
-            system: {
-                label_name: 'danger',
-                label_text: '天',
-            },
-            custom: {
-                label_name: 'danger',
-                label_text: '天',
-            },
-            custom_wh: {
-                label_name: 'info',
-                label_text: '文',
-            },
-            timeout: {
-                label_name: 'danger',
-                label_text: '错误',
-            }
-        };
+    }
+    static getBrandTag (text, label_class='danger') {
         let $d = $('<span></span>');
-
-        $d.addClass('label label-brand label-' + setting[type].label_name);
-        $d.append(setting[type].label_text);
+        $d.addClass('label label-brand label-' + label_class);
+        $d.append(text);
         return $d;
-    };
+    }
+    static getIndicatorTr (data, callbacks) {
+        function getIconBtn(type) {
+            let $btn = $('<span class="glyphicon glyphicon-' + type + '"></span>');
+            return ($('<td width="10%"></td>').append($btn));
+        }
 
-    let getNameTd = function (data) {
-        let $td = $('<td>' + data.name + '</td>');
-        return $td;
-    };
-
-    let getIconBtn = function (type) {
-        let $btn = $('<span class="glyphicon glyphicon-' + type + '"></span>');
-        return ($('<td width="10%"></td>').append($btn));
-    };
-
-    let getIndicatorTr = function (data, callbacks) {
-        // data.type 'system' callbacks[select edit trash]
-        // data.type 'custom-*' callbacks[select copy]
-        let $tr = $('<tr class="' + data.name + '"></tr>');
+        let $tr = $('<tr class="' + data.key + '"></tr>');
         $tr.on('click', function (e) {
             let $tr = e.target.parentElement;
             if (e.target.parentElement.parentElement.nodeName === 'TR') {
                 $tr = e.target.parentElement.parentElement;
             }
-
-            callbacks.select($tr, data);
+            let $table = $tr.parentElement.parentElement;
+            callbacks.select($tr, $table, data);
         });
-
-        $tr.append(getNameTd(data));
+        $tr.append($('<td>' + data.name + '</td>'));
         if (data.type === 'system') {
-            let copyBtn = CMenuUtils.getIconBtn('duplicate');
+            let copyBtn = getIconBtn('duplicate');
             copyBtn.on('click', function (e) {
+                e.stopPropagation();
                 callbacks.copy($tr, data);
             });
-
             return $tr.append(copyBtn);
         } else {
-            let trashBtn = CMenuUtils.getIconBtn('trash');
+            let trashBtn = getIconBtn('trash');
             trashBtn.on('click', function (e) {
-                callbacks.trash($tr, data.key);
+                e.stopPropagation();
+                callbacks.trash($tr, data);
             });
-
             return $tr.append(trashBtn);
         }
-    };
-
-    return {
-        validVariableName: validVariableName,
-        getBrandTag: getBrandTag,
-        getIconBtn: getIconBtn,
-        getIndicatorTr: getIndicatorTr,
-    };
-}());
-
-class COLOR {
-    constructor(r, g, b) {
-        this.r = r;
-        this.g = g;
-        this.b = b;
     }
+    static getTooltipColor(token) {
+        if (token.type === 'constant.language.color') {
+            return TqTooltips[token.type][token.value].toString();
+        } else {
+            return false;
+        }
+    }
+    static getTooltipText (token) {
+        return TqTooltips[token.type][token.value];
+    }
+    static updateTooltip (position, token) {
+        //example with container creation via JS
+        var div = document.getElementById('tooltip_0');
+        if (div === null) {
+            div = document.createElement('div');
+            div.setAttribute('id', 'tooltip_0');
+            div.setAttribute('class', 'seecoderun_tooltip'); // and make sure myclass has some styles in css
+            document.body.appendChild(div);
+        }
 
-    toString() {
-        return '#' + this.r.toString(16).padStart(2, '0') + this.g.toString(16).padStart(2, '0') + this.b.toString(16).padStart(2, '0');
+        div.style.display = 'block';
+        div.style.left = position.pageX + 'px';
+        div.style.top = position.pageY + 'px';
+        div.style.visibility = 'hidden';
+
+        var types = ['support.function.tianqin', 'constant.language.function'];
+        if (token) {
+            var color = IndCtrl.getTooltipColor(token);
+            var typeIndex = types.indexOf(token.type);
+            if (color) {
+                div.style.backgroundColor = color;
+                div.style.visibility = 'visible';
+                div.innerText = '   ';
+            } else {
+                div.style.backgroundColor = '#FFFFFF';
+                var text = IndCtrl.getTooltipText(token);
+                if (text && text.length > 0) {
+                    if (typeIndex > -1) text = text += ' (按住Ctrl单击打开链接)';
+                    div.style.visibility = 'visible';
+                    div.innerText = text;
+                }
+            }
+
+        }
     }
 }
-
-CMenu.tooltips = {
-    'support.function.tianqin': {
-        DEFINE: '定义技术指标属性',
-        PARAM: '定义指标参数',
-        SERIAL: '定义输入序列',
-        OUTS: '定义输出序列',
-    },
-    'constant.language.context': {
-        C: '系统核心函数提供者',
-    },
-    'constant.language.color': {
-        RED: new COLOR(0xFF, 0, 0),
-        GREEN: new COLOR(0, 0xFF, 0),
-        BLUE: new COLOR(0, 0, 0xFF),
-        CYAN: new COLOR(0, 0xFF, 0xFF),
-        BLACK: new COLOR(0, 0, 0),
-        WHITE: new COLOR(0xFF, 0xFF, 0xFF),
-        GRAY: new COLOR(0x80, 0x80, 0x80),
-        MAGENTA: new COLOR(0xFF, 0, 0xFF),
-        YELLOW: new COLOR(0xFF, 0xFF, 0),
-        LIGHTGRAY: new COLOR(0xD3, 0xD3, 0xD3),
-        LIGHTRED: new COLOR(0xF0, 0x80, 0x80),
-        LIGHTGREEN: new COLOR(0x90, 0xEE, 0x90),
-        LIGHTBLUE: new COLOR(0x8C, 0xCE, 0xFA),
-    },
-    'constant.language.function': {
-        MA: '求一个序列中连续N项的平均值',
-        STDEV: '求一个序列中连续N项的标准差',
-        SUM: '求一个序列中连续N项的和',
-    },
-    'support.keyword.tianqin': {
-        PARAMS: '参数对象',
-        OUTS: '定义输出序列',
-        cname: '可选，指定技术指标的中文名称。默认为技术指标名',
-        type: '必填，“MAIN” 或 “SUB”, MAIN=主图技术指标, SUB=副图技术指标',
-        state: '必填，“KLINE” 或 “TICK”',
-        color: '设置颜色',
-        memo: '可选，设定此技术指标的文字说明。',
-        yaxis: '可选, 描述此指标所需要使用的Y坐标轴',
-    },
-};
-
-CMenu.getTooltipColor = function (token) {
-    if (token.type === 'constant.language.color') {
-        return CMenu.tooltips[token.type][token.value].toString();
-    } else {
-        return false;
+class TqWebWorker {
+    constructor (url, callbacks){
+        this.url = url;
+        this.worker = null;
+        this.callbacks = callbacks;
+        this.init();
     }
-};
-
-CMenu.getTooltipText = function (token) {
-    return CMenu.tooltips[token.type][token.value];
-};
+    init(){
+        this.worker = new Worker(this.url);
+        let _this = this;
+        this.worker.addEventListener('message', function (e) {
+            switch (e.data.cmd) {
+                case 'websocket_reconnect':
+                    _this.callbacks['websocket_reconnect'](e.data.content);
+                    break;
+                case 'calc_start':
+                    _this.callbacks['calc_start'](e.data.content);
+                    break;
+                case 'calc_end':
+                    _this.callbacks['calc_start'](e.data.content);
+                    break;
+                case 'feedback':
+                    _this.callbacks['feedback'](e.data.content);
+                    break;
+                case 'error_all':
+                    Notify.error('error in webworker \n' + content.type + ' : ' + content.message);
+                default:
+                    break;
+            }
+        });
+    }
+    post(cmd, content){
+        if(this.worker) this.worker.postMessage({cmd, content});
+    }
+    register_indicator_class(name, code){
+        this.post('register_indicator_class', {name, code});
+    }
+    unregister_indicator_class(name){
+        this.post('unregister_indicator_class', name);
+    }
+    error_class_name(list){
+        this.post('error_class_name', list);
+    }
+}

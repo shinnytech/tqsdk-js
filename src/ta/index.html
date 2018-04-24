@@ -48,13 +48,10 @@
                         <button type="button" class="btn btn-default" id="btn_editor_run">保存代码并更新指标(Ctrl+S)</button>
                     </div>
                     <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-default" id="btn_editor_reset">回到上一版本</button>
-                    </div>
-                    <div class="btn-group" role="group">
                         <a class="btn btn-default" href="/ta/translate.html" target="_blank">文华语言翻译</a>
                     </div>
                     <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-default" id="btn_help">帮助文档</button>
+                        <a class="btn btn-default" href="http://doc.tq18.cn/tq/latest/usage/ta/" target="_blank">帮助文档</a>
                     </div>
                     <div class="btn-group pull-right theme-container">
                         <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">主题：
@@ -114,11 +111,18 @@
     <script type="text/javascript" src="ace-min/ext-linking.js"></script>
     <script type="text/javascript" src="../assets/noty.js"></script>
     <!-- del:start -->
-    <script type="text/javascript" src="js/func_store.js"></script>
     <script type="text/javascript" src="js/list_menu.js"></script>
     <script type="text/javascript" src="js/utils.js"></script>
     <!-- del:end -->
-    <script type="text/javascript" src="index.js"></script>
+    <script type="text/javascript">
+        const CODE_RUN_TIMEOUT = 500;
+        $(function () {
+            let IndicatorCtr = new IndCtrl('list_menu', 'editor', 'js/worker.js');
+            $('#btn_new_indicator').on('click', IndicatorCtr.addNewIndicator.bind(IndicatorCtr));
+            $('#trash-btn').on('click', IndicatorCtr.trashIndicator.bind(IndicatorCtr));
+            $('#btn_editor_run').on('click', IndicatorCtr.saveIndicator.bind(IndicatorCtr));
+        });
+    </script>
 </body>
 
 </html>

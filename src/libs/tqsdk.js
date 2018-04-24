@@ -1,5 +1,4 @@
 //utils----------------------------------------------------------------------
-
 /**
  * 返回指定变量的数据类型
  * @param  {Any} data
@@ -40,6 +39,27 @@ function ParseSymbol(str) {
         exchange_id: match_arr ? match_arr[1] : '',// 交易所代码
         instrument_id: match_arr ? match_arr[2] : ''// 合约代码
     }
+}
+
+/**
+ * 深度比较两个对象是否相同
+ * @param x
+ * @param y
+ * @returns {boolean}
+ */
+Object.equals = function(x, y){
+    if (!(x instanceof Object && y instanceof Object)){
+        return x == y;
+    }
+    for (let p in y) {
+        if (!x.hasOwnProperty(p)) return false;
+    }
+    for (let p in x) {
+        if (!y.hasOwnProperty(p)) return false;
+        if (typeof y[p] != typeof x[p]) return false;
+        if (!Object.equals(x[p], y[p])) return false;
+    }
+    return true;
 }
 
 /**
@@ -483,9 +503,9 @@ class IndicatorRunContext {
         this.DS = ds.d;  //提供给用户代码使用的ds proxy
         this.PARAMS = {}; //指标参数
         this.outs = {}; //输出序列访问函数
-        this.out_define = {}; //输出序列格式声明
-        this.out_values = {}; //输出序列值
-        this.valid_left = -1; //已经计算过的可靠结果范围(含左右两端点), valid_right永远>=valid_left. 如果整个序列没有计算过任何数据, 则 valid_left=valid_right= -1
+        this.out_define = {}; // 输出序列格式声明
+        this.out_values = {}; // 输出序列值
+        this.valid_left = -1; // 已经计算过的可靠结果范围(含左右两端点), valid_right永远>=valid_left. 如果整个序列没有计算过任何数据, 则 valid_left=valid_right= -1
         this.valid_right = -1;
 
         this.enable_trade = false;
@@ -548,31 +568,32 @@ class IndicatorRunContext {
         if (this.is_error || !this._ds || this._ds.last_id == -1 || left > this._ds.last_id){
             return [-1, -1];
         }
-        if(right > this._ds.last_id)
+        if(right > this._ds.last_id){
             right = this._ds.last_id;
+        }
         //判定是否需要计算及计算范围
         let calc_left = -1;
         let calc_right = -1;
-        if (left < this.valid_left || this.valid_left == -1){
-            //左端点前移
-            calc_left = left;
+        if (this.valid_left == -1 ) {
+            calc_left = this._ds.left_id > left ? this._ds.left_id : left;
             calc_right = right;
-            if (this._ds.left_id){
-                //@todo
-            }
-            this.valid_left = calc_left;
-            this.valid_right = calc_right - 1;
-        } else if (right > this.valid_right || left > this.valid_right){
-            //向右延伸
-            calc_left = this.valid_right + 1;
+        } else if (left < this.valid_left){
+            calc_left = this._ds.left_id > left ? this._ds.left_id : left;
+            calc_right = this.valid_left < right ? this.valid_left : right;
+        } else{
+            calc_left = this.valid_right > left ? this.valid_right : left;
             calc_right = right;
-            this.valid_right = calc_right - 1;
         }
+
+        if(calc_left > calc_right || calc_left == -1 || calc_right == -1)
+            return [-1, -1];
+
+        this.valid_left = calc_left;
+        this.valid_right = calc_right;
+
         //重算
-        if (calc_right >= calc_left && calc_right != -1){
-            for (let i=calc_left; i <= calc_right; i++) {
-                this.ind.next(i);
-            }
+        for (let i=calc_left; i <= calc_right; i++) {
+            this.ind.next(i);
         }
         return [calc_left, calc_right];
     };
@@ -1005,14 +1026,11 @@ class TQSDK {
         if (!c)
             return;
 
-        if (instance_id in this.ta.instance_dict){
-            let instance = this.ta.instance_dict[instance_id];
-        }
         if (!this.ta.instance_dict[instance_id]) {
             instance = this.ta.new_indicator_instance(c, pack.ins_id, pack.dur_nano, ds, params, pack.instance_id);
         }else{
             instance = this.ta.instance_dict[pack.instance_id];
-            if (ds != instance.ds || params != instance.params){
+            if (ds != instance.ds || !Object.equals(params, instance.PARAMS)){
                 this.ta.delete_indicator_instance(instance);
                 instance = this.ta.new_indicator_instance(c, pack.ins_id, pack.dur_nano, ds, params, pack.instance_id);
             }
@@ -1112,7 +1130,7 @@ class TQSDK {
      * }
      * @returns {*}
      */
-    GET_ORDER_DICT({unit_id, status=['ALIVE','FINISHED']}={}) {
+    GET_ORDER_DICT({unit_id='', status=['ALIVE','FINISHED']}={}) {
         let results = {};
         let all_orders = this.dm.get('trade', this.dm.account_id, 'orders');
         for (var order_id in all_orders) {
@@ -1208,7 +1226,7 @@ class TQSDK {
         }
     }
 
-    INSERT_ORDER({symbol, direction, offset, volume=1, price_type="LIMIT", limit_price, order_id=undefined, unit_id="EXT"}={}) {
+    INSERT_ORDER({symbol, direction, offset, volume=1, price_type="LIMIT", limit_price, order_id, unit_id="EXT"}={}) {
         if (!this.dm.account_id) {
             Notify.error('未登录，请在软件中登录后重试。');
             return null;
@@ -1329,7 +1347,7 @@ class TQSDK {
     }
 
     init_ui(){
-        if (false) {
+        if (typeof $ !== 'undefined') {
             var this_tq = this;
             $(() => {
                 // init code
