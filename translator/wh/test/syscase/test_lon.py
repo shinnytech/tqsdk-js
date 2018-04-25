@@ -36,29 +36,20 @@ cname: "长线",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
 
-//输入序列
-let HIGH = C.SERIAL("HIGH");
-let CLOSE = C.SERIAL("CLOSE");
-let LOW = C.SERIAL("LOW");
-let VOLUME = C.SERIAL("VOLUME");
-//输出序列
 let LON = C.OUTS("RGBAR", "LON", {color: RED});
 let MA1 = C.OUTS("LINE", "MA1", {color: GREEN});
-//临时序列
 let TB = [];
 let TS = [];
 let VOL1 = [];
 let VOL10 = [];
 let VOL11 = [];
 let RES1 = [];
-//指标计算
 while(true){
 let i = yield;
-TB[i]=((HIGH[i] > REF(i, CLOSE, 1)) ? (((HIGH[i] - REF(i, CLOSE, 1)) + CLOSE[i]) - LOW[i]) : (CLOSE[i] - LOW[i]));
-TS[i]=((REF(i, CLOSE, 1) > LOW[i]) ? (((REF(i, CLOSE, 1) - LOW[i]) + HIGH[i]) - CLOSE[i]) : (HIGH[i] - CLOSE[i]));
-VOL1[i]=(((TB[i] - TS[i]) * VOLUME[i]) / (TB[i] + TS[i])) / 10000;
+TB[i]=((C.DS.high[i] > REF(i, C.DS.close, 1)) ? (((C.DS.high[i] - REF(i, C.DS.close, 1)) + C.DS.close[i]) - C.DS.low[i]) : (C.DS.close[i] - C.DS.low[i]));
+TS[i]=((REF(i, C.DS.close, 1) > C.DS.low[i]) ? (((REF(i, C.DS.close, 1) - C.DS.low[i]) + C.DS.high[i]) - C.DS.close[i]) : (C.DS.high[i] - C.DS.close[i]));
+VOL1[i]=(((TB[i] - TS[i]) * C.DS.volume[i]) / (TB[i] + TS[i])) / 10000;
 VOL10[i]=DMA(i, VOL1, 0.1, VOL10);
 VOL11[i]=DMA(i, VOL1, 0.05, VOL11);
 RES1[i]=VOL10[i] - VOL11[i];
@@ -66,6 +57,7 @@ LON[i]=SUM(i, RES1, 100, LON);
 MA1[i]=MA(i, LON, 10, MA1);
 }
 }        
+     
        
                 """,
         }

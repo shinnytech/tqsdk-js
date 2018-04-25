@@ -42,6 +42,7 @@ class TestConvertIndicator(TestConvert):
             ],
             "expected": """
 
+
 function* FUNC(C){
 C.DEFINE({
 type: "SUB",
@@ -49,22 +50,16 @@ cname: "FUNC",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
-
-//输出序列
-
-//临时序列
 let MA5 = [];
 let MA10 = [];
-//指标计算
 while(true){
 let i = yield;
 MA5[i]=MA(i, C.DS.close, 5, MA5);
 MA10[i]=MA(i, C.DS.close, 10, MA10);
-if((MA10[i] < C.DS.close[i]) && (MA5[i] > C.DS.close[i]))C.DRAW_LINE("LINE" + i, i, C.DS.open[i], i, C.DS.close[i], CYAN, 1, 0);
+if((MA10[i] < C.DS.close[i]) && (MA5[i] > C.DS.close[i]))C.DRAW_SEG("LINE" + i, i, C.DS.open[i], i, C.DS.close[i], CYAN, 1, 0);
 }
 }        
-     
+              
                  """,
         }
 

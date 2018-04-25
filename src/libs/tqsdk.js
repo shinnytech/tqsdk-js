@@ -429,6 +429,7 @@ const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
 
 const ICON_BUY = 1;
 const ICON_SELL = 2;
+const ICON_BLOCK = 3;
 
 class IndicatorDefineContext {
     constructor(ind_func) {
@@ -503,9 +504,10 @@ class IndicatorRunContext {
         this.DS = ds.d;  //提供给用户代码使用的ds proxy
         this.PARAMS = {}; //指标参数
         this.outs = {}; //输出序列访问函数
-        this.out_define = {}; // 输出序列格式声明
-        this.out_values = {}; // 输出序列值
-        this.valid_left = -1; // 已经计算过的可靠结果范围(含左右两端点), valid_right永远>=valid_left. 如果整个序列没有计算过任何数据, 则 valid_left=valid_right= -1
+        this.out_define = {}; //输出序列格式声明
+        this.out_values = {}; //输出序列值
+        this.out_drawings = {};
+        this.valid_left = -1; //已经计算过的可靠结果范围(含左右两端点), valid_right永远>=valid_left. 如果整个序列没有计算过任何数据, 则 valid_left=valid_right= -1
         this.valid_right = -1;
 
         this.enable_trade = false;
@@ -615,6 +617,9 @@ class IndicatorRunContext {
      */
     TRADE_OC_CYCLE(b){
         this.trade_oc_cycle = b;
+    }
+    ISLAST(i){
+        return this._ds.last_id == i;
     }
     ORDER(current_i, direction, offset, volume, limit_price = undefined, order_symbol = this.trade_symbol) {
         if (this.is_error || !this._ds || this._ds.last_id == -1)
@@ -1059,13 +1064,14 @@ class TQSDK {
             }
         }
         let set_data = {
-            "aid": "set_indicator_data",                    //必填, 标示此数据包为技术指标结果数据
-            "instance_id": instance.instance_id,                     //必填, 指标实例ID，应当与 update_indicator_instance 中的值一致
-            "epoch": instance.epoch,                                  //必填, 指标实例版本号，应当与 update_indicator_instance 中的值一致
-            "range_left": calc_left,                             //必填, 表示此数据包中第一个数据对应图表X轴上的位置序号
-            "range_right": calc_right,                            //必填, 表示此数据包中最后一个数据对应图表X轴上的位置序号
-            "serials": instance.out_define,
-            "datas": datas,
+            aid: "set_indicator_data",                    //必填, 标示此数据包为技术指标结果数据
+            instance_id: instance.instance_id,                     //必填, 指标实例ID，应当与 update_indicator_instance 中的值一致
+            epoch: instance.epoch,                                  //必填, 指标实例版本号，应当与 update_indicator_instance 中的值一致
+            range_left: calc_left,                             //必填, 表示此数据包中第一个数据对应图表X轴上的位置序号
+            range_right: calc_right,                            //必填, 表示此数据包中最后一个数据对应图表X轴上的位置序号
+            serials: instance.out_define,
+            datas: datas,
+            drawings: instance.out_drawings,
         };
         this.ws.send_json(set_data);
     }

@@ -47,21 +47,11 @@ C.DEFINE({
 type: "SUB",
 cname: "FUNC",
 state: "KLINE",
-occycle: 1,
 yaxis: [],
 });
-//定义指标参数
-
-//输入序列
-
-//输出序列
-
-//临时序列
-
-//指标计算
 while(true){
 let i = yield;
-
+C.TRADE_OC_CYCLE(true);
 }
 }        
           

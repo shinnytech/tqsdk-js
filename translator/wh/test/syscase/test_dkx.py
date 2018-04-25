@@ -33,26 +33,17 @@ cname: "多空线",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
 let M = C.PARAM(10.000000, "M", {"MIN": 1.000000, "MAX":100.000000});
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
-let LOW = C.SERIAL("LOW");
-let OPEN = C.SERIAL("OPEN");
-let HIGH = C.SERIAL("HIGH");
-//输出序列
 let B = C.OUTS("LINE", "B", {color: RED});
 let D = C.OUTS("LINE", "D", {color: GREEN});
-//临时序列
 let A = [];
-//指标计算
 while(true){
 let i = yield;
-A[i]=((((3 * CLOSE[i]) + LOW[i]) + OPEN[i]) + HIGH[i]) / 6;
+A[i]=((((3 * C.DS.close[i]) + C.DS.low[i]) + C.DS.open[i]) + C.DS.high[i]) / 6;
 B[i]=((((((((((((((((((((20 * A[i]) + (19 * REF(i, A, 1))) + (18 * REF(i, A, 2))) + (17 * REF(i, A, 3))) + (16 * REF(i, A, 4))) + (15 * REF(i, A, 5))) + (14 * REF(i, A, 6))) + (13 * REF(i, A, 7))) + (12 * REF(i, A, 8))) + (11 * REF(i, A, 9))) + (10 * REF(i, A, 10))) + (9 * REF(i, A, 11))) + (8 * REF(i, A, 12))) + (7 * REF(i, A, 13))) + (6 * REF(i, A, 14))) + (5 * REF(i, A, 15))) + (4 * REF(i, A, 16))) + (3 * REF(i, A, 17))) + (2 * REF(i, A, 18))) + REF(i, A, 20)) / 210;
 D[i]=MA(i, B, M, D);
 }
-}        
+}     
                 """,
         }
 

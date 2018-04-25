@@ -43,28 +43,22 @@ cname: "FUNC",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
-
-//输入序列
-let OPEN = C.SERIAL("OPEN");
-let CLOSE = C.SERIAL("CLOSE");
-let DATE = C.SERIAL("DATE");
-//输出序列
 let S_1 = C.OUTS("LINE", "S_1", {color: RED});
-//临时序列
 let S_2 = [];
 let N = [];
 let S_3 = [];
-//指标计算
+let S_4 = [];
 while(true){
 let i = yield;
-S_2[i]=OPEN[i] > CLOSE[i];
+S_2[i]=C.DS.open[i] > C.DS.close[i];
 S_1[i]=(i - NEAREST(i, S_2));
-S_3[i]=DATE[i] <> REF(i, DATE, 1);
+S_4[i]=DATE(C.DS[i].datetime);
+S_3[i]=DATE(C.DS[i].datetime) != REF(i, S_4, 1);
 N[i]=(i - NEAREST(i, S_3)) + 1;
 }
-}
+}        
             
+   
 
             """,
         }

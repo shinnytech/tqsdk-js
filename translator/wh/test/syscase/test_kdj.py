@@ -35,30 +35,21 @@ cname: "KDJ",
 state: "KLINE",
 yaxis: [{'min': 0, 'max': 100, 'id': 0}],
 });
-//定义指标参数
 let N = C.PARAM(9.000000, "N", {"MIN": 1.000000, "MAX":100.000000});
 let M1 = C.PARAM(3.000000, "M1", {"MIN": 2.000000, "MAX":100.000000});
 let M2 = C.PARAM(3.000000, "M2", {"MIN": 2.000000, "MAX":100.000000});
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
-let LOW = C.SERIAL("LOW");
-let HIGH = C.SERIAL("HIGH");
-//输出序列
 let K = C.OUTS("LINE", "K", {color: RED});
 let D = C.OUTS("LINE", "D", {color: GREEN});
 let J = C.OUTS("LINE", "J", {color: BLUE});
-//临时序列
 let RSV = [];
-//指标计算
 while(true){
 let i = yield;
-RSV[i]=((CLOSE[i] - LOWEST(i, LOW, N)) / (HIGHEST(i, HIGH, N) - LOWEST(i, LOW, N))) * 100;
+RSV[i]=((C.DS.close[i] - LOWEST(i, C.DS.low, N)) / (HIGHEST(i, C.DS.high, N) - LOWEST(i, C.DS.low, N))) * 100;
 K[i]=SMA(i, RSV, M1, 1, K);
 D[i]=SMA(i, K, M2, 1, D);
 J[i]=(3 * K[i]) - (2 * D[i]);
 }
-}        
-                     
+}                    
            """,
         }
         self.assert_convert(case)

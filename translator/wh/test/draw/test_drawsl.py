@@ -53,13 +53,6 @@ cname: "FUNC",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
-
-//输出序列
-
-//临时序列
-
-//指标计算
 while(true){
 let i = yield;
 if((C.DS.close[i] > C.DS.open[i]))C.DRAW_SEG("LINE" + i, i, C.DS.high[i], i+2, C.DS.high[i] + 0, YELLOW, 1, 0);

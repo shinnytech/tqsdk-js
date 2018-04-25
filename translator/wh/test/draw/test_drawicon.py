@@ -51,13 +51,7 @@ cname: "FUNC",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
-
-//输出序列
-
-//临时序列
 let MA5 = [];
-//指标计算
 while(true){
 let i = yield;
 if((C.DS.close[i] < C.DS.open[i]))C.DRAW_ICON("ICON" + i, i, C.DS.low[i], ICON_BLOCK);

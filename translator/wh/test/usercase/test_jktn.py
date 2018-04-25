@@ -40,21 +40,13 @@ C.DEFINE({
 type: "MAIN",
 cname: "JKTN",
 state: "KLINE",
-occycle: 1,
 yaxis: [],
 });
-//定义指标参数
 let AVGLENGTH = C.PARAM(20.000000, "AVGLENGTH", {"MIN": 1.000000, "MAX":100.000000});
 let ATRLENGTH = C.PARAM(3.000000, "ATRLENGTH", {"MIN": 1.000000, "MAX":100.000000});
-//输入序列
-let HIGH = C.SERIAL("HIGH");
-let LOW = C.SERIAL("LOW");
-let CLOSE = C.SERIAL("CLOSE");
-//输出序列
 let MOVAVGVAL = C.OUTS("LINE", "MOVAVGVAL", {color: RED});
 let UPBAND = C.OUTS("LINE", "UPBAND", {color: GREEN});
 let DNBAND = C.OUTS("LINE", "DNBAND", {color: BLUE});
-//临时序列
 let S_1 = [];
 let TRUEHIGH1 = [];
 let TRUELOW1 = [];
@@ -62,26 +54,26 @@ let TRUERANGE1 = [];
 let S_2 = [];
 let S_3 = [];
 let LIQUIDPOINT = [];
-//指标计算
 while(true){
 let i = yield;
-S_1[i]=((HIGH[i] + LOW[i]) + CLOSE[i]) / 3;
+S_1[i]=((C.DS.high[i] + C.DS.low[i]) + C.DS.close[i]) / 3;
 MOVAVGVAL[i]=MA(i, S_1, AVGLENGTH, MOVAVGVAL);
-TRUEHIGH1[i]=((HIGH[i] > REF(i, CLOSE, 1)) ? HIGH[i] : REF(i, CLOSE, 1));
-TRUELOW1[i]=((LOW[i] <= REF(i, CLOSE, 1)) ? LOW[i] : REF(i, CLOSE, 1));
-TRUERANGE1[i]=(ISLASTBAR(i) ? (HIGH[i] - LOW[i]) : (TRUEHIGH1[i] - TRUELOW1[i]));
+TRUEHIGH1[i]=((C.DS.high[i] > REF(i, C.DS.close, 1)) ? C.DS.high[i] : REF(i, C.DS.close, 1));
+TRUELOW1[i]=((C.DS.low[i] <= REF(i, C.DS.close, 1)) ? C.DS.low[i] : REF(i, C.DS.close, 1));
+TRUERANGE1[i]=(C.ISLAST(i) ? (C.DS.high[i] - C.DS.low[i]) : (TRUEHIGH1[i] - TRUELOW1[i]));
 S_2[i]=MA(i, TRUERANGE1, ATRLENGTH, S_2);
 UPBAND[i]=MOVAVGVAL[i] + S_2[i];
 S_3[i]=MA(i, TRUERANGE1, ATRLENGTH, S_3);
 DNBAND[i]=MOVAVGVAL[i] - S_3[i];
 LIQUIDPOINT[i] = MOVAVGVAL[i];
-if(((MOVAVGVAL[i] > REF(i, MOVAVGVAL, 1)) && (CLOSE[i] > UPBAND[i]))) C.ORDER("BUY", "OPEN", 1);
-if((CLOSE[i] < LIQUIDPOINT[i])) C.ORDER("SELL", "CLOSE", 1);
-if(((MOVAVGVAL[i] < REF(i, MOVAVGVAL, 1)) && (CLOSE[i] < DNBAND[i]))) C.ORDER("SELL", "OPEN", 1);
-if((CLOSE[i] > LIQUIDPOINT[i])) C.ORDER("BUY", "CLOSE", 1);
+if(((MOVAVGVAL[i] > REF(i, MOVAVGVAL, 1)) && (C.DS.close[i] > UPBAND[i]))) C.ORDER(i, "BUY", "OPEN", 1);
+if((C.DS.close[i] < LIQUIDPOINT[i])) C.ORDER(i, "SELL", "CLOSE", 1);
+if(((MOVAVGVAL[i] < REF(i, MOVAVGVAL, 1)) && (C.DS.close[i] < DNBAND[i]))) C.ORDER(i, "SELL", "OPEN", 1);
+if((C.DS.close[i] > LIQUIDPOINT[i])) C.ORDER(i, "BUY", "CLOSE", 1);
+C.TRADE_OC_CYCLE(true);
 }
 }        
-            
+      
    
             """,
         }

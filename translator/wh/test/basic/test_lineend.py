@@ -32,16 +32,10 @@ cname: "FUNC",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
-
-//输出序列
 let MA3 = C.OUTS("LINE", "MA3", {color: RED});
 let MA1 = C.OUTS("LINE", "MA1", {color: GREEN});
 let MA2 = C.OUTS("LINE", "MA2", {color: BLUE});
 let MA4 = C.OUTS("LINE", "MA4", {color: CYAN});
-//临时序列
-
-//指标计算
 while(true){
 let i = yield;
 MA3[i]=MA(i, C.DS.close, 3, MA3);

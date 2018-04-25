@@ -30,24 +30,17 @@ cname: "真实波幅",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
 let N = C.PARAM(26.000000, "N", {"MIN": 1.000000, "MAX":300.000000});
-//输入序列
-let HIGH = C.SERIAL("HIGH");
-let LOW = C.SERIAL("LOW");
-let CLOSE = C.SERIAL("CLOSE");
-//输出序列
 let TR = C.OUTS("LINE", "TR", {color: RED});
 let ATR = C.OUTS("LINE", "ATR", {color: YELLOW});
-//临时序列
 
-//指标计算
 while(true){
 let i = yield;
-TR[i]=MAX(MAX((HIGH[i] - LOW[i]), ABS((REF(i, CLOSE, 1) - HIGH[i]))), ABS((REF(i, CLOSE, 1) - LOW[i])));
+TR[i]=MAX(MAX((C.DS.high[i] - C.DS.low[i]), ABS((REF(i, C.DS.close, 1) - C.DS.high[i]))), ABS((REF(i, C.DS.close, 1) - C.DS.low[i])));
 ATR[i]=MA(i, TR, N, ATR);
 }
 }        
+           
             
          """,
         }

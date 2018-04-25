@@ -25,14 +25,8 @@ cname: "FUNC",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
-
-//输出序列
 let EMA1 = C.OUTS("LINE", "EMA1", {color: WHITE});
 let EMA22 = C.OUTS("LINE", "EMA22", {color: YELLOW});
-//临时序列
-
-//指标计算
 while(true){
 let i = yield;
 EMA1[i]=EMA(i, C.DS.close, 10, EMA1);

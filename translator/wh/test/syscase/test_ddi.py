@@ -41,19 +41,13 @@ cname: "方向标准离差",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
 let N = C.PARAM(13.000000, "N", {"MIN": 1.000000, "MAX":100.000000});
 let N1 = C.PARAM(30.000000, "N1", {"MIN": 1.000000, "MAX":100.000000});
 let M = C.PARAM(10.000000, "M", {"MIN": 1.000000, "MAX":100.000000});
 let M1 = C.PARAM(5.000000, "M1", {"MIN": 1.000000, "MAX":100.000000});
-//输入序列
-let HIGH = C.SERIAL("HIGH");
-let LOW = C.SERIAL("LOW");
-//输出序列
 let S_7 = C.OUTS("RGBAR", "S_7", {color: RED});
 let ADDI = C.OUTS("LINE", "ADDI", {color: GREEN});
 let AD = C.OUTS("LINE", "AD", {color: BLUE});
-//临时序列
 let TR = [];
 let DMZ = [];
 let DMF = [];
@@ -66,12 +60,11 @@ let S_4 = [];
 let S_5 = [];
 let S_6 = [];
 let DDI = [];
-//指标计算
 while(true){
 let i = yield;
-TR[i]=MAX(ABS((HIGH[i] - REF(i, HIGH, 1))), ABS((LOW[i] - REF(i, LOW, 1))));
-DMZ[i]=(((HIGH[i] + LOW[i]) <= (REF(i, HIGH, 1) + REF(i, LOW, 1))) ? 0 : MAX(ABS((HIGH[i] - REF(i, HIGH, 1))), ABS((LOW[i] - REF(i, LOW, 1)))));
-DMF[i]=(((HIGH[i] + LOW[i]) >= (REF(i, HIGH, 1) + REF(i, LOW, 1))) ? 0 : MAX(ABS((HIGH[i] - REF(i, HIGH, 1))), ABS((LOW[i] - REF(i, LOW, 1)))));
+TR[i]=MAX(ABS((C.DS.high[i] - REF(i, C.DS.high, 1))), ABS((C.DS.low[i] - REF(i, C.DS.low, 1))));
+DMZ[i]=(((C.DS.high[i] + C.DS.low[i]) <= (REF(i, C.DS.high, 1) + REF(i, C.DS.low, 1))) ? 0 : MAX(ABS((C.DS.high[i] - REF(i, C.DS.high, 1))), ABS((C.DS.low[i] - REF(i, C.DS.low, 1)))));
+DMF[i]=(((C.DS.high[i] + C.DS.low[i]) >= (REF(i, C.DS.high, 1) + REF(i, C.DS.low, 1))) ? 0 : MAX(ABS((C.DS.high[i] - REF(i, C.DS.high, 1))), ABS((C.DS.low[i] - REF(i, C.DS.low, 1)))));
 S_1[i]=SUM(i, DMZ, N, S_1);
 S_2[i]=SUM(i, DMZ, N, S_2);
 S_3[i]=SUM(i, DMF, N, S_3);
@@ -86,6 +79,7 @@ ADDI[i]=SMA(i, DDI, N1, M, ADDI);
 AD[i]=MA(i, ADDI, M1, AD);
 }
 }        
+     
    
             
             """,

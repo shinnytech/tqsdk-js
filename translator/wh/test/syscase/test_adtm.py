@@ -28,7 +28,6 @@ class TestConvertIndicator(TestConvert):
             ],
             "expected": """
 
-
 function* ADTM(C){
 C.DEFINE({
 type: "SUB",
@@ -36,33 +35,25 @@ cname: "动态买卖气指标",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
 let N = C.PARAM(23.000000, "N", {"MIN": 1.000000, "MAX":100.000000});
 let M = C.PARAM(8.000000, "M", {"MIN": 1.000000, "MAX":100.000000});
-//输入序列
-let OPEN = C.SERIAL("OPEN");
-let HIGH = C.SERIAL("HIGH");
-let LOW = C.SERIAL("LOW");
-//输出序列
 let ADTM = C.OUTS("LINE", "ADTM", {color: RED});
 let ADTMMA = C.OUTS("LINE", "ADTMMA", {color: GREEN});
-//临时序列
 let DTM = [];
 let DBM = [];
 let STM = [];
 let SBM = [];
-//指标计算
 while(true){
 let i = yield;
-DTM[i]=((OPEN[i] <= REF(i, OPEN, 1)) ? 0 : MAX((HIGH[i] - OPEN[i]), (OPEN[i] - REF(i, OPEN, 1))));
-DBM[i]=((OPEN[i] >= REF(i, OPEN, 1)) ? 0 : MAX((OPEN[i] - LOW[i]), (OPEN[i] - REF(i, OPEN, 1))));
+DTM[i]=((C.DS.open[i] <= REF(i, C.DS.open, 1)) ? 0 : MAX((C.DS.high[i] - C.DS.open[i]), (C.DS.open[i] - REF(i, C.DS.open, 1))));
+DBM[i]=((C.DS.open[i] >= REF(i, C.DS.open, 1)) ? 0 : MAX((C.DS.open[i] - C.DS.low[i]), (C.DS.open[i] - REF(i, C.DS.open, 1))));
 STM[i]=SUM(i, DTM, N, STM);
 SBM[i]=SUM(i, DBM, N, SBM);
 ADTM[i]=((STM[i] > SBM[i]) ? ((STM[i] - SBM[i]) / STM[i]) : ((STM[i] == SBM[i]) ? 0 : ((STM[i] - SBM[i]) / SBM[i])));
 ADTMMA[i]=MA(i, ADTM, M, ADTMMA);
 }
 }        
-        
+      
      
              """,
         }

@@ -37,7 +37,7 @@ class TestConvertIndicator(TestConvert):
             "params": [
             ],
             "expected": """
-            
+     
 function* FUNC(C){
 C.DEFINE({
 type: "SUB",
@@ -45,29 +45,23 @@ cname: "FUNC",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
 
-//输入序列
-let CLOSE = C.SERIAL("CLOSE");
-let OPEN = C.SERIAL("OPEN");
-//输出序列
 let S_1 = C.OUTS("LINE", "S_1", {color: RED});
-//临时序列
 let S_2 = [];
 let MA5 = [];
 let MA10 = [];
 let S_3 = [];
-//指标计算
 while(true){
 let i = yield;
-S_2[i]=CLOSE[i] > OPEN[i];
+S_2[i]=C.DS.close[i] > C.DS.open[i];
 S_1[i]=EVERY(i, S_2, 5);
-MA5[i]=MA(i, CLOSE, 5, MA5);
-MA10[i]=MA(i, CLOSE, 10, MA10);
+MA5[i]=MA(i, C.DS.close, 5, MA5);
+MA10[i]=MA(i, C.DS.close, 10, MA10);
 S_3[i]=MA5[i] > MA10[i];
-if(EVERY(i, S_3, 4)) C.ORDER("BUY", "OPEN", 1);
+if(EVERY(i, S_3, 4)) C.ORDER(i, "BUY", "OPEN", 1);
 }
 }        
+             
                 """,
         }
 

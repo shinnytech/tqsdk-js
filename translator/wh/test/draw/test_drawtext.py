@@ -51,13 +51,6 @@ cname: "FUNC",
 state: "KLINE",
 yaxis: [],
 });
-//定义指标参数
-
-//输出序列
-
-//临时序列
-
-//指标计算
 while(true){
 let i = yield;
 if((((C.DS.close[i] < C.DS.open[i]) && (REF(i, C.DS.close, 1) < REF(i, C.DS.open, 1))) && ((REF(i, C.DS.volume, 1) * 1.1) < C.DS.volume[i])))C.DRAW_TEXT("TEXT" + i, i, C.DS.low[i], '注', WHITE);
