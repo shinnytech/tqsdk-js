@@ -74,7 +74,8 @@ function make_array_proxy(data_array, item_func=undefined){
             if (!isNaN(property)) {
                 let i = Number(property);
                 if (i < 0)
-                    i = target.length + i;
+                    return NaN;
+                    // i = target.length + i;
                 if (item_func)
                     return item_func(data_array[i]);
                 else
@@ -430,6 +431,8 @@ const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
 const ICON_BUY = 1;
 const ICON_SELL = 2;
 const ICON_BLOCK = 3;
+const IS_TEST = typeof global != 'undefined';
+const IS_WOEKER = IS_TEST ? false : typeof self.$ == 'undefined';
 
 class IndicatorDefineContext {
     constructor(ind_func) {
@@ -497,6 +500,7 @@ class IndicatorRunContext {
     constructor(ind_func, instance_id, symbol, dur_nano, ds){
         //技术指标参数, 合约代码/周期也作为参数项放在这里面
         this.ind = ind_func(this);
+        this.ind_class_name = ind_func.name;
         this.instance_id = instance_id;
         this.symbol = symbol;
         this.dur_nano = dur_nano;
@@ -592,7 +596,7 @@ class IndicatorRunContext {
 
         if (left == undefined || right == undefined) {
             // 1 默认值  => 没有数据就不计算
-            left = this.view_left;
+            left = this.view_left < this._ds.left_id ? this._ds.left_id : this.view_left;
             right = this.view_right > this._ds.last_id ? this._ds.last_id : this.view_right;
             if(right < left) return [-1, -1];
             isDefault = true;
@@ -650,10 +654,38 @@ class IndicatorRunContext {
             }
         }
         if(isDefault) [calc_left, calc_right] = [left, right];
-        for (let i = calc_left; i <= calc_right; i++) {
-            this.ind.next(i);
+        let runId = TaManager.Keys.next().value;
+        let content = {
+            id: runId,
+            instanceId: this.instance_id,
+            className: this.ind_class_name,
+            range: [calc_left, calc_right]
+        };
+        try{
+            if(IS_WOEKER)
+                self.postMessage({ cmd: 'calc_start', content});
+            for (let i = calc_left; i <= calc_right; i++) {
+                this.ind.next(i);
+            }
+            if(IS_WOEKER)
+                self.postMessage({ cmd: 'calc_end', content});
+        } catch (e){
+            this.is_error = true;
+            if(IS_WOEKER)
+                self.postMessage({ cmd: 'calc_end', content});
+            if(IS_WOEKER)
+                self.postMessage({
+                cmd: 'feedback',
+                content: {
+                    error: true,
+                    type: 'run',
+                    message: e.message,
+                    func_name: this.ind.name,
+                },
+            });
         }
         return [calc_left, calc_right];
+
     };
 
     /**
@@ -820,42 +852,6 @@ class TaManager {
     constructor(){
         this.class_dict = {};
         this.instance_dict = {};
-        this.calc_notify_func = null;
-    }
-    calculate(instance){
-        let runId = Keys.next().value;
-        start_msg = {
-            cmd: 'calc_start',
-            content: {
-                id: runId,
-                className: instance.ta_class_name,
-            },
-        };
-        if (this.calc_notify_func)
-            this.calc_notify_func(start_msg);
-        try {
-            instance.exec();
-            end_msg = {
-                cmd: 'calc_end',
-                content: {
-                    id: runId,
-                    className: instance.ta_class_name,
-                },
-            };
-        } catch (e) {
-            console.error(e);
-            end_msg = {
-                cmd: 'feedback',
-                content: {
-                    error: true,
-                    type: 'run',
-                    message: e.message,
-                    func_name: instance.ta_class_name,
-                },
-            };
-        };
-        if (this.calc_notify_func)
-            this.calc_notify_func(end_msg);
     }
 
     register_indicator_class(ind_func){
@@ -879,8 +875,9 @@ class TaManager {
     delete_indicator_instance(ind_instance) {
         delete this.instance_dict[ind_instance.instance_id];
     };
-
 }
+
+TaManager.Keys = GenerateSequence()
 
 //ws----------------------------------------------------------------------
 class TqWebsocket{
@@ -1412,7 +1409,7 @@ class TQSDK {
     }
 
     init_ui(){
-        if (typeof $ !== 'undefined') {
+        if (!IS_TEST && !IS_WOEKER) {
             var this_tq = this;
             $(() => {
                 // init code

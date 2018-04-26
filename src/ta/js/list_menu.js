@@ -3,13 +3,14 @@ class IndCtrl{
         this.sys_dom = $('table#' + menu_id).find('#system-indicators');
         this.dom = $('table#' + menu_id).find('#custom-indicators');
         this.editor = ace.edit(editor_id);
-        this.errStore = new ErrorStore('err');
         this.webworker = new TqWebWorker(webworker_url, {
             websocket_reconnect: this.workerWsReconnectCB.bind(this),
             calc_start: this.workerCalcStartCB.bind(this),
             calc_end: this.workerCalcEndCB.bind(this),
             feedback: this.workerFeedbackCB.bind(this)
         });
+        this.errStore = new ErrorStore('err', this.webworker);
+
         this.codeTemplate = '';
         // 指标数据存储
         this.sys_datas = {};
@@ -542,7 +543,7 @@ class TqWebWorker {
                     _this.callbacks['calc_start'](e.data.content);
                     break;
                 case 'calc_end':
-                    _this.callbacks['calc_start'](e.data.content);
+                    _this.callbacks['calc_end'](e.data.content);
                     break;
                 case 'feedback':
                     _this.callbacks['feedback'](e.data.content);

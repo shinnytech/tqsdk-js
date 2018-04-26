@@ -163,7 +163,6 @@ describe('技术指标与图表结合使用', function () {
         TQ.on_update_indicator_instance(r1);
 
         let send_obj = TQ.ws.send_objs.pop();
-        console.log(send_obj)
         assert.equal(send_obj.range_left, -1);
         assert.equal(send_obj.range_right, -1);
         assert.equal(Object.keys(send_obj.datas).length, 0);
