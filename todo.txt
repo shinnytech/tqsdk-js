@@ -14,6 +14,7 @@ bug list:
     补测试用例，缩放不重算
 
     kline_id 可以取负数，导致 basefunc 里面 serial 应该是 NaN 的时候，却取到末尾的数字
+    怎么确定 valid_left valid_right, 如何确定算出的结果是有意义的
 
 test list：
     dm

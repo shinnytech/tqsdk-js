@@ -15,7 +15,7 @@ function* voi(C){
     //计算
     while(true) {
         let i = yield;
-        vol[i] = C.DS.vol[i];
+        vol[i] = C.DS.volume[i];
         oi[i] = C.DS.close_oi[i];
     }
 }

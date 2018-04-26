@@ -560,41 +560,97 @@ class IndicatorRunContext {
     };
 
     /**
+     * 某个范围内有效数据
+     * @param left
+     * @param right
+     * @returns 返回存在数据的最后一个 id, 如果不存在 返回的数字比 left 小
+     */
+    _exist_data_range(left, right, dataArr=this._ds.d){
+        if (left > right)
+            return left - 1;
+        for(let i = left; i<=right && !dataArr[i]; i++){
+            right = i-1;
+            break;
+        }
+        return right;
+    }
+
+    /**
      * 要求指标实例计算X范围从left到right(包含两端点)的结果值
      * @param left:
      * @param right
      * @return [update_left, update_right]: 本次计算中更新的数据范围, update_right总是>=update_left. 如果本次计算没有任何结果被更新, 返回 [-1, -1]
      */
-    calc_range(left=this.view_left, right=this.view_right){
-        //无法计算的情形
+    calc_range(left, right){
+        // 无法计算的情形
         if (this.is_error || !this._ds || this._ds.last_id == -1 || left > this._ds.last_id){
             return [-1, -1];
         }
-        if(right > this._ds.last_id){
-            right = this._ds.last_id;
-        }
-        //判定是否需要计算及计算范围
-        let calc_left = -1;
-        let calc_right = -1;
-        if (this.valid_left == -1 ) {
-            calc_left = this._ds.left_id > left ? this._ds.left_id : left;
-            calc_right = right;
-        } else if (left < this.valid_left){
-            calc_left = this._ds.left_id > left ? this._ds.left_id : left;
-            calc_right = this.valid_left < right ? this.valid_left : right;
-        } else{
-            calc_left = this.valid_right > left ? this.valid_right : left;
-            calc_right = right;
+
+        let calc_left = -1, calc_right = -1;
+        let isDefault = false;
+
+        if (left == undefined || right == undefined) {
+            // 1 默认值  => 没有数据就不计算
+            left = this.view_left;
+            right = this.view_right > this._ds.last_id ? this._ds.last_id : this.view_right;
+            if(right < left) return [-1, -1];
+            isDefault = true;
+        } else {
+            // 2 用户输入值 => 即使没有数据也要计算填入 NaN, 把用户输入的范围记下来
+            [calc_left, calc_right] = [left, right];
         }
 
-        if(calc_left > calc_right || calc_left == -1 || calc_right == -1)
-            return [-1, -1];
-
-        this.valid_left = calc_left;
-        this.valid_right = calc_right;
-
-        //重算
-        for (let i=calc_left; i <= calc_right; i++) {
+        /**
+         * ------[-----------------]------- this._ds.d
+         *   valid_left        valid_right
+         */
+        if(this.valid_left == -1 || this.valid_right == -1 || right < this.valid_left || left > this.valid_right ){
+            // -------------------------------
+            // --(***)--[----------------]----
+            // ----[----------------]--(***)--
+            right = this._exist_data_range(left, right);
+            if (right >= left) {
+                this.valid_left = left;
+                this.valid_right = right;
+            } else {
+                if(isDefault) return [-1, -1];
+            }
+        } else if(left < this.valid_left){
+            // 向前移动
+            // --(***[**************]***)--
+            // --(***[****)---------]------
+            let temp_right = this._exist_data_range(left, this.valid_left);
+            if(temp_right >= left){
+                if (temp_right < this.valid_left) {
+                    // this.valid_left 之前有不存在的数据
+                    this.valid_right = right = temp_right;
+                } else if (right > this.valid_right) {
+                    // --(***[**************]***)--
+                    right = this._exist_data_range(this.valid_right, right);
+                    this.valid_right = right;
+                } else {
+                    // --(***[****)---------]------
+                    calc_right = right = this.valid_left;
+                }
+                this.valid_left = left;
+            } else {
+                if(isDefault) return [-1, -1];
+            }
+        } else {
+            // 向后移动
+            if (right < this.valid_right ){
+                // --[---(*******)-----]-----
+                return [-1, -1];
+            } else {
+                // --[---(************]***)--
+                calc_left = left = this.valid_right;
+                right = this._exist_data_range(this.valid_right, right);
+                this.valid_right = right;
+            }
+        }
+        if(isDefault) [calc_left, calc_right] = [left, right];
+        for (let i = calc_left; i <= calc_right; i++) {
             this.ind.next(i);
         }
         return [calc_left, calc_right];
@@ -973,11 +1029,14 @@ class TQSDK {
         switch(message.aid){
             case "rtn_data":
                 this.on_rtn_data(message);
+                break;
             case "update_indicator_instance":
                 this.on_update_indicator_instance(message);
+                break;
             case "update_custom_combine":
                 if(!this.dm.datas.combines) this.dm.datas.combines = {};
                 this.dm.datas.combines[message.symbol] = message.weights;
+                break;
             default:
                 return;
         }
@@ -1051,7 +1110,7 @@ class TQSDK {
             instance.unit_id = pack.unit_id;
         instance.volume_limit = pack.volume_limit;
 
-        let [calc_left, calc_right] = instance.calc_range(pack.view_left, pack.view_right);
+        let [calc_left, calc_right] = instance.calc_range();
         this.send_indicator_data(instance, calc_left, calc_right);
     }
     send_indicator_data(instance, calc_left, calc_right){

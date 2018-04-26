@@ -1,22 +1,7 @@
 var assert = require('assert');
-var {init_test_data, batch_input_datas} = require('./test_data.js');
+var {init_test_data, batch_input_datas, MockWebsocket} = require('./test_data.js');
 var importScripts = require('./importScripts.js');
 importScripts('src/libs/func/basefuncs.js', 'src/libs/tqsdk.js', 'src/libs/ind/ma.js');
-
-
-class MockWebsocket{
-    constructor(url, callbacks){
-        this.send_objs = [];
-    }
-    send_json(obj) {
-        this.send_objs.push(obj);
-    };
-    isReady() {
-        return true;
-    };
-    init() {
-    };
-}
 
 var TQ = new TQSDK(new MockWebsocket());
 
@@ -38,6 +23,7 @@ describe('ta', function () {
         let symbol = "SHFE.rb1810";
         let dur_sec = 5;
         let ind1 = TQ.NEW_INDICATOR_INSTANCE(ma, symbol, dur_sec, {});
+        let send_obj = TQ.ws.send_objs[0];
         assert.equal(ind1.outs.ma3(-1), 9999);
         assert.equal(ind1.outs.ma5(-1), 9998); // N2 默认参数 10
         assert.equal(ind1.outs.ma10(-1), 9995.5); // N2 默认参数 30
@@ -105,7 +91,7 @@ describe('ta', function () {
         let symbol = "SHFE.rb1810";
         let dur_sec = 5;
         let ind = TQ.NEW_INDICATOR_INSTANCE(ma, symbol, dur_sec);
-        let outs_data = ind.outs.ma3(100, 110);
+        let outs_data = ind.outs.ma10(100, 110);
         assert.equal(outs_data.length, 11);
         assert.ok(isNaN(outs_data[0]));
         assert.ok(isNaN(outs_data[10]));
