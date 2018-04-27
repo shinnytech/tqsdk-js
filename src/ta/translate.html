@@ -15,6 +15,8 @@
             width: 100%;
         }
 
+        *, .form-control {font-size: 12px;}
+
         .no-padding {
             padding: 0px;
         }
@@ -55,6 +57,12 @@
             padding-top: 15px;
         }
 
+        .left-menu .panel-heading,
+        .left-menu .panel-body{
+            padding: 6px 8px;
+        }
+
+
         table.table.wh-param-list td {
             padding: 0;
             vertical-align: middle;
@@ -94,7 +102,9 @@
     </style>
 </head>
 
-<body style="overflow:scroll;overflow:hidden;">
+<body style="overflow:scroll;
+
+">
     <!-- 主体内容区域 -->
     <div class="container-fluid main-container">
         <div class="row">
@@ -106,9 +116,12 @@
                             <div class="col col-xs-4 left-menu">
                                 <div class="menu-container">
                                     <div id="attachment-container">
-                                        <div class="panel panel-default">
+                                        <div class="panel panel-default" id="ind-name">
                                             <div class="panel-heading">名称</div>
-                                            <div class="panel-body">
+                                            <div class="panel-heading hide" id='ind-name-status'>
+                                                函数名称规范：长度1-20，数字、字母、_、$ 组成，数字不能开头。
+                                            </div>
+                                            <div class="panel-body ">
                                                 <input type="text" class="form-control" id="indicator-name">
                                             </div>
                                         </div>

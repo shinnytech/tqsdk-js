@@ -1,8 +1,10 @@
+const CONVERT_WH_URL = 'http://tools.tq18.cn/convert/wh';
+// const CONVERT_WH_URL = 'http://192.168.1.80:8000/convert/wh';
+
 $(function () {
     // 初始化代码编辑区域
     var editor = ace.edit('editor');
     editor.getSession().setMode('ace/mode/text');
-    editor.getSession().setOption('useWorker', false);
     var result_editor = ace.edit('result-editor');
     ace.require('ace/ext/language_tools');
     result_editor.getSession().setMode('ace/mode/javascript');
@@ -15,36 +17,81 @@ $(function () {
     $('div.left-menu table.wh-param-list').find('input').on('click', function (e) {
         $(this).attr('readonly', false);
     });
+    $('input#indicator-name').on('keyup', checkIndName);
 
     $('button#translate').on('click', function (e) {
+        if(!checkIndName()) return;
         $('#tianqin #translate-status').attr('class', 'panel-heading').text('翻译中......');
         $('#tianqin').attr('class', 'panel panel-info');
-        var code = editor.getValue();
-        var result = covertWHRequest(code)
+        let name = $('input#indicator-name').val();
+        let code = editor.getValue();
+        let result = covertWHRequest(name, code)
             .then(response => response.json())
             .then(data => {
-                if (data.errline === 0) {
+                if (data.errors.length === 0){
+                    result_editor.getSession().setValue(data.code, 1);
                     $('#tianqin #translate-status').text('翻译完成');
                     $('#tianqin').attr('class', 'panel panel-success');
-                    result_editor.getSession().setValue(data.target, 1);
                 } else {
-                    result_editor.getSession().setValue('', 1);
-                    // var err = `error in ${data.errline}:${data.errcol} \n ${data.errvalue}`;
-                    $('#tianqin #translate-status').text('错误：' + data.errvalue).show();
+                    let annotations = [];
+                    let err_str = '';
+                    for (let err of data.errors){
+                        annotations.push({
+                            row: err.line - 1,
+                            column: err.col - 1,
+                            text: err.msg,
+                            type: 'error'
+                        });
+                        err_str += '( ' + err.line + ':' + err.col + ' ) ';
+                        err_str += err.msg + '\n';
+                    }
+                    editor.getSession().setAnnotations(annotations);
+                    result_editor.getSession().setValue(data.code, 1);
+                    $('#tianqin #translate-status').text(err_str).show();
                     $('#tianqin').attr('class', 'panel panel-danger');
                 }
             })
             .catch(error => {
-                console.error(error.message)
+                console.error(error)
             });
     });
 });
 
-function covertWHRequest(code) {
-    let indicator_name = $('input#indicator-name').val();
+const checkIndName = (function(){
+    let status = true;
+    return function(){
+        let name = $('input#indicator-name').val();
+        let new_status = checkVariableName(name);
+        if (status !== new_status){
+            status = new_status;
+            if (status){
+                $('#ind-name #ind-name-status').attr('class', 'panel-heading hide');
+                $('#ind-name').attr('class', 'panel panel-default');
+                $('button#translate').attr('disabled', false);
+                $('#ind-name .panel-body').attr('class', 'panel-body');
+                return true;
+            } else {
+                $('#ind-name #ind-name-status').attr('class', 'panel-heading');
+                $('#ind-name').attr('class', 'panel panel-danger');
+                $('button#translate').attr('disabled', true);
+                $('#ind-name .panel-body').attr('class', 'panel-body has-error');
+                return false;
+            }
+        } else return status;
+    }
+}());
+
+const checkVariableName = function(name) {
+    // 匹配变量名的正则
+    // 长度1-20，数字、字母、_、$ 组成，数字不能开头
+    let regExp = /^[a-zA-Z\_\$][0-9a-zA-Z\_\$]{0,19}$/;
+    return regExp.test(name);
+}
+
+function covertWHRequest(ind_name, code) {
     var request_body = {
-        id: indicator_name, //指标函数名
-        cname: indicator_name, //指标中文名称
+        id: ind_name, //指标函数名
+        cname: ind_name, //指标中文名称
         type: null, //指标类型, MAIN=主图指标, SUB=副图指标
         params: [],
         src: code, //文华原代码
@@ -69,9 +116,8 @@ function covertWHRequest(code) {
             request_body.params.push([name, Number(min), Number(max), Number(defaultValue)]);
         }
     }
-
-    return fetch('http://tools.tq18.cn/convert/wh', {
+    return fetch(CONVERT_WH_URL, {
         method: 'POST',
         body: JSON.stringify(request_body),
-    })
+    });
 }
