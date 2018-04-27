@@ -67,22 +67,29 @@ function LOWEST(p, serial, n) {
 }
 
 function STDEV(i, serial, n, cache) {
-    let s = cache.s ? cache.s : [];
+    cache._s = cache._s ? cache._s : [];
     let x2 = 0;
     let x = 0;
-    if (s.length == 0 || !(i - 1 in s)) {
+    if (cache._s[i-1]){
+        x = cache._s[i - 1][0] - serial[i - n] + serial[i];
+        x2 = cache._s[i - 1][1] - serial[i - n] * serial[i - n] + serial[i] * serial[i];
+
+    }else{
         for (let k = i - n + 1; k <= i; k++) {
             let d = serial[k];
             x2 += d * d;
             x += d;
         }
-    } else {
-        x = s[i - 1] - serial[i - n] + serial[i];
-        x2 = s[i - 1] - serial[i - n] * serial[i - n] + serial[i] * serial[i];
     }
-    let std = Math.sqrt((x2 - x * x / n) / n);
+
+    let s2 = x2 - x * x / n;
+    // 小数精度问题 引起算出来的方差是一个很小的负数
+    if(s2 < 0 && s2 > -0.000001) s2 = Math.abs(s2);
+
+    let n_ = n == 1 ? 1 : n - 1; // 标准差最后除以 n-1
+    let std = Math.sqrt(s2 / n_);
     if (!isNaN(std)) {
-        s[i] = [x, x2];
+        cache._s[i] = [x, x2];
     }
     return std;
 }
