@@ -32,9 +32,7 @@ class TestConvertIndicator(TestConvert):
             "cname": "FUNC",
             "type": "SUB",
             "src": """
-        VALUEWHEN(HIGH>REF(HHV(HIGH,5),1),HIGH);
-        VALUEWHEN(DATE<>REF(DATE,1),O);
-        VALUEWHEN(DATE<>REF(DATE,1),L>REF(H,1));
+    X:  LOOP2(ISUP,H,REF(X,1));//k线为阳线，取当根K线的最高价，否则取上一次是阳线的K线的最高价;若之前未出现过阳线时，X返回为空值
         """,
             "params": [
             ],

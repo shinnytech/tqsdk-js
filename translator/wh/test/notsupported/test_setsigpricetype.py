@@ -57,9 +57,15 @@ class TestConvertIndicator(TestConvert):
             "cname": "FUNC",
             "type": "SUB",
             "src": """
-        VALUEWHEN(HIGH>REF(HHV(HIGH,5),1),HIGH);
-        VALUEWHEN(DATE<>REF(DATE,1),O);
-        VALUEWHEN(DATE<>REF(DATE,1),L>REF(H,1));
+    C>HV(H,20),BK;//价格大于前20周期高点买开仓
+    C<LV(L,20),SK;//价格小于前20周期低点卖开仓
+    C>HV(H,10),BP;//价格大于前10周期高点平空仓
+    C<LV(L,10),SP;//价格小于前10周期低点平多仓
+    SETSIGPRICETYPE(BK,SIGPRICE_ORDER);//买开的委托以触发价委托
+    SETSIGPRICETYPE(SK,REF(C,1));//卖开的委托以上一周期的收盘价委托
+    SETSIGPRICETYPE(BP,TRACING_ORDER);//买平的委托以自动连续追价委托
+    SETSIGPRICETYPE(SP,TRACING_ORDER);//卖平的委托以自动连续追价委托
+    AUTOFILTER;
         """,
             "params": [
             ],

@@ -6,7 +6,7 @@ import logging
 import tornado.ioloop
 import tornado.web
 import tornado.httpserver
-from wh.whconvert import wenhua_translate, TranslateException
+from wh.whconvert import wenhua_translate
 
 
 logging.basicConfig(
@@ -25,31 +25,12 @@ class WenhuaTranslate(tornado.web.RequestHandler):
         logger.info("wenhua translate start, input=%s", s)
         req = json.loads(s)
         self.set_header("Access-Control-Allow-Origin", "*")
-        try:
-            code, errors = wenhua_translate(req)
-            logger.info("wenhua translate success, output=%s", json.dumps(ret, indent=2))
-            self.finish({
-                "errline": 0,
-                "errcol": 0,
-                "errvalue": "",
-                "target": code,
-            })
-        except TranslateException as e:
-            logger.warning("wenhua translate fail, %s", e)
-            self.finish({
-                "errline": e.err_line,
-                "errcol": e.err_col,
-                "errvalue": e.err_msg,
-                "target": "",
-            })
-        except Exception as e:
-            logger.warning("wenhua translate fail, %s", e)
-            self.finish({
-                "errline": -1,
-                "errcol": -1,
-                "errvalue": str(e),
-                "target": "",
-            })
+        code, errors = wenhua_translate(req)
+        logger.info("wenhua translate finish, output=%s, errors=%s" % (code, json.dumps(errors, indent=2)))
+        self.finish({
+            "code": code,
+            "errors": errors,
+        })
 
     def options(self, *args, **kwargs):
         self.set_header("Access-Control-Allow-Origin", "*")

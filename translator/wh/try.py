@@ -5,8 +5,7 @@ import wh
 import wh.whlex
 
 import json
-s ={"id":"cde","cname":"cde","type":"SUB","params":[],"src":"//该模型仅仅用来示范如何根据指标编写简单的模型\r\n//用户需要根据自己交易经验，进行修改后再实际应用!!!\r\n// //后为文字说明，>编写模型时不用写出\r\nLC:=REF(CLOSE,1);//一个周期前的收盘价\r\nAA:=ABS(HIGH-LC);//最高价与一个周期前的收盘价的差值的绝对值\r\nBB:=ABS(LOW-LC);//最低价与一个周期前的收盘价的差值的绝对值\r\nCC:=ABS(HIGH-REF(LOW,1));//最高价与一个周期前的最低价的差值的绝对值\r\nDD:=ABS(LC-REF(OPEN,1));//一个周期前的收盘价与一个周期前的开盘价的差值的绝对值\r\nR:=IFELSE(AA>BB&&AA>CC,AA+BB/2+DD/4,IFELSE(BB>CC&&BB>AA,BB+AA/2+DD/4,CC+DD/4));//如果AA>BB&&AA>CC,R取值为AA+BB/2+DD/4,如果BB>CC&&BB>AA,R取值为BB+AA/2+DD/4,否则R取值为CC+DD/4\r\nX:=(CLOSE-LC+(CLOSE-OPEN)/2+LC-REF(OPEN,1));//最新价减去一个周期前的收盘价加上开盘价与最新价的二分之一，再加上一个周期前的收盘价与开盘价的差值\r\nSI:=16*X/R*MAX(AA,BB);\r\nASI:SUM(SI,0)//从本地数据第一个数据开始求SI的总和"}
-
+s ={"id":"qq","cname":"qq","type":"MAIN","params":[],"src":"//该策略为趋势跟踪交易策略，适用较大周期，如日线。\r\n//该模型仅用作模型开发案例，依此入市，风险自负。\r\n////////////////////////////////////////////////////////\r\nMOMVALUE:=C-REF(C,MOMLEN);\r\nVWM:=EMA(VOL*MOMVALUE,AVGLEN);//定义成交量加权为VWM\r\nTRUEHIGH1:=IF(HIGH>REF(C,1),HIGH,REF(C,1));\r\nTRUELOW1:=IF(LOW<=REF(C,1),LOW,REF(C,1));\r\nTRUERANGE1:=IF(ISLASTBAR,H-L,TRUEHIGH1-TRUELOW1);\r\nAATR:=MA(TRUERANGE1,ATRLEN);//定义波动率\t\t\t\t\t   \t\t\t\r\nBULLSETUP:=CROSSUP(VWM,0);//UWM上穿零轴定义多头势\r\nBEARSETUP:=CROSSDOWN(VWM,0);//UWM下穿零轴定义空头势\r\nLSETUP:=LOOP2(BARPOS=1||BULLSETUP,0,REF(LSETUP,1)+1);//多头势开始计数并记录当前价格\r\nLEPRICE:=VALUEWHEN(BULLSETUP,C);\r\nSSETUP:=LOOP2(BARPOS=1||BEARSETUP,0,REF(SSETUP,1)+1);//空头势开始计数并记录当前价格\r\nSEPRICE:=VALUEWHEN(BEARSETUP,C);\r\n//系统入场\r\n//当多头势满足并且在SETUPLEN的BAR数目内,当价格达到入场价格后,做多\r\nBARPOS>AVGLEN&&H>=REF(LEPRICE,1)+(ATRPCNT*REF(AATR,1))&&REF(LSETUP,1)<=SETUPLEN&&LSETUP>=1,BK;\r\n//系统出场\r\nBEARSETUP,SP;\r\n//系统入场\r\n//当空头势满足并且在SETUPLEN的BAR数目内,当价格达到入场价格后,做空\r\nBARPOS>AVGLEN&&L<=REF(SEPRICE,1)-(ATRPCNT*REF(AATR,1))&&REF(SSETUP,1)<=SETUPLEN&&SSETUP>=1,SK;\r\n//系统出场\r\nBULLSETUP,BP;\r\nAUTOFILTER;\r\n\t"}
 # print(s["src"])
 
 import pprint

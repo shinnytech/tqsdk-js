@@ -17,9 +17,7 @@ class TestConvertIndicator(TestConvert):
             "cname": "FUNC",
             "type": "SUB",
             "src": """
-        VALUEWHEN(HIGH>REF(HHV(HIGH,5),1),HIGH);
-        VALUEWHEN(DATE<>REF(DATE,1),O);
-        VALUEWHEN(DATE<>REF(DATE,1),L>REF(H,1));
+    VARIABLE:LOOKBACKDAYS:=0;
         """,
             "params": [
             ],
