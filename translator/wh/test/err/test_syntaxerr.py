@@ -37,19 +37,6 @@ class TestConvertIndicator(TestConvert):
         print(errors)
         self.assertEqual(errors, [{'line': 2, 'col': 1, 'msg': "不应该出现在这里的字符 '&'"}])
 
-    def test_unknown_func(self):
-        case = {
-            "id": "CASE",
-            "cname": "CASE",
-            "type": "MAIN",
-            "src": """D:UNKFUNC(O, C, H);""",
-            "params": [
-            ],
-            "expected": """""",
-        }
-        code, errors = wenhua_translate(case)
-        print(errors)
-        self.assertEqual(errors, [{'line': 2, 'col': 1, 'msg': "不应该出现在这里的字符 '&'"}])
 
 if __name__ == '__main__':
     unittest.main()

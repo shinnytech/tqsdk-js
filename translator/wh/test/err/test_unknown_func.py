@@ -8,18 +8,19 @@ from wh.whconvert import wenhua_translate
 
 
 class TestConvertIndicator(TestConvert):
-    def test_trade(self):
+    def test_unknown_func(self):
         case = {
-            "id": "fxp",
-            "cname": "fxp",
+            "id": "CASE",
+            "cname": "CASE",
             "type": "MAIN",
             "src": """D:UNKFUNC(O, C, H);""",
             "params": [
             ],
             "expected": """""",
         }
-        with self.assertRaises(SyntaxError):
-            actual = wenhua_translate(case)
+        code, errors = wenhua_translate(case)
+        print(errors)
+        self.assertEqual(errors, [{'line': 1, 'col': 3, 'msg': "'UNKFUNC' 不是变量或函数名"}])
 
 if __name__ == '__main__':
     unittest.main()

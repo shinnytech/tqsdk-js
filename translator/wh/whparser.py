@@ -6,6 +6,7 @@ import ply.lex as lex
 import ply.yacc as yacc
 import wh.whlex
 from wh.whlex import tokens
+from wh.utils import clear_error, add_error, get_errors
 
 
 logger = logging.getLogger()
@@ -13,15 +14,6 @@ logger = logging.getLogger()
 # console = logging.StreamHandler() # 配置日志输出到控制台
 # console.setLevel(logging.DEBUG) # 设置输出到控制台的最低日志级别
 # logger.addHandler(console)
-
-
-class TranslateException(Exception):
-    def __init__(self, err_line, err_col, err_msg):
-        self.err_line = err_line
-        self.err_col = err_col
-        self.err_msg = err_msg
-    def __str__(self):
-        return "line:%d, col:%d, msg:%s" % (self.err_line, self.err_col, self.err_msg)
 
 
 precedence = (
@@ -323,13 +315,10 @@ def p_dstatement_with_fontsize(p):
 
 def p_error(p):
     if p:
-        raise TranslateException(err_line=p.lexer.lineno,
-                                 err_col=p.lexer.lexpos - p.lexer.__dict__.get("linestart", 0),
-                                 err_msg="不应该出现在这里的字符 %s" % repr(p.value))
+        add_error(p.lexer.lineno, p.lexer.lexpos - p.lexer.__dict__.get("linestart", 0),
+                  "不应该出现在这里的字符 %s" % repr(p.value))
     else:
-        raise TranslateException(err_line=-1,
-                                 err_col=-1,
-                                 err_msg="代码未正确结束,请检查括号匹配和行末分号等")
+        add_error(-1, -1, "代码未正确结束,请检查括号匹配和行末分号等")
 
 
 

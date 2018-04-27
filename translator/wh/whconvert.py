@@ -12,16 +12,6 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 
-class TranslateException(Exception):
-    def __init__(self, err_line, err_col, err_msg):
-        self.err_line = err_line
-        self.err_col = err_col
-        self.err_msg = err_msg
-
-    def __str__(self):
-        return "line:%d, col:%d, msg:%s" % (self.err_line, self.err_col, self.err_msg)
-
-
 class WhProgram(object):
     function_map = {
         # WH函数到本地函数名映射表 (WH函数签名, TQ函数名)
@@ -303,8 +293,7 @@ class WhProgram(object):
                         else:
                             exp = tq_exp.format(*params)
                             return [self.IS_VALUE, exp]
-                raise SyntaxError("function param count error, func: %s, actual: %d: " % (
-                    wh_func_name, len(ast) - 2))
+                add_error(0, 0, "函数参数数量不对, 函数名: %s, 实际参数个数: %d" % (wh_func_name, len(ast) - 2))
             add_error(0, 0, "'%s' 不是变量或函数名" % id)
         elif aid == "BINOP":
             if ast[1] == "=":
@@ -349,7 +338,7 @@ class WhProgram(object):
         elif aid == "NULL":
             return [None, None]
         else:
-            raise Exception("bad:" + aid)
+            raise Exception("bad aid:" + aid)
         return [None, None]
 
     def to_prop_style(self, k, s):
@@ -370,9 +359,15 @@ class WhProgram(object):
         if k[0] == self.IS_SERIAL or k[0] == self.IS_SERIAL_OR_VALUE:
             return k[1]
         elif k[0] == self.IS_VALUE:
-            raise Exception("expect serial, got value")
+            serial_id = self.get_auto_serial_name()
+            self.define_serial(serial_id, True)
+            self.body_lines.append("{id}[i] = {v};".format(
+                id=serial_id,
+                v=k[1]
+            ))
+            return serial_id
         else:
-            raise Exception("none")
+            return k[1]
 
     def define_serial(self, serial_name, is_temp):
         if serial_name not in self.serials:
@@ -460,9 +455,12 @@ def wenhua_translate(req):
     """
     #解析并拼装
     clear_error()
-    x = wh.whparser.parse(req["src"])
     n = WhProgram(**req)
-    n.process(x, 'S')
+    try:
+        x = wh.whparser.parse(req["src"])
+        n.process(x, 'S')
+    except TypeError as e:
+        pass
     return n.output()
 
 

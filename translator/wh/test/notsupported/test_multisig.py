@@ -48,9 +48,10 @@ class TestConvertIndicator(TestConvert):
             "cname": "FUNC",
             "type": "SUB",
             "src": """
-        VALUEWHEN(HIGH>REF(HHV(HIGH,5),1),HIGH);
-        VALUEWHEN(DATE<>REF(DATE,1),O);
-        VALUEWHEN(DATE<>REF(DATE,1),L>REF(H,1));
+    C>REF(H,1),BK;//价格大于上一根k线最高价，开多仓
+    C<BKPRICE-3*MINPRICE,SP;//亏损3点止损
+    MULTSIG(2,0,4,10);//设置信号复核确认方式为开仓信号，出信号后第2个时间间隔下单不复核（例如09:00:09出现信号，09:00:29仍旧满足条件则确认信号并下单）。根据时间间隔计算出现平仓信号立即下单不复核（例如09:00:39出现平仓信号，则立即下单不复核）。一根K线上最大信号个数为4。每隔10秒计算一次信号。
+    AUTOFILTER;
         """,
             "params": [
             ],

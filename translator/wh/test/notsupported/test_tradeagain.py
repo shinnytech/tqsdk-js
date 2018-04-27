@@ -48,9 +48,9 @@ class TestConvertIndicator(TestConvert):
             "cname": "FUNC",
             "type": "SUB",
             "src": """
-        VALUEWHEN(HIGH>REF(HHV(HIGH,5),1),HIGH);
-        VALUEWHEN(DATE<>REF(DATE,1),O);
-        VALUEWHEN(DATE<>REF(DATE,1),L>REF(H,1));
+    C>O,BK(1);//K线为阳线，买开1手
+    C<O,SP(BKVOL);//K线为阴线，卖平多头持仓
+    TRADE_AGAIN(3);//同一指令行可以连续执行3次（如果连续三根阳线，则连续三次买开仓）
         """,
             "params": [
             ],

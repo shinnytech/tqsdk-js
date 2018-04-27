@@ -142,7 +142,7 @@ def t_NEWLINE(t):
 
 
 def t_error(t):
-    add_error(t.lexer.lineno, t.lexer.lexpos - t.lexer.__dict__.get("linestart", 0) + 1, "不应该出现在这里的字符 %s" % repr(t.value[0]))
+    add_error(t.lexer.lineno, t.lexer.lexpos - t.lexer.__dict__.get("linestart", 0) + 1, "尚未支持 %s" % repr(t.value[0]))
     t.lexer.skip(1)
 
 def get_lexer():

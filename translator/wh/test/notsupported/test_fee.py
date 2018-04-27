@@ -27,9 +27,7 @@ class TestConvertIndicator(TestConvert):
             "cname": "FUNC",
             "type": "SUB",
             "src": """
-        VALUEWHEN(HIGH>REF(HHV(HIGH,5),1),HIGH);
-        VALUEWHEN(DATE<>REF(DATE,1),O);
-        VALUEWHEN(DATE<>REF(DATE,1),L>REF(H,1));
+    K:=MONEYTOT*0.2/(C*MARGIN*UNIT+FEE); //模组子账户权益的20%可以开仓的手数（此写法适用于按固定手数收取手续费的合约）
         """,
             "params": [
             ],

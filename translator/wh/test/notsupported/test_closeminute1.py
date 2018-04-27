@@ -36,9 +36,10 @@ class TestConvertIndicator(TestConvert):
             "cname": "FUNC",
             "type": "SUB",
             "src": """
-        VALUEWHEN(HIGH>REF(HHV(HIGH,5),1),HIGH);
-        VALUEWHEN(DATE<>REF(DATE,1),O);
-        VALUEWHEN(DATE<>REF(DATE,1),L>REF(H,1));
+CROSS(C,MA(C,5)),BK;//最新价上穿五周期均线，买开
+MULTSIG(0,0,1,0);//使用TICK数据回测，出信号立即下单，不复核
+CLOSEMINUTE1<=1,CLOSEOUT;//收盘前1分钟，清仓
+AUTOFILTER;
         """,
             "params": [
             ],
