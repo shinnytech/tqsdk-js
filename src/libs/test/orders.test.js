@@ -69,78 +69,38 @@ describe('下单', function () {
             ]
         });
     });
-
-    it('批量获取订单', function () {
-        //下单
-        let order3 = TQ.INSERT_ORDER({
-            symbol,
-            direction: "BUY",
-            offset: "OPEN",
-            volume: 2,
-            limit_price: 2200,
-            unit_id: "EXT",
-        });
-        order_ids.push(order3.order_id);
-        let order4 = TQ.INSERT_ORDER({
-            symbol,
-            direction: "BUY",
-            offset: "OPEN",
-            volume: 2,
-            limit_price: 2100,
-            unit_id: "def",
-        });
-        order_ids.push(order4.order_id);
-        // let orders = TQ.GET_ORDER_DICT({
-        //
-        // });
-        // assert.equal(Object.keys(orders).length, 4);
-
-        let orders_abc = TQ.GET_ORDER_DICT({
-            unit_id: 'EXT'
-        });
-        assert.equal(Object.keys(orders_abc).length, 3);
-
-        var orders_def = TQ.GET_ORDER_DICT({
-            unit_id: 'def'
-        });
-        assert.equal(Object.keys(orders_def).length, 1);
-
-    });
-
-    it('统计已发送 order', function () {
-        var orders = TQ.GET_ORDER_DICT({unit_id:'EXT'})
-        let result = TQ.GET_ORDERS_SUMMARY(orders);
-        assert.equal(result.open_buy_volume, 0);
-        assert.equal(result.open_buy_price, 0);
-
-        // 模拟成交
-        for(var order_id of order_ids){
-            TQ.on_rtn_data({
-                "aid": "rtn_data",
-                "data":[
-                    {
-                        "trade": {
-                            "user1": {
-                                "orders": {
-                                    [order_id]: {
-                                        direction: "BUY",
-                                        offset: "OPEN",
-                                        volume_left: 0,
-                                        status: "FINISHED"
-                                    }
-                                }
-                            }
-                        }
-                    }]
-            });
-        }
-        let result2 = TQ.GET_ORDERS_SUMMARY(orders);
-        assert.equal(result2.open_buy_volume, 4);
-        assert.equal(result2.open_buy_price, 2100)
-        assert.equal(result2.open_sell_volume, 0);
-        assert.equal(result2.open_sell_price, 0);
-
-    });
+    //
+    // it('批量获取订单', function () {
+    //     //下单
+    //     let order3 = TQ.INSERT_ORDER({
+    //         symbol,
+    //         direction: "BUY",
+    //         offset: "OPEN",
+    //         volume: 2,
+    //         limit_price: 2200,
+    //         unit_id: "EXT",
+    //     });
+    //     order_ids.push(order3.order_id);
+    //     let order4 = TQ.INSERT_ORDER({
+    //         symbol,
+    //         direction: "BUY",
+    //         offset: "OPEN",
+    //         volume: 2,
+    //         limit_price: 2100,
+    //         unit_id: "def",
+    //     });
+    //     order_ids.push(order4.order_id);
+    //     // let orders = TQ.GET_ORDER_DICT({
+    //     //
+    //     // });
+    //     // assert.equal(Object.keys(orders).length, 4);
+    //
+    //     let orders_abc = TQ.GET_ORDER_DICT();
+    //     assert.equal(Object.keys(orders_abc).length, 3);
+    //
+    //     var orders_def = TQ.GET_ORDER_DICT();
+    //     assert.equal(Object.keys(orders_def).length, 1);
+    // });
 
     it('批量撤单', function () {
         var length = TQ.CANCEL_ORDER('EXT');

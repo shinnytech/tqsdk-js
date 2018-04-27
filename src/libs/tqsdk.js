@@ -1149,12 +1149,16 @@ class TQSDK {
         return this.dm.set_default({}, 'combines', 'USER.' + combine_id);
     }
 
-    GET_POSITION_DICT(symbol) {
+    GET_POSITION_DICT() {
         return this.dm.set_default({}, 'trade', this.dm.account_id, 'positions');
     }
 
-    GET_TRADE_DICT(symbol) {
+    GET_TRADE_DICT() {
         return this.dm.set_default({}, 'trade', this.dm.account_id, 'trades');
+    };
+
+    GET_ORDER_DICT() {
+        return this.dm.set_default({}, 'trade', this.dm.account_id, 'orders');
     };
 
     GET_QUOTE(symbol){
@@ -1169,6 +1173,7 @@ class TQSDK {
         }
         return this.dm.set_default({}, 'quotes', symbol);
     }
+
     GET_KLINE({ kline_id = RandomStr(), symbol=GLOBAL_CONTEXT.symbol, duration=GLOBAL_CONTEXT.duration, width = 100 }={}) {
         if (!symbol || !duration)
             return undefined;
@@ -1183,110 +1188,6 @@ class TQSDK {
         let ks = this.dm.get_kline_serial(symbol, dur_nano);
         //这里返回的是实际数据的proxy
         return ks.d;
-    }
-
-    /**
-     * 提取符合条件的所有存活委托单
-     * @param {
-     *      unit_id: 单号前缀, 单号以此字符串开头的委托单都会在结果集中
-     *      status: ['ALIVE', 'FINISHED']
-     * }
-     * @returns {*}
-     */
-    GET_ORDER_DICT({unit_id='', status=['ALIVE','FINISHED']}={}) {
-        let results = {};
-        let all_orders = this.dm.get('trade', this.dm.account_id, 'orders');
-        for (var order_id in all_orders) {
-            var ord = all_orders[order_id];
-            if (status.includes(ord.status) && order_id.startsWith(unit_id))
-                results[order_id] = ord;
-        }
-        return results;
-    };
-
-    CHANGED_ORDERS(){
-        var result = {};
-        var orders = this.GET_ORDER_DICT({status: ['ALIVE', 'FINISHED']});
-        for(var order_id in orders){
-            if (this.dm.is_changing(orders[order_id])){
-                result[order_id] = orders[order_id];
-                if (orders[order_id].status == 'FINISHED') {
-                    delete orders[order_id];
-                }
-            }
-        }
-        return result;
-    }
-
-    GET_ORDERS_SUMMARY(orders){
-        if (!orders)
-            orders = this.GET_ORDER_DICT({status: ['ALIVE', 'FINISHED']});
-        var result = {};
-        for(var order_id in orders){
-            var order = orders[order_id];
-            var symbol = order.exchange_id + '.' + order.instrument_id;
-            if (!result[symbol]) {
-                result[symbol] = {
-                    open_buy_price: 0,
-                    close_sell_price: 0,
-                    open_sell_price: 0,
-                    close_buy_price: 0,
-                    open_buy_volume: 0,
-                    close_sell_volume: 0,
-                    open_sell_volume: 0,
-                    close_buy_volume: 0,
-                    open_buy_pending_volume: 0,
-                    close_sell_pending_volume: 0,
-                    open_sell_pending_volume: 0,
-                    close_buy_pending_volume: 0,
-                }
-            }
-            var vol_changed = order.volume_orign - order.volume_left;
-            var opt = '';
-            if (order.direction == 'BUY') {
-                opt = (order.offset == 'OPEN') ?
-                    'open_buy' :
-                    'close_buy';
-            } else if (order.direction == 'SELL') {
-                opt = (order.offset == 'OPEN') ?
-                    'open_sell' :
-                    'close_sell';
-            }
-            if (vol_changed > 0) {
-                result[symbol][opt + '_volume'] += vol_changed;
-                result[symbol][opt + '_price'] += (order.limit_price * vol_changed);
-            }
-            if (order.status == 'ALIVE' && order.volume_left > 0) {
-                result[symbol][opt + '_pending_volume'] += order.volume_left;
-            }
-        }
-        for(var symbol in result){
-            result[symbol].open_buy_price = result[symbol].open_buy_volume > 0 ? result[symbol].open_buy_price / result[symbol].open_buy_volume : 0;
-            result[symbol].close_sell_price = result[symbol].close_sell_volume > 0 ? result[symbol].close_sell_price / result[symbol].close_sell_volume : 0;
-            result[symbol].open_sell_price = result[symbol].open_sell_volume > 0 ? result[symbol].open_sell_price / result[symbol].open_sell_volume : 0;
-            result[symbol].close_buy_price = result[symbol].close_buy_volume > 0 ? result[symbol].close_buy_price / result[symbol].close_buy_volume : 0;
-        }
-
-        if(Object.keys(result).length == 1){
-            return result[Object.keys(result)[0]];
-        }else if(Object.keys(result).length == 0){
-            return {
-                open_buy_price: 0,
-                close_sell_price: 0,
-                open_sell_price: 0,
-                close_buy_price: 0,
-                open_buy_volume: 0,
-                close_sell_volume: 0,
-                open_sell_volume: 0,
-                close_buy_volume: 0,
-                open_buy_pending_volume: 0,
-                close_sell_pending_volume: 0,
-                open_sell_pending_volume: 0,
-                close_buy_pending_volume: 0,
-            }
-        }else{
-            return result;
-        }
     }
 
     INSERT_ORDER({symbol, direction, offset, volume=1, price_type="LIMIT", limit_price, order_id, unit_id="EXT"}={}) {
@@ -1328,7 +1229,12 @@ class TQSDK {
         if (typeof order == 'object') {
             orders[order.order_id] = order;
         } else if (typeof order == 'string')  {
-            orders = this.GET_ORDER_DICT({unit_id: order, status:['ALIVE']});
+            let all_orders = this.dm.get('trade', this.dm.account_id, 'orders');
+            for (var order_id in all_orders) {
+                var ord = all_orders[order_id];
+                if (ord.status == "ALIVE" && order_id.startsWith(order))
+                    orders[order_id] = ord;
+            }
         }
         for (let order_id in orders) {
             this.ws.send_json({
