@@ -472,10 +472,7 @@ class IndicatorDefineContext {
             }
 
             if (options !== undefined) {
-                paramDefine.memo = options.MEMO;
-                paramDefine.min = options.MIN;
-                paramDefine.max = options.MAX;
-                paramDefine.step = options.STEP;
+                Object.assign(paramDefine, options);
             }
             this.params.set(paramName, paramDefine);
         }
@@ -1155,6 +1152,10 @@ class TQSDK {
     GET_POSITION_DICT(symbol) {
         return this.dm.set_default({}, 'trade', this.dm.account_id, 'positions');
     }
+
+    GET_TRADE_DICT(symbol) {
+        return this.dm.set_default({}, 'trade', this.dm.account_id, 'trades');
+    };
 
     GET_QUOTE(symbol){
         // 订阅行情
