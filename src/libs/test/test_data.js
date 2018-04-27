@@ -202,11 +202,44 @@ module.exports.batch_input_datas = function({TQ, symbol='SHFE.rb1810', dur=5, le
         }
     }
 
+    let quote = {
+        amount: 150680222720,
+        ask_price1: last_id,
+        ask_volume1: last_id,
+        average: last_id,
+        bid_price1: last_id,
+        bid_volume1: last_id,
+        change: last_id,
+        change_percent: last_id,
+        close: last_id,
+        datetime: "2018-04-25 14:59:59.500003",
+        datetime_epoch_nano: 1524581999500001000,
+        highest: last_id,
+        instrument_id: symbol,
+        last_price: last_id,
+        lower_limit: last_id,
+        lowest: last_id,
+        open: last_id,
+        open_interest: last_id,
+        pre_close: last_id,
+        pre_open_interest: last_id,
+        pre_settlement: last_id,
+        settlement: last_id,
+        upper_limit: last_id,
+        volume: last_id,
+    };
+
     if (dur == 0){
         TQ.on_rtn_data({
             "aid": "rtn_data",
             "data": [
-                {"ticks": {
+                {
+                    "quotes": {
+                        [symbol]: quote,
+                    }
+                },
+                {
+                    "ticks": {
                         [symbol]: obj,
                     },
                 }
@@ -216,7 +249,13 @@ module.exports.batch_input_datas = function({TQ, symbol='SHFE.rb1810', dur=5, le
         TQ.on_rtn_data({
             "aid": "rtn_data",
             "data": [
-                {"klines": {
+                {
+                    "quotes": {
+                        [symbol]: quote,
+                    }
+                },
+                {
+                    "klines": {
                         [symbol]: {
                             [dur * 1000000000]: obj,
                         },

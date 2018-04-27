@@ -30,9 +30,7 @@ function* demo(C){
 
 describe('指标中下单', function () {
     TQ.REGISTER_INDICATOR_CLASS(demo);
-    TQ.REGISTER_INDICATOR_CLASS(ma);
-
-    it('常规流程', function () {
+    it('发送 mk 序列', function () {
         //请求创建指标实例
         let r = {
             "aid": "update_indicator_instance",
@@ -73,6 +71,6 @@ describe('指标中下单', function () {
         assert.equal(send_obj.datas.mk[0][0], 1);
         assert.equal(send_obj.datas.mk[0][1], 2);
 
+        console.log(TQ.ws.send_objs)
     });
-
 });

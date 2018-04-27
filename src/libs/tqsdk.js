@@ -719,13 +719,13 @@ class IndicatorRunContext {
         this.out_series_mark[current_i] = direction === "BUY" ? ICON_BUY : ICON_SELL;
         if (!this.enable_trade)
             return;
-        //要求在K线完成的时刻满足下单条件才会动作
+
+        // 要求在K线完成的时刻满足下单条件才会动作
         if (this.trade_at_close && (current_i <= this.last_i || this._ds.last_id != current_i + 1))
             return;
-        //要求任意时刻满足下单条件都会动作
+        // 要求任意时刻满足下单条件都会动作
         if (!this.trade_at_close && this._ds.last_id != current_i)
             return;
-
 
         this.last_i = current_i;
         //确定下单价格
@@ -737,8 +737,8 @@ class IndicatorRunContext {
                 return;
             limit_price = quote[price_field];
         }
-        //
-        let position = TQ.GET_UNIT_POSITION(this.unit_id, order_symbol);
+
+        let position = this.TQ.GET_UNIT_POSITION(this.unit_id, order_symbol);
         let volume_open = 0;
         let volume_close = 0;
         if (offset == "CLOSE" || offset == "CLOSEOPEN") {
@@ -750,7 +750,7 @@ class IndicatorRunContext {
                 volume_close = Math.min(long_closeable_volume, volume);
             }
             if (volume_close > 0){
-                TQ.INSERT_ORDER({
+                this.TQ.INSERT_ORDER({
                     symbol: order_symbol,
                     direction: direction,
                     offset: order_symbol.startsWith("SHFE.")?"CLOSETODAY":"CLOSE",
@@ -775,7 +775,7 @@ class IndicatorRunContext {
                 }
             }
             if (volume_open > 0) {
-                TQ.INSERT_ORDER({
+                this.TQ.INSERT_ORDER({
                     symbol: order_symbol,
                     direction: direction,
                     offset: "OPEN",
@@ -787,7 +787,7 @@ class IndicatorRunContext {
         }
     };
     CANCEL_ALL(){
-        return TQ.CANCEL_ORDER(this.unit_id);
+        return this.TQ.CANCEL_ORDER(this.unit_id);
     };
     OUTS(style, name, options = {}){
         options.style=style;
