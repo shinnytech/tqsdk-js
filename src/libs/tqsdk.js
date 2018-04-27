@@ -494,9 +494,10 @@ class IndicatorDefineContext {
 }
 
 class IndicatorRunContext {
-    constructor(ind_func, instance_id, symbol, dur_nano, ds){
+    constructor(ind_func, instance_id, symbol, dur_nano, ds, tq){
         //技术指标参数, 合约代码/周期也作为参数项放在这里面
         this.ind = ind_func(this);
+        this.TQ = tq;
         this.ind_class_name = ind_func.name;
         this.instance_id = instance_id;
         this.symbol = symbol;
@@ -588,6 +589,7 @@ class IndicatorRunContext {
             return [-1, -1];
         }
 
+
         let calc_left = -1, calc_right = -1;
         let isDefault = false;
 
@@ -597,6 +599,7 @@ class IndicatorRunContext {
             right = this.view_right > this._ds.last_id ? this._ds.last_id : this.view_right;
             if(right < left) return [-1, -1];
             isDefault = true;
+
         } else {
             // 2 用户输入值 => 即使没有数据也要计算填入 NaN, 把用户输入的范围记下来
             [calc_left, calc_right] = [left, right];
@@ -667,6 +670,7 @@ class IndicatorRunContext {
             if(IS_WOEKER)
                 self.postMessage({ cmd: 'calc_end', content});
         } catch (e){
+            console.error(e);
             this.is_error = true;
             if(IS_WOEKER)
                 self.postMessage({ cmd: 'calc_end', content});
@@ -721,10 +725,13 @@ class IndicatorRunContext {
         //要求任意时刻满足下单条件都会动作
         if (!this.trade_at_close && this._ds.last_id != current_i)
             return;
+
+
         this.last_i = current_i;
         //确定下单价格
         if (!limit_price){
-            let quote = TQ.GET_QUOTE(order_symbol);
+            // 引用了上层的 TQ
+            let quote = this.TQ.GET_QUOTE(order_symbol);
             let price_field = direction == "BUY" ? 'ask_price1' : 'bid_price1';
             if (!quote[price_field]) // 取不到对应的价格 包括 NaN 、 undefined
                 return;
@@ -782,35 +789,6 @@ class IndicatorRunContext {
     CANCEL_ALL(){
         return TQ.CANCEL_ORDER(this.unit_id);
     };
-    // OUTS(style, serialName, options) {
-    //     this.out_series[serialName] = {};
-    //     let serial = this.out_series[serialName];
-    //     serial.style = style;
-    //     serial.width = 1;
-    //     serial.color = RGB(0xFF, 0x00, 0x00);
-    //     serial.yaxis = 0;
-    //     if (options) {
-    //         serial.width = options.width ? options.width : serial.width;
-    //         serial.color = options.color ? options.color : serial.color;
-    //         serial.yaxis = options.yaxis ? options.yaxis : serial.yaxis;
-    //         serial.memo = options.memo ? options.memo : serial.memo;
-    //     }
-    //
-    //     if (style === 'KLINE') {
-    //         let s = [new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL(), new VALUESERIAL()];
-    //         this.out_datas[serialName] = s;
-    //         return s;
-    //     } else if (style === 'COLOR_BAR') {
-    //         let s = [new VALUESERIAL(), new VALUESERIAL()];
-    //         this.out_datas[serialName] = s;
-    //         return s;
-    //     } else {
-    //         let s = new VALUESERIAL();
-    //         this.out_datas[serialName] = [s];
-    //         return s;
-    //     }
-    // };
-
     OUTS(style, name, options = {}){
         options.style=style;
         this.out_define[name] = options;
@@ -846,7 +824,8 @@ class IndicatorRunContext {
 }
 
 class TaManager {
-    constructor(){
+    constructor(tq){
+        this.TQ = tq;
         this.class_dict = {};
         this.instance_dict = {};
     }
@@ -860,7 +839,7 @@ class TaManager {
     };
 
     new_indicator_instance(ind_func, symbol, dur_nano, ds, params = {}, instance_id) {
-        let ind_instance = new IndicatorRunContext(ind_func, instance_id, symbol, dur_nano, ds);
+        let ind_instance = new IndicatorRunContext(ind_func, instance_id, symbol, dur_nano, ds, this.TQ);
         this.instance_dict[instance_id] = ind_instance;
         for(let p in params){
             ind_instance.PARAMS[p] = params[p];
@@ -978,7 +957,7 @@ class TQSDK {
 
         this.dm = new DataManager();
         this.tm = new TaskManager();
-        this.ta = new TaManager();
+        this.ta = new TaManager(this);
 
         this.START_TASK = this.tm.start_task.bind(this.tm);
         this.PAUSE_TASK = this.tm.pause_task.bind(this.tm);
