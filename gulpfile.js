@@ -104,6 +104,9 @@ gulp.task('copy_ta', ['beforecopy'], function () {
         './src/ta/ace-min/snippets/javascript.js',
         './src/ta/ace-min/snippets/text.js',
         './src/ta/defaults/*',
+        './src/libs/**',
+        '!./src/libs/test/',
+        '!./src/libs/test/*',
     ], { base: "src" })
     .pipe(gulp.dest(dist_ta));;
 });
@@ -171,6 +174,9 @@ gulp.task('copy_tq', function () {
         './src/assets/bootstrap/css/bootstrap.min.css',
         './src/assets/bootstrap/fonts/**',
         './src/assets/highlight/**',
+        './src/libs/**',
+        '!./src/libs/test/',
+        '!./src/libs/test/*',
     ], { base: "src" })
         .pipe(gulp.dest(dist_tq));
 });
