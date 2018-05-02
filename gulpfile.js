@@ -75,7 +75,7 @@ gulp.task('css', ['js'], function () {
 });
 
 gulp.task('js', ['workerjs'], function () {
-    return gulp.src(['./src/ta/js/*.js', './src/ta/index.js'], { base: 'src' })
+    return gulp.src(['./src/ta/js/list_menu.js', './src/ta/js/utils.js', './src/ta/index.js'], { base: 'src' })
         .pipe(concat('index' + vString + '.js'))
         .pipe(minifyJs())
         .pipe(replace('js/worker.js', 'worker' + vString + '.js'))

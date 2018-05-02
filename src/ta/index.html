@@ -9,7 +9,6 @@
     <title>天勤</title>
     <!-- base ui && js -->
     <link href="../assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../assets/jstree/themes/default/style.min.css" />
     <link rel="stylesheet" href="css/index.css">
 </head>
 
@@ -105,7 +104,6 @@
     </div>
     <script type="text/javascript" src="../assets/jquery.min.js"></script>
     <script type="text/javascript" src="../assets/bootstrap/js/bootstrap.min.js"></script>
-    <script src="../assets/jstree/jstree.min.js"></script>
     <script type="text/javascript" src="ace-min/ace.js"></script>
     <script type="text/javascript" src="ace-min/ext-language_tools.js"></script>
     <script type="text/javascript" src="ace-min/ext-linking.js"></script>
@@ -114,15 +112,8 @@
     <script type="text/javascript" src="js/list_menu.js"></script>
     <script type="text/javascript" src="js/utils.js"></script>
     <!-- del:end -->
-    <script type="text/javascript">
-        const CODE_RUN_TIMEOUT = 5000;
-        $(function () {
-            let IndicatorCtr = new IndCtrl('list_menu', 'editor', 'js/worker.js');
-            $('#btn_new_indicator').on('click', IndicatorCtr.addNewIndicator.bind(IndicatorCtr));
-            $('#trash-btn').on('click', IndicatorCtr.trashIndicator.bind(IndicatorCtr));
-            $('#btn_editor_run').on('click', IndicatorCtr.saveIndicator.bind(IndicatorCtr));
-        });
-    </script>
+    <script type="text/javascript" src="index.js"></script>
+    
 </body>
 
 </html>

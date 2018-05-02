@@ -153,7 +153,7 @@ class IndCtrl{
             var index = types.indexOf(data.token.type);
             if (data && data.token && index > -1) {
                 let lowerCase = data.token.value.toLowerCase();
-                window.open(`http://doc.tq18.cn/ta/latest/${functype[index]}/${lowerCase}.html`);
+                window.open(`http://doc.tq18.cn/tq/latest/usage/ta/${functype[index]}/${lowerCase}.html`);
             }
         });
 
