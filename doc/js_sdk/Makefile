@@ -7,13 +7,14 @@ SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = TianQin
 SOURCEDIR     = .
 BUILDDIR      = _build
+PORT = 8000
 
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 livehtml:
-	sphinx-autobuild -b html $(SOURCEDIR) $(BUILDDIR)/html
+	sphinx-autobuild -b html $(SOURCEDIR) $(BUILDDIR)/html --port=$(PORT)
 
 .PHONY: help Makefile
 

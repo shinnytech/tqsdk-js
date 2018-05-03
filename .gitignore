@@ -4,6 +4,7 @@ dist*/
 .DS_Store
 doc/_build/
 doc/js_sdk/_build
+doc/ta/_build
 extensions/
 
 nohup.out
