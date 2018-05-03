@@ -1,8 +1,36 @@
+
+class FileHelper{
+    constructor(dir = ''){
+        this.dir = dir;
+    }
+    write(path, content){
+        return window.writeFile('extension' + this.dir + path, content);
+    }
+    read(path){
+        return window.readFile('extension' + this.dir + path);
+    }
+    del(path){
+        // todo 删除文件
+        console.log('remove file : ', 'extension' + this.dir + path);
+        // return window.removeFile(this.dir + path);
+    }
+    list(dirpath = ''){
+        return window.listFile('extension' + this.dir + dirpath);
+    }
+}
+
 class IndCtrl{
     constructor (menu_id, editor_id, webworker_url){
+        this.sysFileHelper = new FileHelper('/libs/ind/');
+        this.cusFileHelper = new FileHelper('/libs/custom/');
+
+        this.codeTemplate = '';
+
         this.sys_dom = $('table#' + menu_id).find('#system-indicators');
         this.dom = $('table#' + menu_id).find('#custom-indicators');
+
         this.editor = ace.edit(editor_id);
+
         this.webworker = new TqWebWorker(webworker_url, {
             websocket_reconnect: this.workerWsReconnectCB.bind(this),
             calc_start: this.workerCalcStartCB.bind(this),
@@ -11,18 +39,73 @@ class IndCtrl{
         });
         this.errStore = new ErrorStore('err', this.webworker);
 
-        this.codeTemplate = '';
         // 指标数据存储
         this.sys_datas = {};
         this.waitingResult = new Set();
-        this.indStore = new Store('ind');
-        this.datas = new Proxy(this.indStore.get(), {
+
+        // 删除对话框
+        this.$trashModal = $('#TrashModal');
+        // 当前编辑的指标
+        this.editing = '';
+
+        this.init();
+        this.init_editor();
+        this.init_editor_theme();
+    }
+    init(){
+        this.sys_dom.append($('<div><h5>Loading...</h5></div>'));
+        this.dom.append($('<div><h5>Loading...</h5></div>'));
+
+        let key = -1;
+        for(var file of this.sysFileHelper.list()){
+            let [fileName, fileType] = file.split('.');
+            if(fileType == 'js'){
+                let fileContent = this.sysFileHelper.read(file);
+                if (fileName == 'template'){
+                    this.codeTemplate = fileContent;
+                } else {
+                    this.sys_datas[key] = {
+                        key,
+                        name: fileName,
+                        path: this.sysFileHelper.dir + fileName + '.js',
+                        type: 'system',
+                        code: fileContent
+                    };
+                    key -= 1;
+                }
+            }
+        }
+
+        let datas = {};
+        key = 0;
+        for(var file of this.cusFileHelper.list()){
+            let [fileName, fileType] = file.split('.');
+            if(fileType == 'js'){
+                let fileContent = this.cusFileHelper.read(file);
+                datas[key] = {
+                    key,
+                    name: fileName,
+                    path: this.cusFileHelper.dir + fileName + '.js',
+                    type: 'custom',
+                    code: fileContent
+                };
+                key += 1;
+            }
+        }
+
+        this.IndKeyManager = (function(key){
+            return {
+                get: () => key += 1
+            }
+        }).call(this, key);
+
+        this.datas = new Proxy(datas, {
             set: (function (target, key, value, receiver) {
                 var ret = Reflect.set(target, key, value, receiver);
                 // 更新UI
                 this.updateUI();
                 this.dom.find('tr.' + key + ' td:first').click();
-                this.indStore.save(target);
+                this.cusFileHelper.write(value.name + '.js', value.code);
                 return ret;
             }).bind(this),
             deleteProperty: (function(target, propKey){
@@ -44,68 +127,29 @@ class IndCtrl{
                     $nextTr.find('td:first').click();
                 }
                 var ret = Reflect.deleteProperty(target, propKey);
-                this.indStore.save(target);
+                this.cusFileHelper.del(target.name + '.js');
                 return ret;
             }).bind(this)
         });
-        // 删除对话框
-        this.$trashModal = $('#TrashModal');
-        // 当前编辑的指标
-        this.editing = '';
-        this.IndKeyManager = (function(){
-            var keys = Object.keys(this.datas);
-            var max = Math.max.apply(null, keys);
-            max = max > -1 ? max : 0;
-            return {
-                get: () => max += 1
-            }
-        }).call(this);
-        this.init();
-        this.init_editor();
-        this.init_editor_theme();
-    }
-    init(){
-        this.sys_dom.append($('<div><h5>Loading...</h5></div>'));
-        this.dom.append($('<div><h5>Loading...</h5></div>'));
-        var _this = this;
-        var proSys = new Promise((resolve, reject) => {
-            $.get('/libs/ind/defaults.json').then(function (response) {
-                var key = -1;
-                for (let name in response) {
-                    if (name === 'template'){
-                        _this.codeTemplate = response[name];
-                    } else {
-                        _this.sys_datas[name] = {
-                            key,
-                            name: name,
-                            type: 'system',
-                            code: response[name]
-                        };
-                        key -= 1;
-                    }
-                }
-                resolve();
+
+        //初始所有化指标类
+        IndCtrl.registerIndicator(this.webworker, this.sys_datas);
+        IndCtrl.registerIndicator(this.webworker, this.datas);
+        // 更新系统指标ui
+        this.sys_dom.empty();
+        for(var k in this.sys_datas){
+            let tr = IndCtrl.getIndicatorTr(this.sys_datas[k], {
+                select: this.selectCallback.bind(this),
+                copy: this.copyCallback.bind(this),
             });
-        });
-        proSys.then(function(){
-            //初始所有化指标类
-            IndCtrl.registerIndicator(_this.webworker, _this.sys_datas);
-            IndCtrl.registerIndicator(_this.webworker, _this.datas);
-            // 更新系统指标ui
-            _this.sys_dom.empty();
-            for(var name in _this.sys_datas){
-                let tr = IndCtrl.getIndicatorTr(_this.sys_datas[name], {
-                    select: _this.selectCallback.bind(_this),
-                    copy: _this.copyCallback.bind(_this),
-                });
-                _this.sys_dom.append(tr);
-            }
-            // 初始化时默认选中第一个系统指标
-            _this.sys_dom.find('td:first').click();
-        });
+            this.sys_dom.append(tr);
+        }
+        // 初始化时默认选中第一个系统指标
+        this.sys_dom.find('td:first').click();
+
         // 初始化用户自定义指标ui
-        _this.dom.empty();
-        _this.updateUI();
+        this.dom.empty();
+        this.updateUI();
     }
     init_editor(){
         // 初始化代码编辑区域
@@ -284,8 +328,13 @@ class IndCtrl{
         }
         tr.classList.add('active');
 
-        this.editing = data;
-        this.editor.setValue(data.code, 1);
+        if(data.type == 'system'){
+            this.editing = data;
+        } else {
+            this.editing = this.datas[data.key];
+        }
+
+        this.editor.setValue(this.editing.code, 1);
 
         if (data.type === 'system') {
             $('#btn_editor_save').attr('disabled', true);
@@ -308,13 +357,15 @@ class IndCtrl{
         let re = /^(function\s*\*\s*).*(\s*\(\s*C\s*\)\s*\{[\s\S]*\})$/g;
         let code = data.code.trim().replace(re, '$1' + name + '$2');
         let key = this.IndKeyManager.get();
+        let path = this.cusFileHelper.dir + name + '.js';
         this.datas[key] = {
             key,
             name,
+            path,
             type: 'custom',
             code,
         };
-        this.webworker.register_indicator_class(name, code);
+        this.webworker.register_indicator_class(name, path, code);
     }
     trashCallback(tr, data){
         this.$trashModal.find('#trash-indicator-name').text(data.name);
@@ -332,6 +383,7 @@ class IndCtrl{
         this.datas[key] = {
             key,
             name,
+            path: this.cusFileHelper.dir + name + '.js',
             type: 'custom',
             code,
         };
@@ -355,15 +407,22 @@ class IndCtrl{
                     return;
                 }
                 // 通知webworker unregister_indicator_class
-                this.webworker.unregister_indicator_class(old_name)
-                this.datas[this.editing.key].name = new_name;
+                this.webworker.unregister_indicator_class(old_name);
+                this.cusFileHelper.del(old_name + '.js');
             }
-            this.datas[this.editing.key].code = code;
-            this.updateUI();
-            this.indStore.save(this.datas);
-            this.webworker.register_indicator_class(new_name, code);
-            this.waitingResult.add(new_name);
+            let path = this.cusFileHelper.dir + new_name + '.js';
+            this.datas[this.editing.key] = {
+                key: this.editing.key,
+                name: new_name,
+                path,
+                type: 'custom',
+                code,
+            }
             this.editing = this.datas[this.editing.key];
+            this.updateUI();
+            this.webworker.register_indicator_class(new_name, path, code);
+            this.waitingResult.add(new_name);
+
         }
         this.editor.focus();
     }
@@ -389,7 +448,7 @@ class IndCtrl{
     existIndicatorName (name) {
         // 检查 系统指标 和 用户自定义指标 是否有指标名称是 name
         for (let k in this.sys_datas)
-            if (k === name) return true;
+            if (this.sys_datas[k].name === name) return true;
         for (let k in this.datas)
             if (this.datas[k].name === name) return true;
         return false;
@@ -399,10 +458,10 @@ class IndCtrl{
      */
     static registerIndicator(worker, indicators){
         if (indicators.name && indicators.code){
-            worker.register_indicator_class(indicators.name, indicators.code);
+            worker.register_indicator_class(indicators.name, indicators.path, indicators.code);
         } else {
             for(var i in indicators){
-                worker.register_indicator_class(indicators[i].name, indicators[i].code);
+                worker.register_indicator_class(indicators[i].name, indicators[i].path, indicators[i].code);
             }
         }
     }
@@ -558,8 +617,8 @@ class TqWebWorker {
     post(cmd, content){
         if(this.worker) this.worker.postMessage({cmd, content});
     }
-    register_indicator_class(name, code){
-        this.post('register_indicator_class', {name, code});
+    register_indicator_class(name, path, code){
+        this.post('register_indicator_class', {name, path, code});
     }
     unregister_indicator_class(name){
         this.post('unregister_indicator_class', name);

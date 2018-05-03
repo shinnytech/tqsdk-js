@@ -28,9 +28,10 @@ self.addEventListener('message', function (event) {
         case 'register_indicator_class':
             if (G_ERRORS.includes(content.name)) return;
             try {
-                var f = eval(content.name + '=' + content.code);
-                TQ.REGISTER_INDICATOR_CLASS(f);
+                importScripts(content.path);
+                TQ.REGISTER_INDICATOR_CLASS(self[content.name]);
             } catch (e) {
+                console.log(e)
                 postMessage({
                     cmd: 'feedback', content: {
                         error: true,
