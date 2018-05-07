@@ -11,8 +11,8 @@ class FileHelper{
     }
     del(path){
         // todo 删除文件
-        console.log('remove file : ', 'extension' + this.dir + path);
-        // return window.removeFile(this.dir + path);
+        console.log('remove file : ', 'extension/libs/' + this.dir + path);
+        // return window.removeFile('extension/libs/' + this.dir + path);
     }
     list(dirpath = ''){
         return window.listFile('extension/libs/' + this.dir + dirpath);
