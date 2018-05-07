@@ -1230,8 +1230,12 @@ class TQSDK {
         let classDefine = define_context.get_define();
         this.ws.send_json(classDefine);
     }
-    UNREGISTER_INDICATOR_CLASS(ind_class){
-        this.ta.unregister_indicator_class(ind_class.name);
+    UNREGISTER_INDICATOR_CLASS(ind_class_name){
+        this.ta.unregister_indicator_class(ind_class_name);
+        this.ws.send_json({
+            "aid": "unregister_indicator_class",
+            "name": ind_class_name
+        });
     }
     NEW_INDICATOR_INSTANCE(ind_func, symbol, dur_sec, params={}, instance_id=RandomStr()) {
         let dur_nano = dur_sec * 1000000000;
