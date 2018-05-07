@@ -67,7 +67,7 @@ class IndCtrl{
                     this.sys_datas[key] = {
                         key,
                         name: fileName,
-                        path: this.sysFileHelper.dir + fileName + '.js',
+                        path: '../../libs/ind/' + fileName + '.js',
                         type: 'system',
                         code: fileContent
                     };

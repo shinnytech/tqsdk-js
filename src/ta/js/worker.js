@@ -1,4 +1,4 @@
-importScripts('/libs/tqsdk.js', '/libs/func/basefuncs.js');
+importScripts('../../libs/tqsdk.js', '../../libs/func/basefuncs.js');
 
 const TQ = new TQSDK();
 
