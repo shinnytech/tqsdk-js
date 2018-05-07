@@ -124,8 +124,8 @@ class IndCtrl{
                 } else if ($nextTr) {
                     $nextTr.find('td:first').click();
                 }
+                this.cusFileHelper.del(target[propKey].name + '.js');
                 var ret = Reflect.deleteProperty(target, propKey);
-                this.cusFileHelper.del(target.name + '.js');
                 return ret;
             }).bind(this)
         });
