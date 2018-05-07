@@ -1,5 +1,6 @@
 'use strict';
 var fs = require('fs');
+var path = require("path");
 var gulp = require('gulp');
 var minifyHtml = require('gulp-htmlmin');
 var minifyCss = require("gulp-minify-css");
@@ -23,6 +24,9 @@ var dist = 'dist/';
 var argv = minimist(process.argv.slice(2));
 
 gulp.task('default', ['clean'], function () {
+    fs.mkdirSync(dist);
+    fs.mkdirSync(dist + 'libs');
+    fs.mkdirSync(dist + 'libs/custom');
     return gulp.start("indictor", 'copy', 'minicss', 'minihtml', 'minijs');
 });
 
