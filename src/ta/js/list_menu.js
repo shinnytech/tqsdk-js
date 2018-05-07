@@ -10,9 +10,7 @@ class FileHelper{
         return window.readFile('extension/libs/' + this.dir + path);
     }
     del(path){
-        // todo 删除文件
-        console.log('remove file : ', 'extension/libs/' + this.dir + path);
-        // return window.removeFile('extension/libs/' + this.dir + path);
+        return window.removeFile('extension/libs/' + this.dir + path);
     }
     list(dirpath = ''){
         return window.listFile('extension/libs/' + this.dir + dirpath);
