@@ -4,10 +4,10 @@ class FileHelper{
         this.dir = dir;
     }
     write(path, content){
-        return window.writeFile('extension' + this.dir + path, content);
+        return window.writeFile('extension/libs/' + this.dir + path, content);
     }
     read(path){
-        return window.readFile('extension' + this.dir + path);
+        return window.readFile('extension/libs/' + this.dir + path);
     }
     del(path){
         // todo 删除文件
@@ -15,14 +15,14 @@ class FileHelper{
         // return window.removeFile(this.dir + path);
     }
     list(dirpath = ''){
-        return window.listFile('extension' + this.dir + dirpath);
+        return window.listFile('extension/libs/' + this.dir + dirpath);
     }
 }
 
 class IndCtrl{
     constructor (menu_id, editor_id, webworker_url){
-        this.sysFileHelper = new FileHelper('/libs/ind/');
-        this.cusFileHelper = new FileHelper('/libs/custom/');
+        this.sysFileHelper = new FileHelper('../libs/ind/');
+        this.cusFileHelper = new FileHelper('../libs/custom/');
 
         this.codeTemplate = '';
 
@@ -67,7 +67,7 @@ class IndCtrl{
                     this.sys_datas[key] = {
                         key,
                         name: fileName,
-                        path: '../../libs/ind/' + fileName + '.js',
+                        path: this.sysFileHelper.dir + fileName + '.js',
                         type: 'system',
                         code: fileContent
                     };
