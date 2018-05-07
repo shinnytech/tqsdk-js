@@ -280,6 +280,8 @@ class IndCtrl{
             this.updateUI();
             this.webworker.worker.terminate();
             this.webworker.init();
+            IndCtrl.registerIndicator(this.webworker, this.sys_datas);
+            IndCtrl.registerIndicator(this.webworker, this.datas);
         }).bind(this), CODE_RUN_TIMEOUT);
     }
     workerCalcEndCB(content){
