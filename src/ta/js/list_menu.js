@@ -10,9 +10,7 @@ class FileHelper{
         return window.readFile('extension/libs/' + this.dir + path);
     }
     del(path){
-        // todo 删除文件
-        console.log('remove file : ', 'extension/libs/' + this.dir + path);
-        // return window.removeFile('extension/libs/' + this.dir + path);
+        return window.removeFile('extension/libs/' + this.dir + path);
     }
     list(dirpath = ''){
         return window.listFile('extension/libs/' + this.dir + dirpath);
@@ -135,6 +133,7 @@ class IndCtrl{
         //初始所有化指标类
         IndCtrl.registerIndicator(this.webworker, this.sys_datas);
         IndCtrl.registerIndicator(this.webworker, this.datas);
+
         // 更新系统指标ui
         this.sys_dom.empty();
         for(var k in this.sys_datas){
@@ -171,23 +170,6 @@ class IndCtrl{
             enableSnippets: true,
             enableLiveAutocompletion: true,
             enableLinking: true,
-        });
-
-        /*************** breakpoints ***************/
-        this.editor.on('guttermousedown', function (e) {
-            if (this.editor.getReadOnly()) return;
-            var target = e.domEvent.target;
-            if (target.className.indexOf('ace_gutter-cell') == -1) return;
-            if (!this.editor.isFocused()) return;
-            if (e.clientX > 25 + target.getBoundingClientRect().left) return;
-            var row = e.getDocumentPosition().row;
-            var breakpointsArray = e.editor.session.getBreakpoints();
-            if (!(row in breakpointsArray)) {
-                e.editor.session.setBreakpoint(row);
-            } else {
-                e.editor.session.clearBreakpoint(row);
-            }
-            e.stop();
         });
 
         /*************** keywords link Click ***************/
