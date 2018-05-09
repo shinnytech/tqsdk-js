@@ -179,7 +179,8 @@ module.exports.init_test_data = function (TQ) {
             }
         ]
     });
-}
+};
+
 
 /**
  * dur = 0  就生成 tick 数据
