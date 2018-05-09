@@ -681,7 +681,7 @@ class IndicatorRunContext {
                     error: true,
                     type: 'run',
                     message: e.message,
-                    func_name: this.ind.name,
+                    func_name: this.ind_class_name,
                 },
             });
         }
@@ -1013,23 +1013,23 @@ class TQSDK {
             default:
                 return;
         }
-        for(var f in this.ws_processor.onmessage){
+        for(var f of this.ws_processor.onmessage){
             f(message);
         }
     }
     onopen() {
-        for(var f in this.ws_processor.onopen){
+        for(var f of this.ws_processor.onopen){
             f();
         }
     }
     onreconnect() {
-        for(var f in this.ws_processor.onreconnect){
+        for(var f of this.ws_processor.onreconnect){
             f();
         }
     }
     onclose() {
         this.dm.clear_data();
-        for(var f in this.ws_processor.onclose){
+        for(var f of this.ws_processor.onclose){
             f();
         }
     }

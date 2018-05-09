@@ -6,6 +6,10 @@ TQ.register_ws_processor('onreconnect', function(){
     postMessage({ cmd: 'websocket_reconnect' });
 });
 
+TQ.register_ws_processor('onopen', function(){
+    postMessage({ cmd: 'websocket_open' });
+});
+
 let G_ERRORS = [];
 
 // -------------- worker listener start --------------
@@ -26,7 +30,6 @@ self.addEventListener('message', function (event) {
     var content = event.data.content;
     switch (event.data.cmd) {
         case 'register_indicator_class':
-            if (G_ERRORS.includes(content.name)) return;
             try {
                 importScripts(content.path);
                 TQ.REGISTER_INDICATOR_CLASS(self[content.name]);
