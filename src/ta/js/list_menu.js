@@ -31,12 +31,13 @@ class IndCtrl{
 
         this.webworker = new TqWebWorker(webworker_url, {
             websocket_reconnect: this.workerWsReconnectCB.bind(this),
+            websocket_open: this.workerWsOpenCB.bind(this),
             calc_start: this.workerCalcStartCB.bind(this),
             calc_end: this.workerCalcEndCB.bind(this),
             feedback: this.workerFeedbackCB.bind(this)
         });
         this.errStore = new ErrorStore('err', this.webworker);
-
+        
         // 指标数据存储
         this.sys_datas = {};
         this.waitingResult = new Set();
@@ -45,7 +46,7 @@ class IndCtrl{
         this.$trashModal = $('#TrashModal');
         // 当前编辑的指标
         this.editing = '';
-
+        
         this.init();
         this.init_editor();
         this.init_editor_theme();
@@ -129,10 +130,6 @@ class IndCtrl{
                 return ret;
             }).bind(this)
         });
-
-        //初始所有化指标类
-        IndCtrl.registerIndicator(this.webworker, this.sys_datas);
-        IndCtrl.registerIndicator(this.webworker, this.datas);
 
         // 更新系统指标ui
         this.sys_dom.empty();
@@ -270,8 +267,15 @@ class IndCtrl{
         }).bind(this));
     }
     workerWsReconnectCB (){
-        IndCtrl.registerIndicator(this.webworker, this.sys_datas);
-        IndCtrl.registerIndicator(this.webworker, this.datas);
+        this.webworker.error_class_name(this.errStore.errClassList);
+        this.registerIndicator(this.sys_datas);
+        this.registerIndicator(this.datas);
+    }
+    workerWsOpenCB (){
+        //初始所有化指标类
+        this.webworker.error_class_name(this.errStore.errClassList);
+        this.registerIndicator(this.sys_datas);
+        this.registerIndicator(this.datas);
     }
     workerCalcStartCB (content){
         this.errStore.records[content.id] = setTimeout((function(){
@@ -280,8 +284,6 @@ class IndCtrl{
             this.updateUI();
             this.webworker.worker.terminate();
             this.webworker.init();
-            IndCtrl.registerIndicator(this.webworker, this.sys_datas);
-            IndCtrl.registerIndicator(this.webworker, this.datas);
         }).bind(this), CODE_RUN_TIMEOUT);
     }
     workerCalcEndCB(content){
@@ -299,6 +301,7 @@ class IndCtrl{
             }
         } else {
             this.errStore.remove(content.func_name);
+            this.updateUI();
             if(this.waitingResult.has(content.func_name)) {
                 Notify.success(content);
                 this.waitingResult.delete(content.func_name);
@@ -437,18 +440,20 @@ class IndCtrl{
             if (this.datas[k].name === name) return true;
         return false;
     };
-    /**
-     * 静态方法
-     */
-    static registerIndicator(worker, indicators){
+    registerIndicator(indicators){
         if (indicators.name && indicators.code){
-            worker.register_indicator_class(indicators.name, indicators.path, indicators.code);
+            this.webworker.register_indicator_class(indicators.name, indicators.path, indicators.code);
         } else {
             for(var i in indicators){
-                worker.register_indicator_class(indicators[i].name, indicators[i].path, indicators[i].code);
+                if(this.errStore.has(indicators[i].name)) continue;
+                this.webworker.register_indicator_class(indicators[i].name, indicators[i].path, indicators[i].code);
             }
         }
     }
+
+    /**
+     * 静态方法
+     */
     static checkCode(code, editor){
         // 检查代码是否符合规范，并返回 function name
         let reg = /^function\s*\*\s*(\S*)\s*\(\s*C\s*\)\s*\{([\s\S]*)\}\n*$/g;
@@ -582,6 +587,9 @@ class TqWebWorker {
                 case 'websocket_reconnect':
                     _this.callbacks['websocket_reconnect'](e.data.content);
                     break;
+                case 'websocket_open':
+                    _this.callbacks['websocket_open'](e.data.content);
+                    break;  
                 case 'calc_start':
                     _this.callbacks['calc_start'](e.data.content);
                     break;
@@ -592,14 +600,15 @@ class TqWebWorker {
                     _this.callbacks['feedback'](e.data.content);
                     break;
                 case 'error_all':
-                    Notify.error('error in webworker \n' + content.type + ' : ' + content.message);
+                    Notify.error('error in webworker \n' + e.data.content.type + ' : ' + e.data.content.message);
                 default:
                     break;
             }
         });
     }
     post(cmd, content){
-        if(this.worker) this.worker.postMessage({cmd, content});
+        let obj = JSON.parse(JSON.stringify({cmd, content}))
+        if(this.worker) this.worker.postMessage(obj);
     }
     register_indicator_class(name, path, code){
         this.post('register_indicator_class', {name, path, code});
