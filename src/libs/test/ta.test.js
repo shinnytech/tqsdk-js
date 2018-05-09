@@ -122,8 +122,13 @@ describe('ta', function () {
 
     it('删除指标类', function () {
         assert.ok(TQ.ta.class_dict["ma"]);
-        TQ.UNREGISTER_INDICATOR_CLASS(ma);
+        TQ.UNREGISTER_INDICATOR_CLASS('ma');
+        //todo 参数变了，是否发动数据包
         assert.equal(TQ.ta.class_dict["ma"], undefined);
+        let send_obj = TQ.ws.send_objs.pop();
+        assert.equal(send_obj.aid, "unregister_indicator_class");
+        assert.equal(send_obj.name, "ma");
+
     });
 });
 
