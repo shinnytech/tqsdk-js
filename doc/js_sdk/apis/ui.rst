@@ -1,6 +1,6 @@
-.. _g_ui:
+.. _api_ui:
 
-TQ.UI
+界面操作 UI
 ==================================
 
 UI 部分，UI 用于读取页面填写的参数，或者在页面上填写指定数据。
@@ -23,8 +23,9 @@ UI 作为函数调用，可以直接读、写一组参数对象。
 
 .. code-block:: javascript
 
+    const TQ = new TQSDK();
     var params = TQ.UI();
-    /** 
+    /**
     params = {
         instrument: 'SHFE.rb1801',
         volume: 20,
@@ -36,7 +37,7 @@ UI 作为函数调用，可以直接读、写一组参数对象。
 
 .. code-block:: javascript
 
-    var params = { 
+    var params = {
         "instrument" : "SHFE.rb1801",
         "direction" : "SELL",
         "volume" : 100
@@ -68,4 +69,3 @@ UI 用点操作符可以直接读写到对应控件的内容。
     TQ.UI.volume = 30;
     TQ.UI.direction = 'SELL';
     // 页面对应数据更新
-    

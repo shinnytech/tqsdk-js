@@ -1,30 +1,25 @@
-.. _s_get_position:
+.. _get_position_dict:
 
-TQ.GET_POSITION
+获取持仓信息 - GET_POSITION_DICT
 ==================================
 
-获取持仓信息
+.. js:function:: GET_POSITION_DICT()
 
-.. js:function:: TQ.GET_POSITION(from)
+    获取该用户全部持仓信息
 
-    :param object from: 数据源 (TQ.DATA 或 TQ.CHANGING_DATA)。
     :returns: 返回账户全部持仓对象。
 
 
-示例
-----------------------------------
+用法示例
+-------------------------------------------
 
-查看当前账户持仓信息：
-
-.. code-block:: javascript
-
-    var position = TQ.GET_POSITION();
-
-查看最近一次账户持仓的更新信息：
+查看当前账户指定合约持仓信息：
 
 .. code-block:: javascript
 
-    var position = TQ.GET_POSITION(TQ.CHANGING_DATA);
+    const TQ = new TQSDK();
+    var positions = TQ.GET_POSITION();
+
 
 返回数据结构示例
 ----------------------------------
@@ -34,7 +29,7 @@ TQ.GET_POSITION
 .. code-block:: javascript
 
     {
-        "SHFE.cu1801": {                                  //position_key, 合约对应的持仓
+        "SHFE.cu1801": {      // 合约的 symbol 作为 key 值
             //核心字段
             "exchange_id": "SHFE",                        //交易所
             "instrument_id": "cu1801",                    //合约代码
@@ -58,5 +53,5 @@ TQ.GET_POSITION
             "volume_short_frozen": 5,                     //空头持仓冻结
             "volume_short_frozen_today": 5,               //空头今仓冻结
         },
-        ......
+        ......   // 其他合约的持仓
     }

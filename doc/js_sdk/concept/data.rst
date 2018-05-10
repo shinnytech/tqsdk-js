@@ -10,7 +10,7 @@ TQSDK 在内存中以 javascript object 存放所有当前用到的 行情/交�
 
 .. code-block:: javascript
 
-  { 
+  {
     "quotes": {                                           //实时行情数据
       "cu1612": {
         "instrument_id": "cu1612",                        //合约代码
@@ -184,7 +184,7 @@ TQSDK 在内存中以 javascript object 存放所有当前用到的 行情/交�
             "last_msg": "",                               //最后操作信息
             "force_close": "NOT",                         //强平原因
             "frozen_money": 15750,                        //冻结金额
-            "insert_date_time": "151754",                 //下单时间  
+            "insert_date_time": "151754",                 //下单时间
             "exchange_order_id": "434214",                //交易所单号
           }
         },
@@ -208,23 +208,24 @@ TQSDK 在内存中以 javascript object 存放所有当前用到的 行情/交�
       },
     },
   }
-  
+
 直接访问内存数据集中的数据
 ----------------------------------------
 TQSDK 中有一个全局变量 TQ.DATA 指向整个数据集. 由于这数据集是一个标准的 javascript object, 因此可以使用简单的 javascript 语法来直接访问其中的任意数据, 像这样
 
 .. code-block:: javascript
-  :caption: 获取 SHFE.cu1801 合约的最新价
-  
-  let last_price = TQ.DATA["quotes"]["SHFE.cu1801"]["last_price"];
-  /*
-      last_price = 3540.5
-  */
+    :caption: 获取 SHFE.cu1801 合约的最新价
+
+
+    let last_price = TQ.DATA["quotes"]["SHFE.cu1801"]["last_price"];
+    /*
+        last_price = 3540.5
+    */
 
 
 .. code-block:: javascript
   :caption: 获取 SHFE.cu1801 合约的持仓信息
-  
+
   let position = TQ.DATA["trade"]["user1"]["positions"]["SHFE.cu1801"];
   /*
       position = {

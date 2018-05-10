@@ -1,40 +1,48 @@
-.. _s_get_quote:
+.. _api_get_quote:
 
-TQ.GET_QUOTE
+获取指定合约对象 - GET_QUOTE
 ==================================
 
-获取指定合约对象
+.. js:function:: TQ.GET_QUOTE(symbol)
 
-.. js:function:: TQ.GET_QUOTE(instrument_id, from=TQ.DATA)
+    获取指定合约对象，可以查看最新行情
 
-    :param string instrument_id: 合约代码。
-    :param object from: 数据源 (TQ.DATA 或 TQ.CHANGING_DATA)。
+    :param string symbol: 合约代码。
     :returns: 返回指定合约对象。
+
+参数说明
+-------------------------------------------
+
+symbol 表示指定合约，格式为 ``交易所代码.合约代码``。
+
+:ref:`about_symbol`
 
 
 用法示例
-----------------------------------
-
-查看内存中某个合约对应的信息：
+-------------------------------------------
 
 .. code-block:: javascript
+    :caption: 查看沪铜1809合约
 
-    var quote = TQ.GET_QUOTE("SHFE.cu1805");
+    const TQ = new TQSDK();
+    var quote = TQ.GET_QUOTE("SHFE.cu1809");
     if(quote.last_price > 3680) {
         // 执行操作
     }
 
-如果您想知道最近一次数据包中，该合约所更新的字段信息，可以这样写：
-
 .. code-block:: javascript
+    :caption: 查看铁矿石1809合约
 
-    var quote = TQ.GET_QUOTE("SHFE.cu1805", TQ.CHANGING_DATA);
-
+    var quote = TQ.GET_QUOTE("DCE.i1809");
+    if(quote.close > 3680) {
+        // 执行操作
+    }
 
 返回数据结构示例
-----------------------------------
+-------------------------------------------
 
 .. code-block:: javascript
+    :caption: 返回的合约行情对应的数据结构
 
     {
         "instrument_id": "cu1805",                        //合约代码

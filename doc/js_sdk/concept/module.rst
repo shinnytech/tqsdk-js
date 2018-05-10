@@ -11,3 +11,11 @@ Module 扩展模块
 
 .. note::
     每个扩展模块都分别维护了一个到主程序的 websocket 连接, 扩展模块通过此接口与主程序通讯. 不同的扩展模块之间完全隔离运行.
+
+TQSDK 使用前必须实例化，
+
+
+.. code-block:: javascript
+    :caption: 实例化 TQSDK
+
+        const TQ = new TQSDK();

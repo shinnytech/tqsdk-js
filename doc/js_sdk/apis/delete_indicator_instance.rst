@@ -1,13 +1,13 @@
-.. _api_unregister_indicator_class:
+.. _api_delete_indicator_instance:
 
-取消订阅一个指标类 - UNREGISTER_INDICATOR_CLASS
+删除指标实例 - DELETE_INDICATOR_INSTANCE
 ====================================================================
 
-取消订阅一个指标类
+.. js:function:: DELETE_INDICATOR_INSTANCE(ind_instance)
 
-.. js:function:: UNREGISTER_INDICATOR_CLASS(ind_class_name)
+    删除一个已经建立的指标实例
 
-    :param function ind_class_name: 指标类函数名
+    :param function ind_instance: 指标实例对象
     :returns: null
 
 
@@ -17,4 +17,12 @@
 .. code-block:: javascript
 
     const TQ = new TQSDK();
-    TQ.UNREGISTER_INDICATOR_CLASS(ma);
+    let params = {
+        N1: 1,
+        N2: 3,
+        N3: 5,
+        N4: 7
+    };
+    let ins = TQ.NEW_INDICATOR_INSTANCE(ma, "SHFE.rb1810", 10, params);
+    TQ.DELETE_INDICATOR_INSTANCE(ins);
+

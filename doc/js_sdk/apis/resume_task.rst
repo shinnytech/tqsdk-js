@@ -1,10 +1,11 @@
-.. _g_resume_task:
+.. _api_resume_task:
 
-TQ.RESUME_TASK
+恢复 RESUME_TASK
 ==============================
-恢复运行一个被暂停的任务。
 
-.. js:function:: TQ.RESUME_TASK(task)
+.. js:function:: RESUME_TASK(task)
+
+    恢复运行一个被暂停的任务
 
    :param object task: task 对象
    :returns: null
@@ -18,7 +19,8 @@ TQ.RESUME_TASK
         ......
     }
 
+    const TQ = new TQSDK();
     var task = START_TASK(TaskOrder);
-    PAUSE_TASK(task);
-    RESUME_TASK(task);
-    
+    TQ.PAUSE_TASK(task); // 暂停
+    // ... 若干操作
+    TQ.RESUME_TASK(task); // 恢复

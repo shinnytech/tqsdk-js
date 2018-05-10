@@ -1,31 +1,25 @@
-.. _s_get_account:
+.. _api_get_account:
 
-TQ.GET_ACCOUNT
+获取账户信息 - GET_ACCOUNT
 ==================================
 
-获取账户信息
+.. js:function:: GET_ACCOUNT()
 
-.. js:function:: GET_ACCOUNT(from=TQ.DATA)
+    获取当前登录账户信息
 
-    :param object from: 数据源 (TQ.DATA 或 TQ.CHANGING_DATA)。
-    :returns: 返回当前登录的账户对象。
+    :returns: 返回当前登录的人民币账户对象。
 
 
 用法示例
 ----------------------------------
 
-查看当前账户信息：
+查看当前账户信息
 
 .. code-block:: javascript
 
+    const TQ = new TQSDK();
     let account = TQ.GET_ACCOUNT();
 
-
-查看最近一次更新中的账户信息：
-
-.. code-block:: javascript
-
-    let account = TQ.GET_ACCOUNT(TQ.CHANGING_DATA);
 
 
 返回数据结构示例

@@ -1,10 +1,11 @@
-.. _g_pause_task:
+.. _api_pause_task:
 
-TQ.PAUSE_TASK
+暂停 PAUSE_TASK
 ==============================
-暂停运行一个任务。
 
-.. js:function:: TQ.PAUSE_TASK(task)
+.. js:function:: PAUSE_TASK(task)
+
+    暂停运行一个任务
 
    :param object task: task 对象
    :returns: null
@@ -18,5 +19,6 @@ TQ.PAUSE_TASK
         ......
     }
 
-    var task = START_TASK(TaskOrder);
-    PAUSE_TASK(task);
+    const TQ = new TQSDK();
+    var task = TQ.START_TASK(TaskOrder);
+    TQ.PAUSE_TASK(task);

@@ -1,11 +1,13 @@
-.. _s_on_change:
+.. _api_on_change:
 
-TQ.ON_CHANGE
+页面事件 ON_CHANGE
 ==================================
 
-.. js:function:: TQ.ON_CHANGE(dom_id)
+.. js:function:: ON_CHANGE(dom_id)
 
    页面组件 onchange 事件触发此条件。
 
    :param string dom_id: 页面标签 id
-   :returns: (boolean) 标签携带数据  
+   :returns: (boolean) 事件是否发生
+
+

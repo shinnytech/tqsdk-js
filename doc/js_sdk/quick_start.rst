@@ -54,11 +54,7 @@ Quick Start
 查看界面
 -------------------------------------------------------
 
-有两种方式可以：
-
-方式一、在天勤客户端中打开
-*******************************************************
-选择 “添加板块” --> “扩展板块”，右击新添加的板块，右键菜单中选择配置，在配置界面中添加文件名 ``example.html``。 
+打开天勤客户端，选择 “添加板块” --> “扩展板块”，右击新添加的板块，右键菜单中选择配置，在配置界面中添加文件名 ``example.html``。
 
 .. note::
     配置面板上填写的文件名就是 ``extension`` 文件夹下的文件名。
@@ -70,17 +66,6 @@ Quick Start
     :figwidth: 80%
     :alt: map to buried treasure
 
-
-方式二、在 Chrome 浏览器中打开
-*******************************************************
-打开 Chrome 浏览器，打开文件 C:\TianQin\extension\trader_example.html
-
-这时候页面应该能够显示以下界面：
-
-.. figure:: _static/example_ui.png
-    :width: 800px
-    :figwidth: 80%
-    :alt: map to buried treasure
 
 在页面上显示对应的 UI
 -------------------------------------------------------
@@ -138,18 +123,19 @@ button     direction  offset
 完成交易逻辑
 =======================================
 
-简单来说，交易任务用一个 generate function 来表示，形式为 
+简单来说，交易任务用一个 generate function 来表示，形式为
 
 .. code-block:: javascript
 
-    function* TaskName(C [, options] ) {
+    const TQ = new TQSDK();
+    function* TaskOrder([options]) {
         ...
         var result = yield {}
         ...
         return;
     }
 
-.. note:: 
+.. note::
     - 形式上，关键字 ``function`` 和函数名中间必须有一个 ``*``。
     - 函数的参数，第一个参数为系统提供的环境，以及生成任务时传入的参数。
     - 关键字 ``yield`` 表示，函数在执行到这里时，会检查后面对象表示出的条件，并以对象形式返回，后面代码中就可以根据返回的内容执行不同的逻辑。
@@ -162,35 +148,32 @@ button     direction  offset
 
 .. code-block:: javascript
 
+    const TQ = new TQSDK();
     function* TaskOrder(direction, offset) {
         TQ.SET_STATE('START');
 
-        // 读取页面参数
-        var params = TQ.UI(); 
+        var params = TQ.UI(); // 读取页面参数
         params.direction = direction;
         params.offset = offset;
-        params.exchange_id = ParseSymbol(TQ.UI.symbol).exchange_id;
-        params.instrument_id = ParseSymbol(TQ.UI.symbol).instrument_id;
-        
-        // 根据参数，下单
+
         var order = TQ.INSERT_ORDER(params);
+
         var result = yield {
-            FINISHED: function () { return order.status === "FINISHED" }, // 如果挂单交易完成，结束程序
-            USER_CLICK_STOP: TQ.ON_CLICK('STOP'), // 如果用户单击结束按钮，撤单后结束程序
+            FINISHED: function () { return order.status === "FINISHED" },
+            USER_CLICK_STOP: TQ.ON_CLICK('STOP'),
         };
         if (result.USER_CLICK_STOP)
-            TQ.CANCEL_ORDER(order); // 如果用户单击结束按钮，撤单后结束程序
+            TQ.CANCEL_ORDER(order);
         // 任务结束
         TQ.SET_STATE('STOP');
     }
 
-    // 监听用户单击事件， 读取单击按钮上的参数
     $('button.START').on('click', function (e) {
         var data = e.target.dataset;
         TQ.START_TASK(TaskOrder, data.direction, data.offset);
     });
 
-.. note:: 
+.. note::
     - 当设置 TQ.SET_STATE('START') 后，界面显示任务运行中，任务运行过程中不可以修改界面参数。
        要想修改参数，需要停止任务 => 修改参数 => 重新开始任务。
 
@@ -207,7 +190,7 @@ button     direction  offset
 
     - 程序每收到一个数据包，就会运行到关键字 yield 位置，检查 yield 之后的对象的真值，本例中检查 2 个条件：
         CHANGED：最近一次数据包中是否包含所下单 order 的信息。
-        
+
         USER_CLICK_STOP：用户时候提前单击了结束按钮
 
     - 检查到某个条件值为真时，会返回 result
@@ -215,7 +198,7 @@ button     direction  offset
     - 当 order.status === "FINISHED" 成立时，completed 置为真，任务完成
 
     - 当用户提前单击结束按钮时，撤掉发出的订单，completed 置为真，任务完成
-    
+
     - 界面显示任务结束，任务运行结束可以修改界面参数
 
 

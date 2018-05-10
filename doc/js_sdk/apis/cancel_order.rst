@@ -1,27 +1,49 @@
-.. _s_cancel_order:
+.. _api_cancel_order:
 
-TQ.CANCEL_ORDER
+撤单 - CANCEL_ORDER
 ==================================
- 
-撤销下单。
 
-.. js:function:: CANCEL_ORDER(order)
+.. js:function:: CANCEL_ORDER(condition)
 
-   :param object order: 订单对象
-   :returns: order 
+    发送撤单指令
 
-示例
+   :param any condition: 委托单选择条件
+   :returns: order
+
+参数说明
+-------------------------------------------
+
+condition 可以接受以下两种情况：
+
+1. object 类型 - order 对象，接口会发送撤销指定的委托单的指令；
+2. string 类型 - unit_id，接口会发送撤销符合指定 unit_id 的委托单的指令。
+
+
+用法示例
 ----------------------------------
 
-.. code-block:: javascript
 
-    var order_param = {
-        exchange_id: "CFFEX",
-        instrument_id: "TF1803",
+.. code-block:: javascript
+    :caption: 撤销指定委托单
+
+    const TQ = new TQSDK();
+    let order = TQ.INSERT_ORDER({
+        symbol: "SHFE.cu1810",
         direction: "BUY",
         offset: "OPEN",
-        volume: 4,
-        limit_price: 96
-    }
-    var order = TQ.INSERT_ORDER(order_param);
+        volume: 2,
+        limit_price: 2100,
+        unit_id: "abc",
+    });
+    // ......
+    // 若干操作和判断条件
+    // ......
     TQ.CANCEL_ORDER(order);
+
+.. code-block:: javascript
+    :caption: 撤销指定 unit_id 的委托单
+
+    // ......
+    // 若干操作和判断条件
+    // ......
+    TQ.CANCEL_ORDER("abc");

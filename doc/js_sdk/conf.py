@@ -19,11 +19,11 @@ extensions = ['sphinx.ext.intersphinx', 'sphinx.ext.githubpages', 'sphinx.ext.ma
 # 设置 graphviz_dot 路径
 graphviz_dot = 'dot'
 # 设置 graphviz_dot_args 的参数，这里默认了默认字体
-# graphviz_dot_args = ['-Gfontname=Georgia', 
+# graphviz_dot_args = ['-Gfontname=Georgia',
 #                      '-Nfontname=Georgia',
 #                      '-Efontname=Georgia']
 # 输出格式，默认png，这里我用svg矢量图
-graphviz_output_format = 'svg'
+# graphviz_output_format = 'svg'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

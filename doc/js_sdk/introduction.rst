@@ -27,39 +27,52 @@ JavaScript SDK 在天勤扩展方式之一，是指使用 JavaScript 语言编�
 JavaScript SDK
 ------------------------------------------
 
-JavaScript SDK 提供了一个模块 TQSDK，用户通过 TQSDK 提供的接口，来与主进程交互：
+JavaScript SDK 提供了 TQSDK，用户通过 TQSDK 提供的接口，来与主进程交互。
 
-1. `ws` - 维持 js 线程与天勤软件(主程序)之间的 websocket 连接
-2. `dm` - 数据存储与数据管理
-3. `ta` - 技术指标
-4. `tm` - 程序化交易
+TQSDK 在使用前需要进行实例化，它完成了以下功能：
+
+1. 在内存中维护了 js 线程与天勤软件(主程序)之间的 websocket 连接，收发、管理行情和交易数据集。
+2. 读取、存储技术指标，运行时实时计算指标。
+3. 管理、调度程序化交易任务。
+
+.. code-block:: javascript
+    :caption: 实例化 TQSDK
+
+    const TQ = new TQSDK();
+    // .... 用户代码
 
 
-.. graphviz::
+实例化 TQSDK 之后，用户就可以通过 TQSDK 实例提供的接口和计算函数，完成开发。每个计算进程中或者说每个页面只需要一个 TQSDK 实例。
 
-    digraph structs {
-        node [shape=plaintext];
 
-        struct1 [label=<<TABLE>
-        <TR>
-            <TD BGCOLOR='olivedrab1' colspan='2'>TQSDK API(对外提供接口)</TD>
-            <TD BGCOLOR='olivedrab1'>计算函数(MA/EMA/STDEV/......)</TD>
-        </TR>
-        <TR><TD>TaManager(自定义指标管理器)</TD><TD>TaskManager(程序化交易任务管理器)</TD></TR>
-        <TR><TD colspan='2'>DataManager</TD></TR>
-        <TR><TD colspan='2'>WebSocket</TD></TR>
-        </TABLE>>];
-    }
+文档说明
+------------------------------------------
 
+* TQSDK APIS - 详细介绍了 TQSDK 中的每个接口
+* 辅助计算函数 - 详细介绍了系统提供的每个辅助计算函数
+* 概念说明 - 介绍了系统整体框架，以及一些系统使用的全局行概念的说明
+
+
+
+
+// todo： 还需要添加的文档呢
+
+    * 可以添加交易 Task
+    * importScripts() 添加模块
+    * 辅助计算函数
+    * 添加示例
+    * 分别如何使用、添加一个模块
 
 指标编辑器
 ------------------------------------------
 
+天勤软件自带 **指标编辑器**，就是一个使用了 TQSDK 的例子，编写自定义指标的文档请参考链接 :ref:`<ta>`。
 
 程序化交易
 ------------------------------------------
 
 
+本部分文档，主要介包括 TQSDK API 详细介绍和程序化交易教程。
 
 
 .. _天勤翻译器: http://127.0.0.1/ta/translate.html

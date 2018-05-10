@@ -1,18 +1,16 @@
-.. _api_get_order:
+.. _api_get_order_dict:
 
-获取报单信息 - GET_ORDER_DICT
+获取委托单信息 - GET_ORDER_DICT
 ==================================
-
-获取用户当前账户下全部报单信息
 
 .. js:function:: GET_ORDER_DICT()
 
-    :returns: 返回指定 id 的订单对象。
+    获取用户当前账户下全部委托单信息
+
+    :returns: 返回全部委托单对象。
 
 用法示例
 ----------------------------------
-
-如果您已经获得 order_id ，可以这样查看指定 id 的信息：
 
 .. code-block:: javascript
 
@@ -30,7 +28,7 @@
             //核心字段
             "order_type": "TRADE",                        //指令类型
             "session_id": "abc",                          //会话ID
-            "order_id": "123",                            //委托单ID, 在每个会话中唯一
+            "order_id": "MAIN.djkIjXj",                            //委托单ID, 在每个会话中唯一
             "exchange_id": "SHFE",                        //交易所
             "instrument_id": "cu1801",                    //合约代码
             "direction": "BUY",                           //下单方向

@@ -1,16 +1,21 @@
-.. _s_get_combine:
+.. _api_get_combine:
 
-TQ.GET_COMBINE
+获取组合信息 - GET_COMBINE
 ==================================
 
-获取用户自定义组合信息
+.. js:function:: GET_COMBINE(combine_id)
 
-.. js:function:: GET_COMBINE(combine_name, from=TQ.DATA)
+    获取用户自定义组合信息
 
-    :param string combine_name: 自定义组合的名称。
-    :param object from: 数据源 (TQ.DATA 或 TQ.CHANGING_DATA)。
+    :param string combine_id: 自定义组合代码。
     :returns: 返回用户自定义组合信息。
 
+参数说明
+-------------------------------------------
+
+combine_id 就是用户在天勤软件 ``自编组合`` 中输入的自定义组合的代码。
+
+返回的组合信息，就是自编组合中设置的各个合约和对应的权重。
 
 用法示例
 ----------------------------------
@@ -19,13 +24,9 @@ TQ.GET_COMBINE
 
 .. code-block:: javascript
 
+    const TQ = new TQSDK();
     var weights = TQ.GET_COMBINE('rr');
 
-如果您想知道最近一次数据包中自定义组合的信息有没有更改，可以这样写：
-
-.. code-block:: javascript
-
-    var weights = TQ.GET_COMBINE('rr', TQ.CHANGING_DATA);
 
 返回数据结构示例
 ----------------------------------

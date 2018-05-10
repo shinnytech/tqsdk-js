@@ -1,13 +1,13 @@
-.. _api_register_indicator_class:
+.. _api_unregister_indicator_class:
 
-订阅一个指标类 - REGISTER_INDICATOR_CLASS
+取消订阅指标类 - UNREGISTER_INDICATOR_CLASS
 ====================================================================
 
-向主程序订阅一个指标类
+.. js:function:: UNREGISTER_INDICATOR_CLASS(ind_class_name)
 
-.. js:function:: REGISTER_INDICATOR_CLASS(indicator_class)
+    取消订阅一个指标类
 
-    :param function indicator_class: 指标类函数。
+    :param function ind_class_name: 指标类函数名
     :returns: null
 
 
@@ -17,4 +17,4 @@
 .. code-block:: javascript
 
     const TQ = new TQSDK();
-    TQ.REGISTER_INDICATOR_CLASS(ma);
+    TQ.UNREGISTER_INDICATOR_CLASS(ma);
