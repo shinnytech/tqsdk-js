@@ -118,6 +118,8 @@ class DataManager{
                             target.data = [];
                         if (!target.left_id || Object.keys(value)[0] < target.left_id)
                             target.left_id = Number(Object.keys(value)[0]);
+                        // @note: 后面使用 GET_KLINE 返回的是 target.data 的 proxy，这样可以方便取得 last_id
+                        target.data.last_id = target.last_id;
                         this.mergeObject(target[key], value, deleteNullObj);
                     } else {
                         target[key] = target[key] ? target[key] : {};

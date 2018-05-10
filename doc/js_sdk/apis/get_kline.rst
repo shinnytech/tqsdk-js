@@ -1,15 +1,15 @@
-.. _s_get_kline:
+.. _api_get_kline:
 
-TQ.GET_KLINE
+GET_KLINE
 ====================================================================
 
 获取指定 K 线序列。
 
-.. js:function:: TQ.GET_KLINE(config)
+.. js:function:: GET_KLINE(config)
 
     :param object config: K 线序列参数。
     :returns: 返回 K 线对象。
-
+    { kline_id = RandomStr(), symbol=GLOBAL_CONTEXT.symbol, duration=GLOBAL_CONTEXT.duration, width = 100 }={}
 
 K 线序列参数说明
 --------------------------------------------------------------------
@@ -52,7 +52,7 @@ width    100              K 线序列长度，最新一个柱子为 K 线序列�
     kseq.symbol // 'SHFE.cu1805'
     kseq.duration // 10
     kseq.width // 200
-    
+
 
 .. code-block:: javascript
     :caption: 查看 K 线序列某个字段的序列
@@ -75,15 +75,15 @@ K 线序列对象也支持像数组一样用下标访问，下标从 0 开始到
 .. code-block:: javascript
     :caption: 查看 K 线序列中第一个柱子的值
 
-    var k0 = kseq[0]; 
+    var k0 = kseq[0];
     // 第一个柱子的值
 
 .. code-block:: javascript
     :caption: 查看 K 线序列中最后一个柱子的值
 
-    var k0 = kseq[-1]; 
+    var k0 = kseq[-1];
     // 等价于
-    var k0 = kseq[199]; 
+    var k0 = kseq[199];
 
 .. code-block:: javascript
     :caption: 每个柱子的数据结构示意
