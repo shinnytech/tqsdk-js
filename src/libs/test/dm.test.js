@@ -66,14 +66,16 @@ describe('dm', function () {
             symbol: "SHFE.cu1601",
             duration: 180,
         });
-        assert.equal(q[q.length-1].close, 3435);
-        assert.equal(q.close[q.length-1], 3435);
+
+        assert.equal(q.last_id, 3435);
+        assert.equal(q[q.last_id].close, 3435);
+        assert.equal(q.close[q.last_id], 3435);
+        assert.equal(q.open.length, 3436); // 0-3435
 
         let ds = q.close.slice(-2);
         assert.equal(ds.length, 2);
         assert.equal(ds[0], 3434);
         assert.equal(ds[1], 3435);
-
 
         let ks = q.slice(-2);
         assert.equal(ks.length, 2);

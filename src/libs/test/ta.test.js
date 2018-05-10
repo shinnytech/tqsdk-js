@@ -49,6 +49,7 @@ describe('ta', function () {
             N3: 5,
             N4: 7
         });
+        console.log(ind1.DS.last_id)
         assert.equal(ind1.outs.ma1(-1), 10000);
         assert.equal(ind1.outs.ma3(-1), 9999);
         assert.equal(ind1.outs.ma5(-1), 9998);
