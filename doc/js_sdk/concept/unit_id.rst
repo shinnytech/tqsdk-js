@@ -10,7 +10,7 @@
 为了便于订单分类管理，这里提供两种设置 ``order_id`` 的方法：
 
 + 用户可以在下单时，指定 ``order_id`` 为任意字符串，只要保证互不重复。
-+ 为 ``order_id`` 添加前缀 -- 交易单元 ``unit_id``，用 ``.`` 隔开。``order_id`` 的结构是 ``unit_id.random_string``
++ 为 ``order_id`` 添加一组前缀 -- 交易单元 ``unit_id``，用 ``.`` 隔开。``unit_id`` 可以用 ``.`` 分隔出若干隔层级。``order_id`` 的结构是 ``unit_id.random_string``。
 
 例如：
 
@@ -33,11 +33,11 @@
         offset: "OPEN",
         volume: 2,
         limit_price: 2100,
-        unit_id: "macd",
+        unit_id: "macd.AA",
     });
 
     // order0.order_id = 'abc.dioErhjw'
-    // order1.order_id = 'macd.okcSnjEk'
+    // order1.order_id = 'macd.AA.okcSnjEk'
 
 这样用户就可以为不同的交易策略添加不同的 ``unit_id``，方便查看、管理。在天勤软件中交易面板上的 **报单编号** 中可以看到效果。
 
