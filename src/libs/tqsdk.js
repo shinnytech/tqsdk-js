@@ -89,6 +89,29 @@ function make_array_proxy(data_array, item_func=undefined){
     return p;
 }
 
+function getobj(obj, ...path){
+    let node = obj;
+    for (let i = 0; i < path.length; i++) {
+        if (! (path[i] in node))
+            return undefined;
+        node = node[path[i]];
+    }
+    return node;
+}
+
+function set_obj_default(default_value, obj, ...path){
+    let node = obj;
+    for (let i = 0; i < path.length; i++) {
+        if (! (path[i] in node))
+            if (i+1 == path.length)
+                node[path[i]] = default_value;
+            else
+                node[path[i]] = {};
+        node = node[path[i]];
+    }
+    return node;
+}
+
 //dm----------------------------------------------------------------------
 class DataManager{
     constructor(){
@@ -121,6 +144,8 @@ class DataManager{
                         // @note: 后面使用 GET_KLINE 返回的是 target.data 的 proxy，这样可以方便取得 last_id
                         target.data.last_id = target.last_id;
                         this.mergeObject(target[key], value, deleteNullObj);
+                    } else if (key == "units"){
+                        //@note: 不再接收主程序推送的unit相关数据, 改为sdk内部自行计算
                     } else {
                         target[key] = target[key] ? target[key] : {};
                         this.mergeObject(target[key], value, deleteNullObj);
@@ -1040,9 +1065,30 @@ class TQSDK {
      * @param message_rtn_data
      */
     on_rtn_data(message_rtn_data){
-        //收到行情数据包，更新到数据存储区
+        //收到行情数据包
+        //根据更新数据包, 调整unit信息
+        for (let i = 0; i < message_rtn_data.data.length; i++) {
+            let d = message_rtn_data.data[i];
+            let orders = getobj(d, 'trade', this.dm.account_id, 'orders');
+            for (let order_id in orders){
+                let order = orders[order_id];
+                let orign_order = this.dm.get('trade', this.dm.account_id, 'orders', order_id);
+                let volume_change = order.status == "ALIVE"?order.volume_left:0;
+                if (orign_order && orign_order.status == "ALIVE"){
+                    volume_change = volume_change - orign_order.volume_left;
+                }
+                this.process_unit_order(order, volume_change);
+            }
+            let trades = getobj(d, 'trade', this.dm.account_id, 'trades');
+            for (let trade_id in trades){
+                let trade = trades[trade_id];
+                this.process_unit_trade(trade);
+            }
+        }
+
+        //更新到数据存储区
         this.dm.on_rtn_data(message_rtn_data);
-        // 重新计算所有技术指标 instance
+        //重新计算所有技术指标 instance
         for (let id in this.ta.instance_dict) {
             let instance = this.ta.instance_dict[id];
             if (this.dm.is_changing(instance._ds)){
@@ -1052,6 +1098,66 @@ class TQSDK {
         }
         this.tm.run();
     }
+
+    process_unit_order(order, volume_change) {
+        let symbol = order.exchange_id + "." + order.instrument_id;
+        let order_id_parts = order.order_id.split(".");
+        for (let i=0; i< order_id_parts.length; i++){
+            let unit_id = order_id_parts.slice(0, i).join(".");
+            let position = this.GET_UNIT_POSITION(unit_id, symbol);
+            if (order.offset == "OPEN"){
+                if (order.direction == "BUY")
+                    position.order_volume_buy_open += volume_change;
+                else
+                    position.order_volume_sell_open += volume_change;
+            } else {
+                if (order.direction == "BUY")
+                    position.order_volume_buy_close += volume_change;
+                else
+                    position.order_volume_sell_close += volume_change;
+            }
+        }
+    }
+
+    process_unit_trade(trade) {
+        let symbol = trade.exchange_id + "." + trade.instrument_id;
+        let order_id_parts = trade.order_id.split(".");
+        for (let i=0; i < order_id_parts.length; i++){
+            let unit_id = order_id_parts.slice(0, i).join(".");
+            let position = this.GET_UNIT_POSITION(unit_id, symbol);
+            let unit = this.dm.set_default({}, "trade", this.dm.account_id, "units", unit_id);
+            if (trade.offset == "OPEN") {
+                if (trade.direction == "BUY") {
+                    position.volume_long += trade.volume;
+                    position.cost_long += trade.volume * trade.price;
+                } else {
+                    position.volume_short += trade.volume;
+                    position.cost_short += trade.volume * trade.price;
+                }
+            } else {
+                let close_profit = 0;
+                if (trade.direction == "BUY") {
+                    let v = Math.min(trade.volume, position.volume_short);
+                    if (v > 0) {
+                        let c = position.cost_short / position.volume_short * v;
+                        close_profit = c - v * trade.price;
+                        position.cost_short -= c;
+                        position.volume_short -= v;
+                    }
+                } else {
+                    let v = Math.min(trade.volume, position.volume_long);
+                    if (v > 0){
+                        let c = position.cost_long / position.volume_long * v;
+                        close_profit = v * trade.price - c;
+                        position.cost_long -= c;
+                        position.volume_long -= v;
+                    }
+                }
+                unit.stat.close_profit += close_profit;
+            }
+        }
+    }
+
     on_update_indicator_instance(pack){
         //重置指标参数
         let instance_id = pack.instance_id;
@@ -1123,7 +1229,25 @@ class TQSDK {
     };
 
     GET_UNIT_POSITION(unit_id, symbol) {
-        return this.dm.set_default({}, 'trade', this.dm.account_id, 'units', unit_id, 'positions', symbol);
+        let unit = this.dm.set_default({
+            unit_id,
+            stat: {close_profit:0},
+        }, "trade", this.dm.account_id, "units", unit_id);
+        unit._epoch = this.dm.epoch;
+        let position = set_obj_default({
+            symbol,
+            unit_id,
+            order_volume_buy_open:0,
+            order_volume_sell_open:0,
+            order_volume_buy_close:0,
+            order_volume_sell_close:0,
+
+            volume_long:0,
+            cost_long:0,
+            volume_short:0,
+            cost_short:0,
+        }, unit, "positions", symbol);
+        return position;
     };
 
     GET_COMBINE(combine_id){
@@ -1194,7 +1318,9 @@ class TQSDK {
 
         let order = this.dm.set_default({
             order_id: order_id,
-            status: "ALIVE", // todo: 这里不需要 UNDEFINED 吗
+            status: "ALIVE",
+            offset: offset,
+            direction: direction,
             volume_orign: volume,
             volume_left: volume,
             exchange_id: exchange_id,
@@ -1202,6 +1328,8 @@ class TQSDK {
             limit_price: limit_price,
             price_type: "LIMIT",
         }, "trade", this.dm.account_id, "orders", order_id);
+        order._epoch = this.dm.epoch;
+        this.process_unit_order(order, volume);
         return order;
     };
 
