@@ -986,6 +986,8 @@ class TQSDK {
         this.tm = new TaskManager();
         this.ta = new TaManager(this);
 
+        this.DATA = this.dm.datas;
+        this.SEND_MESSAGE = this.ws.send_json;
         this.START_TASK = this.tm.start_task.bind(this.tm);
         this.PAUSE_TASK = this.tm.pause_task.bind(this.tm);
         this.RESUME_TASK = this.tm.resume_task.bind(this.tm);

@@ -8,7 +8,6 @@ Javascript SDK
 
     introduction.rst
     quick_start.rst
-    apis/index.rst
     concept/index.rst
-    funcs/index.rst
     examples/index.rst
+    apis/index.rst

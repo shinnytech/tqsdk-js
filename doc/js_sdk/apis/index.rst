@@ -30,6 +30,7 @@ TQSDK APIS 提供的接口分为以下几类：
 
     insert_order.rst
     cancel_order.rst
+    send_message.rst
 
 
 任务管理

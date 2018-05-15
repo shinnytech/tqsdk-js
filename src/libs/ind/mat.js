@@ -17,8 +17,8 @@ function* mat(C){
         m1[i] = MA(i, C.DS.close, n1, m1);  //计算短均线值
         m2[i] = MA(i, C.DS.close, n2, m2);  //计算长均线值
         if (m1[i] > m2[i] && m1[i-1] <= m2[i-1])  //短均线上穿长均线，买进
-            C.ORDER("BUY", "CLOSEOPEN", 1);
+            C.ORDER(i, "BUY", "CLOSEOPEN", 1);
         if (m1[i] < m2[i] && m1[i-1] >= m2[i-1])  //短均线下穿长均线，卖出
-            C.ORDER("SELL", "CLOSEOPEN", 1);
+            C.ORDER(i, "SELL", "CLOSEOPEN", 1);
     }
 }

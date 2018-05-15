@@ -8,4 +8,3 @@
 
    merge_two_indicator.rst
    custom_function.rst
-

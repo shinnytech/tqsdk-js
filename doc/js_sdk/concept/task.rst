@@ -89,10 +89,10 @@ Task的启动和停止
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 系统提供了 4 个函数操作 Task:
 
-* :ref:`g_start_task`
-* :ref:`g_pause_task`
-* :ref:`g_resume_task`
-* :ref:`g_stop_task`
+* :ref:`api_start_task`
+* :ref:`api_pause_task`
+* :ref:`api_resume_task`
+* :ref:`api_stop_task`
 
 可以在任意位置开始、结束、暂停、恢复一个 Task，但是已经结束的 Task 无法恢复运行。可以选择重新开始一个 Task。
 
@@ -161,6 +161,6 @@ Task 对象可以提供的属性：
         if(...){
             return 'error';
         }else{
-            return 'success';    
+            return 'success';
         }
     }

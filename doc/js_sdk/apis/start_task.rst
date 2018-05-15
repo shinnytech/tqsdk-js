@@ -1,6 +1,6 @@
 .. _api_start_task:
 
-开始 START_TASK
+开始 - START_TASK
 ==============================
 
 .. js:function:: START_TASK(task_func [, param1, param2, ...])
@@ -12,7 +12,7 @@
    :returns: task 对象
 
 
-示例
+用法示例
 ----------------------------------
 
 .. code-block:: javascript

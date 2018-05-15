@@ -1,6 +1,6 @@
 .. _api_resume_task:
 
-恢复 RESUME_TASK
+恢复 - RESUME_TASK
 ==============================
 
 .. js:function:: RESUME_TASK(task)

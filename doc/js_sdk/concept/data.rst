@@ -2,6 +2,7 @@
 
 Data Access 数据访问
 ========================================
+
 扩展模块运行时, TQSDK 将负责从主程序接收数据流, 并在内存中维护行情与交易数据集.
 
 内存数据结构
@@ -211,7 +212,8 @@ TQSDK 在内存中以 javascript object 存放所有当前用到的 行情/交�
 
 直接访问内存数据集中的数据
 ----------------------------------------
-TQSDK 中有一个全局变量 TQ.DATA 指向整个数据集. 由于这数据集是一个标准的 javascript object, 因此可以使用简单的 javascript 语法来直接访问其中的任意数据, 像这样
+
+TQSDK 中有一个全局变量 TQ.DATA 指向整个数据集。由于这数据集是一个标准的 javascript object, 因此可以使用简单的 javascript 语法来直接访问其中的任意数据, 像这样
 
 .. code-block:: javascript
     :caption: 获取 SHFE.cu1801 合约的最新价
@@ -235,8 +237,6 @@ TQSDK 中有一个全局变量 TQ.DATA 指向整个数据集. 由于这数据集
         ...
       }
   */
-
-除 TQ.DATA 外, TQSDK 还维护了另一个数据集 TQ.CHANGING_DATA, 其结构与 DATA 相同, 但仅包含最近一次更新的数据内容
 
 .. graphviz::
 
@@ -262,9 +262,15 @@ TQSDK 中有一个全局变量 TQ.DATA 指向整个数据集. 由于这数据集
 ----------------------------------------
 直接访问数据集时, 用户需要自行负责错误处理. 为简化用户代码, TQSDK 封装了几个简单的数据访问函数:
 
-* :ref:`s_get_quote`
-* :ref:`s_get_account`
-* :ref:`s_get_position`
-* :ref:`s_get_order`
+* :ref:`api_get_kline`
+* :ref:`api_get_quote`
+* :ref:`api_get_account`
+* :ref:`api_get_combine`
+* :ref:`api_get_position`
+* :ref:`api_get_position_dict`
+* :ref:`api_get_unit_position`
+* :ref:`api_get_order_dict`
+* :ref:`api_get_trade_dict`
+* :ref:`api_is_changing`
 
 这些函数在成功时都返回对应的object, 失败时返回 undefined

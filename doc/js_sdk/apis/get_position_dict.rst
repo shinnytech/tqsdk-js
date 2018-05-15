@@ -1,4 +1,4 @@
-.. _get_position_dict:
+.. _api_get_position_dict:
 
 获取持仓信息 - GET_POSITION_DICT
 ==================================

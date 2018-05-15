@@ -11,23 +11,20 @@
    stdev.rst
 
 
+.. todo::
 
-      这些辅助计算函数可以在任何地方使用，
-            * :ref:`SUM(i, serial, n, cache) <efunc_SUM>`
-* :ref:`COUNT(i, serial, n, cache)`
-* :ref:`REF(i, serial, n)`
-* :ref:`MA(i, serial, n, cache) <efunc_MA>`
-* :ref:`EMA(i, serial, n, cache)`
-* :ref:`DMA(i, serial, a, cache)`
-* :ref:`SMA(i, serial, n, m, cache)`
-* :ref:`HIGHEST(p, serial, n)`
-* :ref:`LOWEST(p, serial, n)`
-* :ref:`STDEV(i, serial, n, cache)`
-* :ref:`IFELSE(c, a, b)`
-* :ref:`ABS(v)`
-* :ref:`MAX(v1, v2)`
-* :ref:`MIN(v1, v2)`
-* :ref:`TIME(dt_nano)`
-* :ref:`DATE(dt_nano)`
-* :ref:`NEAREST(i, serial)* `
-   * :ref:`EVERY(i, serial, n)`
+   * COUNT(i, serial, n, cache)
+   * REF(i, serial, n)
+   * EMA(i, serial, n, cache)
+   * DMA(i, serial, a, cache)
+   * SMA(i, serial, n, m, cache)
+   * HIGHEST(p, serial, n)
+   * LOWEST(p, serial, n)
+   * IFELSE(c, a, b)
+   * ABS(v)
+   * MAX(v1, v2)
+   * MIN(v1, v2)
+   * TIME(dt_nano)
+   * DATE(dt_nano)
+   * NEAREST(i, serial)
+   * EVERY(i, serial, n)

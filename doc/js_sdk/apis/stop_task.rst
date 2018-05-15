@@ -1,6 +1,6 @@
 .. _api_stop_task:
 
-停止 STOP_TASK
+停止 - STOP_TASK
 ==============================
 
 .. js:function:: STOP_TASK(task)
@@ -10,7 +10,7 @@
    :param object task: task 对象
    :returns: null
 
-示例
+用法示例
 ----------------------------------
 
 .. code-block:: javascript
