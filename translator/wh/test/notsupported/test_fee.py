@@ -20,6 +20,24 @@ class TestConvertIndicator(TestConvert):
 
     例：
     K:=MONEYTOT*0.2/(C*MARGIN*UNIT+FEE); //模组子账户权益的20%可以开仓的手数（此写法适用于按固定手数收取手续费的合约）
+
+    MARGIN 保证金率 => C.MARGIN()
+
+    // 合约乘数 / 交易单位
+    UNIT  数据合约 =>  C.VM() or TQ.GET_VM(C.trade_symbol)
+    UNIT1 交易合约 => C.VM() or TQ.GET_VM(C.trade_symbol)
+
+    //合约价格最小变动单位
+    MINPRICE 数据合约 => C.PTICK()  or TQ.GET_PTICK(C.trade_symbol)
+    MINPRICE1 交易合约 => C.PTICK()  or TQ.GET_PTICK(C.trade_symbol)
+    MINPRICED 任意合约 => C.PTICK(symbol) or TQ.GET_PTICK(symbol)
+
+    // 每手手续费
+    FEE => C.FEE()
+
+    // 以下都是可以接受一个 symbol 参数，如果没有，默认使用 C.trade_symbol
+    C.MARGIN() C.VM() C.PTICK() C.FEE()
+
     """
     def test_dmi(self):
         case = {
@@ -32,7 +50,7 @@ class TestConvertIndicator(TestConvert):
             "params": [
             ],
             "expected": """
-            
+
 
             """,
         }

@@ -852,6 +852,31 @@ class IndicatorRunContext {
         };
         return out_serial;
     }
+    // 模仿 wh 添加的接口
+    MARGIN(order_symbol = this.trade_symbol){
+        let quote = this.TQ.GET_QUOTE(order_symbol);
+        // quote.margin 每手保证金
+        // 返回保证金率 默认 0.08
+        let margin_rate = quote.margin / quote.last_price / quote.volume_multiple;
+        return margin_rate? margin_rate : 0.08;
+    }
+
+    PTICK(order_symbol = this.trade_symbol){
+        let quote = this.TQ.GET_QUOTE(order_symbol);
+        return quote.price_tick ;
+    }
+
+    VM(order_symbol = this.trade_symbol){
+        let quote = this.TQ.GET_QUOTE(order_symbol);
+        return quote.volume_multiple ;
+    }
+
+    FEE(order_symbol = this.trade_symbol){
+        let quote = this.TQ.GET_QUOTE(order_symbol);
+        // 每手手续费
+        return quote.commission ;
+    }
+
 }
 
 class TaManager {
@@ -994,8 +1019,8 @@ class TQSDK {
         // 最小变动单位
         this.GET_PTICK = this.pd.getPriceTick.bind(this.pd);
         // 合约乘数
-        this.GET_CM = this.pd.getContractMultiplier.bind(this.pd);
-        
+        this.GET_VM = this.pd.getContractMultiplier.bind(this.pd);
+
         this.DATA = this.dm.datas;
         this.SEND_MESSAGE = this.ws.send_json;
         this.START_TASK = this.tm.start_task.bind(this.tm);
@@ -1555,7 +1580,7 @@ class PublicData{
             this.pending = false;
         });
     }
-    
+
     getPriceTick(ind){
         let match_arr = ind.match(this.reg);
         if (match_arr && match_arr[2]) {
@@ -1571,12 +1596,8 @@ class PublicData{
         }
         return undefined;
     }
-   
+
 }
-
-
-
-
 
 
 

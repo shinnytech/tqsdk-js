@@ -2,6 +2,7 @@
 .vscode/
 node_modules/
 dist*/
+src2/*
 .DS_Store
 doc/_build/
 doc/js_sdk/_build
