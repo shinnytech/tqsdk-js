@@ -1,3 +1,7 @@
+const URLS = {
+    WsServer: 'ws://127.0.0.1:7777/'
+}
+
 //utils----------------------------------------------------------------------
 /**
  * 返回指定变量的数据类型
@@ -979,13 +983,19 @@ class TQSDK {
         if(mock_ws){
             this.ws = mock_ws;
         } else {
-            this.ws = new TqWebsocket('ws://127.0.0.1:7777/', this);
+            this.ws = new TqWebsocket(URLS.WsServer, this);
         }
 
+        this.pd = new PublicData();
         this.dm = new DataManager();
         this.tm = new TaskManager();
         this.ta = new TaManager(this);
 
+        // 最小变动单位
+        this.GET_PTICK = this.pd.getPriceTick.bind(this.pd);
+        // 合约乘数
+        this.GET_CM = this.pd.getContractMultiplier.bind(this.pd);
+        
         this.DATA = this.dm.datas;
         this.SEND_MESSAGE = this.ws.send_json;
         this.START_TASK = this.tm.start_task.bind(this.tm);
@@ -1515,3 +1525,58 @@ const UiUtils = (function () {
         }
     }
 })();
+
+
+class PublicData{
+    constructor(date='lastest'){
+        this.url = `http://ins.shinnytech.com/publicdata/${date}.json`;
+        this.pending = false;
+        this.appendData();
+
+        // 'CFFEX.IF1806' => ["CEEEX.IF1806", "CEEEX", "IF", "1806"]
+        // 'IF1806'       => ["IF1806", undefined, "IF", "1806"]
+        // 'IF'           => ["IF", undefined, "IF", ""]
+        this.reg = new RegExp(/([A-Z]*(?=\.))?\.?([A-Za-z]*)([0-9]*)/);
+
+        this.pticks = {};
+        this.contract_multipliers = {};
+    }
+
+    appendData(url = this.url){
+        this.pending = true;
+        fetch(url)
+        .then((res) => res.json())
+        .then(function(response){
+            let futures = response.data.future;
+            for(var indName in futures){
+                this.pticks[indName] = futures[indName].n.ptick;
+                this.contract_multipliers[indName] = futures[indName].n.vm;
+            }
+            this.pending = false;
+        });
+    }
+    
+    getPriceTick(ind){
+        let match_arr = ind.match(this.reg);
+        if (match_arr && match_arr[2]) {
+            return this.pticks[match_arr[2]];
+        }
+        return undefined;
+    }
+
+    getContractMultiplier(ind){
+        let match_arr = ind.match(this.reg);
+        if (match_arr && match_arr[2]) {
+            return this.contract_multipliers[match_arr[2]];
+        }
+        return undefined;
+    }
+   
+}
+
+
+
+
+
+
+
