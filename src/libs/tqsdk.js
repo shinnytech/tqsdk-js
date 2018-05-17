@@ -1577,31 +1577,31 @@ const UiUtils = (function () {
 
 
 class PublicData{
-    constructor(date='lastest'){
+    constructor(date='latest'){
         this.url = `http://ins.shinnytech.com/publicdata/${date}.json`;
-        this.pending = false;
-        this.appendData();
-
+        
+        this.pticks = {};
+        this.contract_multipliers = {};
         // 'CFFEX.IF1806' => ["CEEEX.IF1806", "CEEEX", "IF", "1806"]
         // 'IF1806'       => ["IF1806", undefined, "IF", "1806"]
         // 'IF'           => ["IF", undefined, "IF", ""]
         this.reg = new RegExp(/([A-Z]*(?=\.))?\.?([A-Za-z]*)([0-9]*)/);
 
-        this.pticks = {};
-        this.contract_multipliers = {};
+        this.appendData();
     }
 
     appendData(url = this.url){
-        this.pending = true;
+        let _this = this;
         fetch(url)
-        .then((res) => res.json())
+        .then(function(response){
+            return response.json();
+        })
         .then(function(response){
             let futures = response.data.future;
             for(var indName in futures){
-                this.pticks[indName] = futures[indName].n.ptick;
-                this.contract_multipliers[indName] = futures[indName].n.vm;
+                _this.pticks[indName] = futures[indName].n.ptick;
+                _this.contract_multipliers[indName] = futures[indName].n.vm;
             }
-            this.pending = false;
         });
     }
 
