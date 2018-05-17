@@ -877,6 +877,30 @@ class IndicatorRunContext {
         return quote.commission ;
     }
 
+    BACK_BUY_INTERVAL(current_i){
+        if (this.out_series_mark) {
+            let i = 1;
+            while (this.out_series_mark[current_i-i] !== ICON_BUY) {
+                i++;
+                if(i > 100) return undefined;
+            }
+            return i;
+        }
+        return undefined;
+    }
+
+    BACK_SELL_INTERVAL(current_i){
+        if (this.out_series_mark) {
+            let i = 1;
+            while (this.out_series_mark[current_i-i] !== ICON_SELL) {
+                i++;
+                if(i > 100) return undefined;
+            }
+            return i;
+        }
+        return undefined;
+    }
+
 }
 
 class TaManager {
