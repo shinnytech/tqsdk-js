@@ -102,13 +102,26 @@ function ABS(v) {
     return Math.abs(v);
 }
 
-function MAX(v1, v2) {
-    return Math.max(v1, v2);
+// MAX(1,23,4) => 23
+// MAX(2,3,[23,45]) => 45
+function MAX(...num) {
+    let l = [];
+    for(let n of num){
+		if(typeof n === 'number') l.push(n);
+        if(n instanceof Array) l = l.concat(n);
+    }
+    return Math.max.apply(null, l);
 }
 
-function MIN(v1, v2) {
-    return Math.min(v1, v2);
+function MIN(...num) {
+    let l = [];
+    for(let n of num){
+		if(typeof n === 'number') l.push(n);
+        if(n instanceof Array) l = l.concat(n);
+    }
+    return Math.min.apply(null, l);
 }
+
 
 function TIME(dt_nano) {
     let d = new Date(dt_nano / 1000000);
