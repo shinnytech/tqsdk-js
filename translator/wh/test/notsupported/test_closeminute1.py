@@ -29,6 +29,10 @@ class TestConvertIndicator(TestConvert):
     MULTSIG(0,0,1,0);//使用TICK数据回测，出信号立即下单，不复核
     CLOSEMINUTE1<=1,CLOSEOUT;//收盘前1分钟，清仓
     AUTOFILTER;
+
+CLOSEMINUTE1 => CLOSE_MINUTE(i, symbol)
+CLOSEMINUTE1 => CLOSE_MINUTE(i) // symbol 默认 this.trade_symbol
+
     """
     def test_dmi(self):
         case = {
@@ -44,7 +48,7 @@ AUTOFILTER;
             "params": [
             ],
             "expected": """
-            
+           
 
             """,
         }

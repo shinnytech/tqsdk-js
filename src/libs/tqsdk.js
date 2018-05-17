@@ -901,6 +901,50 @@ class IndicatorRunContext {
         return undefined;
     }
 
+    // 100根k线内，最后一次交易信号是 BUY
+    IS_LAST_BUY(current_i){
+        if (this.out_series_mark) {
+            let i = current_i;
+            while (current_i - i < 100) {
+                if(this.out_series_mark[i] === ICON_BUY) return true;
+                if(this.out_series_mark[i] === ICON_SELL) return false;
+                i--;
+            }
+        }
+        return undefined;
+    }
+
+    // 100根k线内，最后一次交易信号是 SELL
+    IS_LAST_SELL(current_i){
+        if (this.out_series_mark) {
+            let i = current_i;
+            while (current_i - i < 100) {
+                if(this.out_series_mark[i] === ICON_SELL) return true;
+                if(this.out_series_mark[i] === ICON_BUY) return false;
+                i--;
+            }
+        }
+        return undefined;
+    }
+
+    // current_i 当前 k 线距离收盘的分钟数
+    CLOSE_MINUTE(current_i, order_symbol = this.trade_symbol){
+        // 收盘时间
+        let [close_hour, close_minute] = this.TQ.GET_CLOSE_TIME(order_symbol).split(':');
+        let close = null;
+        let nowtime = this.DS[current_i].datetime;
+        let now = new Date(nowtime/1000000);
+        if(close_hour - now.getHours() >= 0){
+            // 同一天
+            close = new Date(now);
+        } else {
+            // 前一天
+            close = new Date(now.getTime() + 24*60*60*1000);
+        }
+        close.setHours(close_hour);
+        close.setMinutes(close_minute);
+        return Math.round((close - now) / 60000);
+    }
 }
 
 class TaManager {
@@ -1044,6 +1088,8 @@ class TQSDK {
         this.GET_PTICK = this.pd.getPriceTick.bind(this.pd);
         // 合约乘数
         this.GET_VM = this.pd.getContractMultiplier.bind(this.pd);
+        this.GET_OPEN_TIME = this.pd.getOpenTime.bind(this.pd);
+        this.GET_CLOSE_TIME = this.pd.getCloseTime.bind(this.pd);
 
         this.DATA = this.dm.datas;
         this.SEND_MESSAGE = this.ws.send_json;
@@ -1579,16 +1625,41 @@ const UiUtils = (function () {
 class PublicData{
     constructor(date='latest'){
         this.url = `http://ins.shinnytech.com/publicdata/${date}.json`;
-        
-        this.pticks = {};
-        this.contract_multipliers = {};
+        this.active = null;
+
+        this.cffex_option = null;
+        this.combine = null;
+        this.future = null;
+        this.option = null;
+
+        this.ins_volatility = null;
+        this.night = null;
+        this.risk_free_interest = null;
+        this.times = null;
+        this.times_extra = null;
+        this.tradingday = null;
+
         // 'CFFEX.IF1806' => ["CEEEX.IF1806", "CEEEX", "IF", "1806"]
         // 'IF1806'       => ["IF1806", undefined, "IF", "1806"]
         // 'IF'           => ["IF", undefined, "IF", ""]
         this.reg = new RegExp(/([A-Z]*(?=\.))?\.?([A-Za-z]*)([0-9]*)/);
-
         this.appendData();
     }
+
+    active: "AP810,AP901,CF809,CF901,FG809,IC1805,IC1806,IF1805,IF1806,IH1805,MA809,OI809,RM809,SF809,SM809,SR809,T1806,TA809,TF1806,TF1809,WH809,ZC809,a1809,ag1812,al1806,al1807,au1812,b1809,b1901,bu1812,c1809,cs1809,cu1806,cu1807,hc1810,i1809,j1809,jd1809,jm1809,l1809,m1809,ni1807,p1809,pb1806,pb1807,pp1809,rb1810,ru1809,sc1809,sn1809,v1809,y1809,zn1807",
+data: {}, 
+
+cffex_option: { },
+combine: {},
+future: {},
+option: {}
+
+ins_volatility: {},
+night: "ru,rb,hc,bu,j,jm,i,a,b,m,y,p,SR,CF,RM,MA,TA,FG,OI,ZC,CY,cu,al,pb,zn,ni,sn,ag,au,sc",
+risk_free_interest: 0.0175,
+times: {},
+times_extra: {},
+tradingday: "20180515"
 
     appendData(url = this.url){
         let _this = this;
@@ -1597,18 +1668,29 @@ class PublicData{
             return response.json();
         })
         .then(function(response){
-            let futures = response.data.future;
-            for(var indName in futures){
-                _this.pticks[indName] = futures[indName].n.ptick;
-                _this.contract_multipliers[indName] = futures[indName].n.vm;
+            _this.active = response.active.split[','];
+            _this.cffex_option = response.data.cffex_option;
+            _this.combine = response.data.combine;
+            _this.future = response.data.future;
+            _this.option = response.data.option;
+            _this.ins_volatility = response.ins_volatility;
+            _this.night = response.night.split[','];
+            _this.risk_free_interest = response.risk_free_interest;
+            _this.times = {};
+            for(let indlist in response.times){
+                for(let ind in indlist.split(',')){
+                    _this.times[ind] = response.times[indlist];
+                }
             }
+            _this.times_extra = response.times_extra;
+            _this.tradingday = response.tradingday;
         });
     }
 
     getPriceTick(ind){
         let match_arr = ind.match(this.reg);
         if (match_arr && match_arr[2]) {
-            return this.pticks[match_arr[2]];
+            return this.future[match_arr[2]].n.ptick;
         }
         return undefined;
     }
@@ -1616,9 +1698,61 @@ class PublicData{
     getContractMultiplier(ind){
         let match_arr = ind.match(this.reg);
         if (match_arr && match_arr[2]) {
-            return this.contract_multipliers[match_arr[2]];
+            return this.future[match_arr[2]].n.contract_multiplier;
         }
         return undefined;
+    }
+
+    /**
+     * 在一组时间对中，找到对应的开盘、收盘时间
+     * @param {*} ind AP
+     * @param {*} when 'O' | 'C' 开盘或者收盘
+     * @param {*} times 一组时间对
+     */
+    findTime(ind, when, times){
+        let opentime, closetime;
+
+        let max_start = '00:00',
+            min_start = '23:59',
+            max1_end = '00:00',
+            max2_end = '00:00';
+
+        for(let start in times){
+            if (start.padStart(5, '0') > max_start) max_start = start;
+            if (start.padStart(5, '0') < min_start) min_start = start;
+            let end = times[start];
+            if (end.padStart(5, '0') > max1_end) max1_end = end;
+            else if (end.padStart(5, '0') > max2_end) max2_end = end;
+        }
+        opentime = max_start > '20:00' ? max_start : min_start;
+        closetime = max_start > '20:00' ?  times[max_start] == max1_end ? max2_end : max1_end : max1_end;
+
+        return when === 'O' ? opentime : closetime;
+    }
+
+    getOpenCloseTime(ind, when){
+        let match_arr = ind.match(this.reg);
+        if (match_arr && match_arr[2]) {
+            let ind = match_arr[2],
+                dt = match_arr[3],
+                ind_dt = match_arr[2] + match_arr[3];
+            let timesObj = this.times["default"];
+            if(this.times_extra[ind_dt]) {
+                timesObj = this.times_extra[ind_dt];
+            } else if (this.times[ind]){
+                timesObj = this.times[ind];
+            }
+            return this.findTime(ind, when, timesObj);
+        }
+        return undefined;
+    }
+
+    getCloseTime(ind){
+        return getOpenCloseTime(ind, 'C');
+    }
+
+    getOpenTime(ind){
+        return getOpenCloseTime(ind, 'O');
     }
 
 }
