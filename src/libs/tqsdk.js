@@ -1646,21 +1646,6 @@ class PublicData{
         this.appendData();
     }
 
-    active: "AP810,AP901,CF809,CF901,FG809,IC1805,IC1806,IF1805,IF1806,IH1805,MA809,OI809,RM809,SF809,SM809,SR809,T1806,TA809,TF1806,TF1809,WH809,ZC809,a1809,ag1812,al1806,al1807,au1812,b1809,b1901,bu1812,c1809,cs1809,cu1806,cu1807,hc1810,i1809,j1809,jd1809,jm1809,l1809,m1809,ni1807,p1809,pb1806,pb1807,pp1809,rb1810,ru1809,sc1809,sn1809,v1809,y1809,zn1807",
-data: {}, 
-
-cffex_option: { },
-combine: {},
-future: {},
-option: {}
-
-ins_volatility: {},
-night: "ru,rb,hc,bu,j,jm,i,a,b,m,y,p,SR,CF,RM,MA,TA,FG,OI,ZC,CY,cu,al,pb,zn,ni,sn,ag,au,sc",
-risk_free_interest: 0.0175,
-times: {},
-times_extra: {},
-tradingday: "20180515"
-
     appendData(url = this.url){
         let _this = this;
         fetch(url)
