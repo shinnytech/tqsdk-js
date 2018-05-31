@@ -188,6 +188,10 @@
                     SYMBOL_CHANGED_A: TQ.ON_CHANGE('symbolA'),
                     SYMBOL_CHANGED_B: TQ.ON_CHANGE('symbolB'),
                 };
+                if (result.SYMBOL_CHANGED_A || result.SYMBOL_CHANGED_B) {
+                    quoteA = TQ.GET_QUOTE(TQ.UI.symbolA);
+                    quoteB = TQ.GET_QUOTE(TQ.UI.symbolB);
+                }
                 if (quoteA && quoteB) {
                     TQ.UI.spread_ask = quoteA.ask_price1 - quoteB.bid_price1;
                     TQ.UI.spread_bid = quoteA.bid_price1 - quoteB.ask_price1;
