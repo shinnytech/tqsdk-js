@@ -1,7 +1,3 @@
-const URLS = {
-    WsServer: 'ws://127.0.0.1:7777/'
-}
-
 //utils----------------------------------------------------------------------
 /**
  * 返回指定变量的数据类型
@@ -1076,7 +1072,7 @@ class TQSDK {
         if(mock_ws){
             this.ws = mock_ws;
         } else {
-            this.ws = new TqWebsocket(URLS.WsServer, this);
+            this.ws = new TqWebsocket('ws://127.0.0.1:7777/', this);
         }
 
         this.pd = new PublicData();
