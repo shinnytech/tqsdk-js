@@ -13,7 +13,6 @@ function* sar (C) {
 
     let sar = C.OUTS("DOT", "k", {color: YELLOW});
 
-    let rsv = [];
     let af = 0; // 加速因子
     let uptrend = undefined;
     let isReverse = false;
