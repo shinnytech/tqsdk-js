@@ -6,10 +6,8 @@ function* sar (C) {
     });
 
     let n = C.PARAM(4, "N"); // 计算周期
-    // let step = C.PARAM(0.02, "Step"); // 步长
-    // let max = C.PARAM(0.2, "Max"); // 极值
-    let step = 0.02;
-    let max = 0.2;
+    let step = C.PARAM(0.02, "Step", {type: "double"}); // 步长
+    let max = C.PARAM(0.2, "Max", {type: "double"}); // 极值
 
     let sar = C.OUTS("DOT", "k", {color: YELLOW});
 

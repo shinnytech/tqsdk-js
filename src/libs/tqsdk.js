@@ -139,7 +139,7 @@ class DataManager{
                         //@note: 这里做了一个特例, 使得K线序列数据被保存为一个array, 而非object, 并且记录整个array首个有效记录的id
                         if (!(key in target))
                             target.data = [];
-                        if (target.left_id == undefined || Object.keys(value)[0] < target.left_id)
+                        if (target.left_id == undefined || isNaN(target.left_id) || Object.keys(value)[0] < target.left_id)
                             target.left_id = Number(Object.keys(value)[0]);
                         // @note: 后面使用 GET_KLINE 返回的是 target.data 的 proxy，这样可以方便取得 last_id
                         target.data.last_id = target.last_id;
