@@ -429,32 +429,6 @@ class TaskManager{
 }
 
 //ta----------------------------------------------------------------------
-const COLOR = function (r, g, b) {
-    this.color = r | (g << 8) | (b << 16);
-};
-
-COLOR.prototype.toJSON = function () {
-    return this.color;
-};
-
-const RGB = function (r, g, b) {
-    return new COLOR(r, g, b);
-};
-
-const RED = RGB(0xFF, 0, 0);
-const GREEN = RGB(0, 0xFF, 0);
-const BLUE = RGB(0, 0, 0xFF);
-const CYAN = RGB(0, 0xFF, 0xFF);
-const BLACK = RGB(0, 0, 0);
-const WHITE = RGB(0xFF, 0xFF, 0xFF);
-const GRAY = RGB(0x80, 0x80, 0x80);
-const MAGENTA = RGB(0xFF, 0, 0xFF);
-const YELLOW = RGB(0xFF, 0xFF, 0);
-const LIGHTGRAY = RGB(0xD3, 0xD3, 0xD3);
-const LIGHTRED = RGB(0xF0, 0x80, 0x80);
-const LIGHTGREEN = RGB(0x90, 0xEE, 0x90);
-const LIGHTBLUE = RGB(0x8C, 0xCE, 0xFA);
-
 const ICON_BUY = 1;
 const ICON_SELL = 2;
 const ICON_BLOCK = 3;
@@ -822,30 +796,60 @@ class IndicatorRunContext {
         var out_serial = [];
         this.out_values[name] = out_serial;
         let self = this;
-        this.outs[name] = function (left, right = null) {
-            //每个序列的输出函数允许一次性提取一段数据(含left, right两点)
-            //如果提供了left/right 两个参数,则返回一个 array
-            //如果只提供left, 则返回一个value
-            //无法输出结果的情形
-            if (self.is_error || !self._ds || self._ds.last_id == -1){
+        if(style=="COLORBAR"){
+            out_serial[0] = [];
+            out_serial[1] = [];
+            this.outs[name] = function (left, right = null) {
+                //每个序列的输出函数允许一次性提取一段数据(含left, right两点)
+                //如果提供了left/right 两个参数,则返回一个 array
+                //如果只提供left, 则返回一个value
+                //无法输出结果的情形
+                if (self.is_error || !self._ds || self._ds.last_id == -1){
+                    if (right == null)
+                        return null;
+                    else
+                        return [];
+                }
+                //负数支持, 如果left/right为负数, 需要先转换到正数, 这一转换又必须事先有一个合约/周期来标定X轴
+                if (left < 0)
+                    left = self._ds.last_id + left + 1;
+                if (right < 0)
+                    right = self._ds.last_id + right + 1;
+                //尝试更新计算数据
+                let [calc_left, calc_right] = self.calc_range(left, right?right:left);
+                //输出数据结果
                 if (right == null)
-                    return null;
+                    return [out_serial[0][left], out_serial[1][left]];
                 else
-                    return [];
-            }
-            //负数支持, 如果left/right为负数, 需要先转换到正数, 这一转换又必须事先有一个合约/周期来标定X轴
-            if (left < 0)
-                left = self._ds.last_id + left + 1;
-            if (right < 0)
-                right = self._ds.last_id + right + 1;
-            //尝试更新计算数据
-            let [calc_left, calc_right] = self.calc_range(left, right?right:left);
-            //输出数据结果
-            if (right == null)
-                return out_serial[left];
-            else
-                return out_serial.slice(left, right+1);
-        };
+                    return [out_serial[0].slice(left, right+1), out_serial[1].slice(left, right+1)];
+            };
+        } else {
+            this.outs[name] = function (left, right = null) {
+                //每个序列的输出函数允许一次性提取一段数据(含left, right两点)
+                //如果提供了left/right 两个参数,则返回一个 array
+                //如果只提供left, 则返回一个value
+                //无法输出结果的情形
+                if (self.is_error || !self._ds || self._ds.last_id == -1){
+                    if (right == null)
+                        return null;
+                    else
+                        return [];
+                }
+                //负数支持, 如果left/right为负数, 需要先转换到正数, 这一转换又必须事先有一个合约/周期来标定X轴
+                if (left < 0)
+                    left = self._ds.last_id + left + 1;
+                if (right < 0)
+                    right = self._ds.last_id + right + 1;
+                //尝试更新计算数据
+                let [calc_left, calc_right] = self.calc_range(left, right?right:left);
+                //输出数据结果
+                if (right == null)
+                    return out_serial[left];
+                else
+                    return out_serial.slice(left, right+1);
+            };
+        }
+
         return out_serial;
     }
     // 模仿 wh 添加的接口
@@ -1303,7 +1307,14 @@ class TQSDK {
         if(calc_left > -1){
             for (let sn in instance.out_values){
                 let s = instance.out_values[sn];
-                datas[sn] = [s.slice(calc_left, calc_right + 1)];
+                if(instance.out_define[sn].style == 'COLORBAR'){
+                    datas[sn] = [];
+                    for(let i in s){
+                        datas[sn][i] = s[i].slice(calc_left, calc_right + 1);
+                    }
+                }else {
+                    datas[sn] = [s.slice(calc_left, calc_right + 1)];
+                }
             }
         }
         let set_data = {

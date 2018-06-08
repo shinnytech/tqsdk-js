@@ -4,7 +4,6 @@ var path = require("path");
 var gulp = require('gulp');
 var minifyHtml = require('gulp-htmlmin');
 var minifyCss = require("gulp-minify-css");
-// var minifyJs = require('gulp-uglify');
 var composer = require('gulp-uglify/composer');
 var minifyJsEs6 = require('uglify-es');
 var clean = require('gulp-clean');
@@ -26,8 +25,9 @@ var argv = minimist(process.argv.slice(2));
 gulp.task('default', ['clean'], function () {
     fs.mkdirSync(dist);
     fs.mkdirSync(dist + 'libs');
+    fs.mkdirSync(dist + 'ta');
     fs.mkdirSync(dist + 'libs/custom');
-    return gulp.start("indictor", 'copy', 'minicss', 'minihtml', 'minijs');
+    return gulp.start('copy', 'minicss', 'tqsdk', 'workerjs', 'minihtml', 'translator');
 });
 
 /**
@@ -37,14 +37,34 @@ gulp.task('clean', function () {
     return gulp.src([dist]).pipe(clean());
 });
 
-gulp.task('minihtml', function () {
+/**
+ * translator
+ */
+gulp.task('translator', ['translatorjs'], function(){
     return gulp.src(['./src/ta/translate.html'], { base: 'src' })
-    .pipe(minifyHtml({ collapseWhitespace: true, removeComments: true }))
+        .pipe(minifyHtml({ collapseWhitespace: true, removeComments: true }))
+        .pipe(gulp.dest(dist));
+});
+gulp.task('translatorjs', function () {
+    return gulp.src(['./src/ta/translate.js'], { base: 'src' })
+        .pipe(minifyJs())
         .pipe(gulp.dest(dist));
 });
 
-gulp.task('minijs', function () {
-    return gulp.src(['./src/ta/translate.js', './src/ta/worker.js'], { base: 'src' })
+
+/**
+ * tqsdk
+ */
+gulp.task('tqsdk', function () {
+    return gulp.src(['./src/libs/modules/*', './src/libs/tqsdk.js'], { base: 'src' })
+        .pipe(concat('tqsdk.js'))
+        .pipe(minifyJs())
+        .pipe(gulp.dest(dist + 'libs/'));
+});
+
+gulp.task('workerjs', function () {
+    delKeywordWarpContent('./src/ta/worker.js', dist + 'ta/worker.js', 'del');
+    return gulp.src(['./dist/ta/worker.js'], { base: 'dist' })
         .pipe(minifyJs())
         .pipe(gulp.dest(dist));
 });
@@ -58,7 +78,14 @@ gulp.task('minicss', function () {
 /**
  * ta/index.html
  */
-gulp.task('indictor', ['indictorjs'], function () {
+gulp.task('minihtml', ['indictorjs'], function () {
+    //trades
+    fs.readdirSync('./src/').forEach((f)=>{
+        if (f.endsWith('.html')){
+            delKeywordWarpContent('./src/' + f, dist + f, 'del')
+        }
+    });
+    //indictor
     delKeywordWarpContent('./src/ta/index.html', dist + 'ta/index.html', 'del')
     return gulp.src([dist + 'ta/index.html'])
         .pipe(minifyHtml({ collapseWhitespace: true, removeComments: true }))
@@ -80,7 +107,6 @@ gulp.task('copy', [], function () {
         './src/assets/bootstrap/css/bootstrap.min.css',
         './src/assets/bootstrap/fonts/**',
         './src/assets/highlight/**', //tq
-        './src/*.html', //tq
         './src/ta/ace-min/ace.js',
         './src/ta/ace-min/*-javascript.js',
         './src/ta/ace-min/ext-*.js',
@@ -88,24 +114,13 @@ gulp.task('copy', [], function () {
         './src/ta/ace-min/theme-*.js',
         './src/ta/ace-min/snippets/javascript.js',
         './src/ta/ace-min/snippets/text.js',
-        './src/libs/**',
+        './src/libs/func/*',
+        './src/libs/ind/*',
+        './src/libs/task/*',
         '!./src/libs/test/',
         '!./src/libs/test/*',
     ], { base: "src" })
     .pipe(gulp.dest(dist));;
-});
-
-gulp.task('localRun', function () {
-    connect.server({
-        root: 'src',
-        port: 9999,
-        livereload: true,
-        middleware: function (connect, opt) {
-            console.log(connect)
-            console.log(opt)
-            return []
-        }
-    })
 });
 
 /******* delete something in html ******/

@@ -1,4 +1,8 @@
-importScripts('../libs/tqsdk.js', '../libs/func/basefuncs.js');
+// del:start
+importScripts('../libs/modules/color.js');
+// del:end
+importScripts('../libs/func/basefuncs.js');
+importScripts('../libs/tqsdk.js');
 
 const TQ = new TQSDK();
 

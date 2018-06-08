@@ -6,10 +6,10 @@ function* sar (C) {
     });
 
     let n = C.PARAM(4, "N"); // 计算周期
-    let step = C.PARAM(0.02, "Step", {type: "double"}); // 步长
-    let max = C.PARAM(0.2, "Max", {type: "double"}); // 极值
+    let step = C.PARAM(0.02, "Step", {type: "DOUBLE"}); // 步长
+    let max = C.PARAM(0.2, "Max", {type: "DOUBLE"}); // 极值
 
-    let sar = C.OUTS("DOT", "k", {color: YELLOW});
+    let sar = C.OUTS("DOT", "Sar"); // 输出两组数据
 
     let af = 0; // 加速因子
     let uptrend = undefined;
@@ -17,14 +17,20 @@ function* sar (C) {
 
     while(true) {
         let i = yield;
-        if(!sar[i-1]){
+        if(!sar[0][i-1]){
             uptrend = !!(C.DS.close[i] - C.DS.close[i-n+1]);
-            if(uptrend) sar[i] = LOWEST(i, C.DS.low, n);
-            else sar[i] = HIGHEST(i, C.DS.high, n);
+            if(uptrend){
+                sar[0][i] = LOWEST(i, C.DS.low, n);
+                sar[1][i] = RED;
+            } else {
+                sar[0][i] = HIGHEST(i, C.DS.high, n);
+                sar[1][i] = YELLOW;
+            }
         } else if(uptrend) {
             // 上升趋势
             if (isReverse) {
-                sar[i] = LOWEST(i, C.DS.low, n);
+                sar[0][i] = LOWEST(i, C.DS.low, n);
+                sar[1][i] = YELLOW;
                 isReverse = false;
                 af = 0;
             } else {
@@ -33,8 +39,9 @@ function* sar (C) {
                 } else {
                     af = af == 0 ? step : af;
                 }
-                sar[i] = sar[i-1] + af * (C.DS[i-1].high - sar[i-1]);
-                if(C.DS[i].close < sar[i]){
+                sar[0][i] = sar[0][i-1] + af * (C.DS[i-1].high - sar[0][i-1]);
+                sar[1][i] = RED;
+                if(C.DS[i].close < sar[0][i]){
                     uptrend = false;
                     isReverse = true;
                 }
@@ -42,7 +49,8 @@ function* sar (C) {
         } else {
             // 下降趋势
             if (isReverse) {
-                sar[i] = HIGHEST(i, C.DS.high, n);
+                sar[0][i] = HIGHEST(i, C.DS.high, n);
+                sar[1][i] = RED;
                 isReverse = false;
                 af = 0;
             } else {
@@ -51,8 +59,9 @@ function* sar (C) {
                 } else {
                     af = af == 0 ? step : af;
                 }
-                sar[i] = sar[i-1] - af * (sar[i-1] - C.DS[i-1].low);
-                if(C.DS[i].close > sar[i]){
+                sar[0][i] = sar[0][i-1] - af * (sar[0][i-1] - C.DS[i-1].low);
+                sar[1][i] = YELLOW;
+                if(C.DS[i].close > sar[0][i]){
                     uptrend = true;
                     isReverse = true;
                 }
