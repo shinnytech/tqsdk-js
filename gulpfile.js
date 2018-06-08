@@ -128,17 +128,17 @@ function delKeywordWarpContent(sourcepath, targetpath, keyword) {
     var fileContent = fs.readFileSync(sourcepath, 'utf8');
     var start = false;
     var lines = fileContent.split(/\r?\n/);
+    var start = -1, end = -1;
     lines.forEach((ele, index, arr) => {
         if (ele.includes(keyword + ':start')) {
-            start = true;
-            arr[index] = '';
+            start = index;
         } else if (ele.includes(keyword + ':end')) {
-            start = false;
-            arr[index] = '';
-        } else if (start) {
-            arr[index] = '';
+            end = index;
         }
     });
+    if(start >= 0 && end >= 0){
+        lines.splice(start, end - start + 1);
+    }
     fs.writeFileSync(targetpath, lines.join('\n'), 'utf8');
     return;
 }
