@@ -38,7 +38,7 @@
                             <span class="pull-right">小周期值</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control input-sm" value="3600" id="b_dur">
+                            <input type="number" class="form-control input-sm" value="60" id="b_dur">
                         </div>
                     </div>
                     <div class="row">
@@ -46,7 +46,7 @@
                             <span class="pull-right">小周期可开多单手数</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control input-sm" value="3" id="b_buy_vol">
+                            <input type="number" class="form-control input-sm" value="1" id="b_buy_vol">
                         </div>
                     </div>
                     <div class="row">
@@ -54,7 +54,7 @@
                             <span class="pull-right">小周期可开空单手数</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control input-sm" value="3" id="b_sell_vol">
+                            <input type="number" class="form-control input-sm" value="2" id="b_sell_vol">
                         </div>
                     </div>
                     <div class="row">
@@ -71,7 +71,7 @@
                             <span class="pull-right">大周期值</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control input-sm" value="86400" id="c_dur">
+                            <input type="number" class="form-control input-sm" value="3600" id="c_dur">
                         </div>
                     </div>
                     <div class="row">
@@ -87,7 +87,7 @@
                             <span class="pull-right">大周期可开空单手数</span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="number" class="form-control input-sm" value="3" id="c_sell_vol">
+                            <input type="number" class="form-control input-sm" value="4" id="c_sell_vol">
                         </div>
                     </div>
                     <div class="row">
@@ -117,15 +117,10 @@
                     </div>
                     <div class="row">
                         <div class="col col-xs-3">
-                            <span class="pull-right">当前价格</span>
+                            <span class="pull-right">双向止盈价格</span>
                         </div>
                         <div class="col col-xs-9">
-                            <span>看涨持仓： </span>
-                            <span id="long_volume"></span>
-                            <span>；</span>
-                            <span>看跌持仓： </span>
-                            <span id="short_volume"></span>
-                            <span>；</span>
+                            买方向：<span id="Cd_Buy"></span>; 卖方向<span  id="Cd_Sell"></span>
                         </div>
                     </div>
                 </li>
@@ -219,31 +214,12 @@
 
     <script type="text/javascript" id='TRADE-CODE'>
         const TQ = new TQSDK();
-        const T_unit_id = 'TRA'; // unitid
-        const B_unit_id = 'TRA.B'; // B周期 unitid
-        const C_unit_id = 'TRA.C'; // C周期 unitid
-
-        function* TaskPos() {
-            TQ.ws.removeHandler('onmessage', start_task_pos);
-            let pos = TQ.GET_POSITION(TQ.UI.symbol);
-            while (true) {
-                if (pos) {
-                    TQ.UI.long_volume = pos.volume_long_today + pos.volume_long_his;
-                    TQ.UI.short_volume = pos.volume_short_today + pos.volume_short_his;
-                }
-                let result = yield {
-                    UPDATED: function () { return TQ.IS_CHANGING(pos); },
-                    SYMBOL_CHANGED: TQ.ON_CHANGE('symbol')
-                };
-                if (result.SYMBOL_CHANGED) {
-                    pos = TQ.GET_POSITION(TQ.UI.symbol);
-                }
-            }
-        }
+        const B_unit_id = 'TB'; // B周期 unitid
+        const C_unit_id = 'TC'; // C周期 unitid
 
         // 计算盈亏比
-        function cal_R(sar_sell, sar_buy, price){
-            let R = (sar_sell - price)/(price - sar_buy);
+        function cal_R(sar_reverse, sar_same, price){
+            let R = (sar_reverse - price)/(price - sar_same);
             return Math.abs(R);
         }
 
@@ -259,13 +235,13 @@
             serial.outs.Sar((id-100<0)?0:id-100, id);
             var last = serial.outs.Sar(id-1);
             var cur = serial.outs.Sar(id);
-            if(last[1] == 1 && cur[1] == 1) {return 'UP'};
-            if(last[1] == 0 && cur[1] == 0) {return 'DOWN'};
-            if(last[1] == 1 && cur[1] == 0) {return 'CROSSDOWN'};
-            if(last[1] == 0 && cur[1] == 1) {return 'CROSSUP'};
+            if(last[1].toString() == '#ff0000' && cur[1].toString() == '#ff0000') {return 'UP'};
+            if(last[1].toString() == '#00ff00' && cur[1].toString() == '#00ff00') {return 'DOWN'};
+            if(last[1].toString() == '#ff0000' && cur[1].toString() == '#00ff00') {return 'CROSSDOWN'};
+            if(last[1].toString() == '#00ff00' && cur[1].toString() == '#ff0000') {return 'CROSSUP'};
         }
 
-        function close_order(pos, direction, limit_price, unit_id){
+        function close_order(pos, direction, limit_price){
             var symbol = pos.exchange_id + '.' + pos.instrument_id;
             if(pos.volume_long_today > 0){
                 TQ.INSERT_ORDER({
@@ -274,7 +250,8 @@
                     offset: 'CLOSETODAY',
                     volume: pos.volume_long_today,
                     limit_price,
-                    unit_id});
+                    unit_id: 'TB.TC'
+                });
             }
             if(pos.volume_long_his > 0){
                 TQ.INSERT_ORDER({
@@ -283,7 +260,8 @@
                     offset: 'CLOSE',
                     volume: pos.volume_long_his,
                     limit_price,
-                    unit_id});
+                    unit_id: 'TB.TC'
+                });
             }
         }
 
@@ -295,17 +273,16 @@
             var b_sar = TQ.NEW_INDICATOR_INSTANCE(sar, params.symbol, params.b_dur);
             var c_sar = TQ.NEW_INDICATOR_INSTANCE(sar, params.symbol, params.c_dur);
             var Cd = {
-                b_buy : -1,
-                b_sell : -1,
-                c_buy : -1,
-                c_sell : -1,
+                buy : -1,
+                sell : -1
             }
 
+            // 目标持仓位
             // params.b_buy_vol // 小周期可开多单手数
             // params.b_sell_vol // 小周期可开空单手数
             // params.c_buy_vol
             // params.c_sell_vol
-            // params.n  params.p0  params.q0  params.r0
+
             // ask_price1 卖价  ask_volume1 卖量
             // bid_price1 买价  bid_volume1 买量
 
@@ -321,21 +298,33 @@
                 var b_sar_val = b_sar.outs.Sar(-1)[0];
                 var c_sar_val = c_sar.outs.Sar(-1)[0];
 
+                if((b_state == 'CROSSUP' && c_state == 'DOWN') || (b_state == 'UP' && c_state == 'CROSSUP')){
+                    close_order(position, 'BUY', quote.ask_price1); // 全部买平
+                }
+                if((b_state == 'CROSSDOWN' && c_state == 'UP') || (b_state == 'DOWN' && c_state == 'CROSSDOWN')){
+                    close_order(position, 'SELL', quote.bid_price1); // 全部卖平
+                }
+
                 if(b_state == 'DOWN' && c_state == 'UP'){
                     if(position.volume_long_today + position.volume_long_his > 0){
                         // 有多单，平多单 sell_close
-                        if (Cd.buy > -1 && quote.bid_price1 >= Cd.buy)
-                            close_order(position, 'SELL', quote.bid_price1, T_unit_id);
+                        if (Cd.buy > -1 && quote.bid_price1 >= Cd.buy){
+                            close_order(position, 'SELL', quote.bid_price1);
+                            TQ.UI.Cd_Buy = Cd.buy = -1;
+                        }
                     }
                     if(position.volume_short_today + position.volume_short_his > 0){
                         // 有空单，平空单 buy_close
-                        if (Cd.sell > -1 && quote.ask_price1 <= Cd.sell)
+                        if (Cd.sell > -1 && quote.ask_price1 <= Cd.sell){
                             close_order(position, 'BUY', quote.ask_price1);
+                            TQ.UI.Cd_Sell = Cd.sell = -1;
+                        }
                     }
                     if(cal_R(b_sar_val, c_sar_val, quote.ask_price1) > params.r0
                         && quote.ask_price1 - c_sar_val <= params.q0){
                         // C_Buy 买开
                         Cd.buy = quote.ask_price1 + params.r0 * (quote.ask_price1 - c_sar_val);
+                        TQ.UI.Cd_Buy = Cd.buy;
                         var pos = TQ.GET_UNIT_POSITION(C_unit_id, params.symbol);
                         if(pos.volume_long < params.c_buy_vol){
                             TQ.INSERT_ORDER({
@@ -347,17 +336,18 @@
                                 unit_id: C_unit_id});
                         }
                     }
-                    if(cal_R(b_sar_val, c_sar_val, quote.bid_price1) <= 1 / params.r0
+                    if(cal_R(c_sar_val, b_sar_val, quote.bid_price1) >= params.r0
                         && b_sar_val - quote.bid_price1 <= params.p0){
                         // B_Sell 卖开
                         Cd.sell = quote.bid_price1 - params.r0 * (b_sar_val - quote.bid_price1);
+                        TQ.UI.Cd_Sell = Cd.sell;
                         var pos = TQ.GET_UNIT_POSITION(C_unit_id, params.symbol);
                         if(pos.volume_short < params.b_sell_vol){
                             TQ.INSERT_ORDER({
                                 symbol: params.symbol,
                                 direction: 'SELL',
                                 offset: 'OPEN',
-                                volume: params.c_sell_vol - pos.volume_short,
+                                volume: params.b_sell_vol - pos.volume_short,
                                 limit_price: quote.bid_price1,
                                 unit_id: C_unit_id});
                         }
@@ -366,18 +356,23 @@
                 if(b_state == 'UP' && c_state == 'DOWN'){
                     if(position.volume_long_today + position.volume_long_his > 0){
                         // 有多单，平多单 sell_close
-                        if (Cd.buy > -1 && quote.bid_price1 >= Cd.buy)
-                            close_order(position, 'SELL', quote.bid_price1, T_unit_id);
+                        if (Cd.buy > -1 && quote.bid_price1 >= Cd.buy){
+                            close_order(position, 'SELL', quote.bid_price1);
+                            TQ.UI.Cd_Buy = Cd.buy = -1;
+                        }
                     }
                     if(position.volume_short_today + position.volume_short_his > 0){
                         // 有空单，平空单 buy_close
-                        if (Cd.sell > -1 && quote.ask_price1 <= Cd.sell)
+                        if (Cd.sell > -1 && quote.ask_price1 <= Cd.sell){
                             close_order(position, 'BUY', quote.ask_price1);
+                            TQ.UI.Cd_Sell = Cd.sell = -1;
+                        }
                     }
                     if(cal_R(c_sar_val, b_sar_val, quote.ask_price1) > params.r0
                         && quote.ask_price1 - b_sar_val <= params.p0){
                         // B_Buy 买开
                         Cd.buy = quote.ask_price1 + params.r0 * (quote.ask_price1 - b_sar_val);
+                        TQ.UI.Cd_Buy = Cd.buy;
                         var pos = TQ.GET_UNIT_POSITION(B_unit_id, params.symbol);
                         if(pos.volume_long < params.b_buy_vol){
                             TQ.INSERT_ORDER({
@@ -389,10 +384,11 @@
                                 unit_id: B_unit_id});
                         }
                     }
-                    if(cal_R(c_sar_val, b_sar_val, quote.bid_price1) <= 1 / params.r0
+                    if(cal_R(b_sar_val, c_sar_val, quote.bid_price1) >= params.r0
                         && c_sar_val - quote.bid_price1 <= params.q0){
                         // C_Sell 卖开
                         Cd.sell = quote.bid_price1 - params.r0 * (c_sar_val - quote.bid_price1);
+                        TQ.UI.Cd_Sell = Cd.sell;
                         var pos = TQ.GET_UNIT_POSITION(C_unit_id, params.symbol);
                         if(pos.volume_short < params.c_sell_vol){
                             TQ.INSERT_ORDER({
@@ -407,7 +403,7 @@
                 }
                 if(c_state == 'UP' && (b_state == 'UP' || b_state == 'CROSSUP')){
                     // C 买开
-                    var Fsar = b_sar_val; // b_state == 'UP'
+                    var Fsar = b_sar_val;
                     if (b_state == 'CROSSUP') Fsar = HIGHEST(b_sar._ds.last_id -1, b_sar.DS.high, params.n);
                     if(quote.ask_price1 - Fsar <= params.p0 ){
                         var pos = TQ.GET_UNIT_POSITION(C_unit_id, params.symbol);
@@ -419,6 +415,7 @@
                                 volume: params.c_buy_vol - pos.volume_long,
                                 limit_price: quote.ask_price1,
                                 unit_id: C_unit_id});
+                            TQ.UI.Cd_Buy = Cd.buy = -1; // 取消止盈点？
                         }
                     }
                 }
@@ -436,26 +433,16 @@
                                 volume: params.c_sell_vol - pos.volume_short,
                                 limit_price: quote.bid_price1,
                                 unit_id: C_unit_id});
+                            TQ.UI.Cd_Sell = Cd.sell = -1; // 取消止盈点？
                         }
                     }
-                }
-                if((b_state == 'CROSSUP' && c_state == 'DOWN') || (b_state == 'UP' && c_state == 'CROSSUP')){
-                    close_order(position, 'BUY', quote.ask_price1, T_unit_id); // 全部买平
-                }
-                if((b_state == 'CROSSDOWN' && c_state == 'UP') || (b_state == 'DOWN' && c_state == 'CROSSDOWN')){
-                    close_order(position, 'SELL', quote.bid_price1, T_unit_id); // 全部卖平
                 }
             }
             // 任务结束
             TQ.SET_STATE('STOP');
         }
 
-        function start_task_pos(){
-            TQ.START_TASK(TaskPos);
-        }
-        TQ.ws.addHandler('onmessage', start_task_pos);
         $('button.START').on('click', function (e) {
-
             TQ.START_TASK(TaskOrder);
         });
     </script>
