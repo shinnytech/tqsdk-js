@@ -9,7 +9,7 @@ function* sar (C) {
     let step = C.PARAM(0.02, "Step", {type: "DOUBLE"}); // 步长
     let max = C.PARAM(0.2, "Max", {type: "DOUBLE"}); // 极值
 
-    let sar = C.OUTS("DOT", "Sar"); // 输出两组数据
+    let sar = C.OUTS("COLORDOT", "Sar"); // 输出两组数据
 
     let af = 0; // 加速因子
     let uptrend = undefined;

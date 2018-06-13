@@ -796,7 +796,7 @@ class IndicatorRunContext {
         var out_serial = [];
         this.out_values[name] = out_serial;
         let self = this;
-        if(style=="COLORBAR"){
+        if(style=="COLORBAR" || style=="COLORDOT"){
             out_serial[0] = [];
             out_serial[1] = [];
             this.outs[name] = function (left, right = null) {
@@ -1307,7 +1307,7 @@ class TQSDK {
         if(calc_left > -1){
             for (let sn in instance.out_values){
                 let s = instance.out_values[sn];
-                if(instance.out_define[sn].style == 'COLORBAR'){
+                if(instance.out_define[sn].style == 'COLORBAR' || instance.out_define[sn].style == 'COLORDOT'){
                     datas[sn] = [];
                     for(let i in s){
                         datas[sn][i] = s[i].slice(calc_left, calc_right + 1);
