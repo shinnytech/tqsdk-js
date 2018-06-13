@@ -9,11 +9,14 @@ function* sar (C) {
     let step = C.PARAM(0.02, "Step", {type: "DOUBLE"}); // 步长
     let max = C.PARAM(0.2, "Max", {type: "DOUBLE"}); // 极值
 
-    let sar = C.OUTS("DOT", "Sar"); // 输出两组数据
+    let sar = C.OUTS("COLORDOT", "Sar"); // 输出两组数据
 
     let af = 0; // 加速因子
     let uptrend = undefined;
     let isReverse = false;
+
+    let UP = RED;
+    let DOWN = GREEN;
 
     while(true) {
         let i = yield;
@@ -21,16 +24,16 @@ function* sar (C) {
             uptrend = !!(C.DS.close[i] - C.DS.close[i-n+1]);
             if(uptrend){
                 sar[0][i] = LOWEST(i, C.DS.low, n);
-                sar[1][i] = RED;
+                sar[1][i] = UP;
             } else {
                 sar[0][i] = HIGHEST(i, C.DS.high, n);
-                sar[1][i] = YELLOW;
+                sar[1][i] = DOWN;
             }
         } else if(uptrend) {
             // 上升趋势
             if (isReverse) {
                 sar[0][i] = LOWEST(i, C.DS.low, n);
-                sar[1][i] = YELLOW;
+                sar[1][i] = UP;
                 isReverse = false;
                 af = 0;
             } else {
@@ -40,7 +43,7 @@ function* sar (C) {
                     af = af == 0 ? step : af;
                 }
                 sar[0][i] = sar[0][i-1] + af * (C.DS[i-1].high - sar[0][i-1]);
-                sar[1][i] = RED;
+                sar[1][i] = UP;
                 if(C.DS[i].close < sar[0][i]){
                     uptrend = false;
                     isReverse = true;
@@ -50,7 +53,7 @@ function* sar (C) {
             // 下降趋势
             if (isReverse) {
                 sar[0][i] = HIGHEST(i, C.DS.high, n);
-                sar[1][i] = RED;
+                sar[1][i] = DOWN;
                 isReverse = false;
                 af = 0;
             } else {
@@ -60,7 +63,7 @@ function* sar (C) {
                     af = af == 0 ? step : af;
                 }
                 sar[0][i] = sar[0][i-1] - af * (sar[0][i-1] - C.DS[i-1].low);
-                sar[1][i] = YELLOW;
+                sar[1][i] = DOWN;
                 if(C.DS[i].close > sar[0][i]){
                     uptrend = true;
                     isReverse = true;
