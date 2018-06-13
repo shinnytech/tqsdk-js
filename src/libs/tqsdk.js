@@ -130,7 +130,7 @@ class TQSDK {
     process_unit_order(order, volume_change) {
         let symbol = order.exchange_id + "." + order.instrument_id;
         let order_id_parts = order.order_id.split(".");
-        console.log(order_id_parts)
+
         for (let i=0; i< order_id_parts.length; i++){
             let unit_id = order_id_parts.slice(0, i).join(".");
             let position = this.GET_UNIT_POSITION(unit_id, symbol);
