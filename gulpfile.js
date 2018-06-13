@@ -93,7 +93,13 @@ gulp.task('minihtml', ['indictorjs'], function () {
 });
 
 gulp.task('indictorjs', function () {
-    return gulp.src(['./src/ta/js/list_menu.js', './src/ta/js/utils.js', './src/ta/index.js'], { base: 'src' })
+    return gulp.src([
+        './src/libs/modules/color.js',
+        './src/libs/modules/utils.js',
+        './src/ta/js/tqtooltips.js',
+        './src/ta/js/list_menu.js',
+        './src/ta/index.js'
+    ], { base: 'src' })
         .pipe(concat('index.js'))
         .pipe(minifyJs())
         .pipe(gulp.dest(dist + 'ta/'));

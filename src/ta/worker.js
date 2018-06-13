@@ -1,5 +1,14 @@
 // del:start
+importScripts('../libs/modules/utils.js');
 importScripts('../libs/modules/color.js');
+importScripts('../libs/modules/event.js');
+importScripts('../libs/modules/publicdata.js');
+importScripts('../libs/modules/datamanager.js');
+importScripts('../libs/modules/indDefineCtx.js');
+importScripts('../libs/modules/indRunCtx.js');
+importScripts('../libs/modules/tamanager.js');
+importScripts('../libs/modules/taskmanager.js');
+importScripts('../libs/modules/websocket.js');
 // del:end
 importScripts('../libs/func/basefuncs.js');
 importScripts('../libs/tqsdk.js');
