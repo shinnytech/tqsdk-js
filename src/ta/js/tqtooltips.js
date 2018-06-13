@@ -1,0 +1,40 @@
+const TqTooltips = {
+    'support.function.tianqin': {
+        DEFINE: '定义技术指标属性',
+        PARAM: '定义指标参数',
+        OUTS: '定义输出序列',
+    },
+    'constant.language.context': {
+        C: '系统核心函数提供者',
+    },
+    'constant.language.color': {
+        RED,
+        GREEN,
+        BLUE,
+        CYAN,
+        BLACK,
+        WHITE,
+        GRAY,
+        MAGENTA,
+        YELLOW,
+        LIGHTGRAY,
+        LIGHTRED,
+        LIGHTGREEN,
+        LIGHTBLUE,
+    },
+    'constant.language.function': {
+        MA: '求一个序列中连续N项的平均值',
+        STDEV: '求一个序列中连续N项的标准差',
+        SUM: '求一个序列中连续N项的和',
+    },
+    'support.keyword.tianqin': {
+        PARAMS: '参数对象',
+        OUTS: '定义输出序列',
+        cname: '可选，指定技术指标的中文名称。默认为技术指标名',
+        type: '必填，“MAIN” 或 “SUB”, MAIN=主图技术指标, SUB=副图技术指标',
+        state: '必填，“KLINE” 或 “TICK”',
+        color: '设置颜色',
+        memo: '可选，设定此技术指标的文字说明。',
+        yaxis: '可选, 描述此指标所需要使用的Y坐标轴',
+    },
+};

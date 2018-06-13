@@ -13,7 +13,7 @@ function* dmi(C){
     let adx = C.OUTS("LINE", "ADX", {color: LIGHTBLUE});
     let adxr = C.OUTS("LINE", "ADXR", {color: LIGHTRED});
 
-    let tr = [];
+    let tr = []; // 真实波幅
     let sum_tr = [];
     let dmp = [];
     let sum_dmp = [];
@@ -23,8 +23,7 @@ function* dmi(C){
     //计算
     while(true) {
         let i = yield;
-        let h = C.DS.high[i];
-        let l = C.DS.low[i];
+        let h = C.DS.high[i], l = C.DS.low[i];
         let last_c = C.DS.close[i-1];
         tr[i] = MAX( h-l, Math.abs(last_c-h), Math.abs(last_c-l));
         sum_tr[i] = SUM(i, tr, n, sum_tr);
@@ -35,10 +34,11 @@ function* dmi(C){
         dmm[i] = ld>0 && ld >hd ? ld : 0;
         sum_dmm[i] = SUM(i, dmm, n, sum_dmm);
 
-        pdi[i] = sum_dmp[i] / sum_tr[i] * 100;
-        mdi[i] = sum_dmm[i] / sum_tr[i] * 100;
+        pdi[i] = sum_tr[i] > 0 ? sum_dmp[i] / sum_tr[i] * 100 : pdi[i-1];
+        mdi[i] = sum_tr[i] > 0 ? sum_dmm[i] / sum_tr[i] * 100 : mdi[i-1];
         ad[i] = Math.abs(mdi[i]-pdi[i]) / (mdi[i]+pdi[i]) * 100;
         adx[i] = MA(i, ad, m, adx);
         adxr[i] = (adx[i] + adx[i-m+1]) / 2;
+
     }
 }
