@@ -81,7 +81,7 @@ gulp.task('minicss', function () {
 gulp.task('minihtml', ['indictorjs'], function () {
     //trades
     fs.readdirSync('./src/').forEach((f)=>{
-        if (f.endsWith('.html')){
+        if (f.endsWith('.html') && (f.startsWith('tq.') || f.startsWith('example.'))){
             delKeywordWarpContent('./src/' + f, dist + f, 'del')
         }
     });
