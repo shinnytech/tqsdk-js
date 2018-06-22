@@ -1,15 +1,17 @@
-function* sar (C) {
+function* sarFsar (C) {
     C.DEFINE({
         type: "MAIN",
         cname: "抛物线指标",
         state: "KLINE",
     });
 
-    let n = C.PARAM(4, "N"); // 计算周期
+    let n0 = C.PARAM(10, "N0"); // 额外首次穿破采用的周期
+    let n = C.PARAM(4, "计算周期"); // 计算周期
     let step = C.PARAM(0.02, "Step", {type: "DOUBLE"}); // 步长
     let max = C.PARAM(0.2, "Max", {type: "DOUBLE"}); // 极值
 
     let sar = C.OUTS("COLORDOT", "Sar");
+    let fsar = C.OUTS("DOT", "FSar", {color: YELLOW});
 
     let af = 0; // 加速因子
     let uptrend = undefined;
@@ -21,6 +23,15 @@ function* sar (C) {
             sar[1][i] = RED;
         } else {
             sar[1][i] = GREEN;
+        }
+    }
+
+    function setFSar(i){
+        if (sar[1][i] == RED && C.DS[i].low < sar[0][i]) {
+            fsar[i] = HIGHEST(i-1, C.DS.high, n0);
+        }
+        if(sar[1][i] == GREEN && C.DS[i].high > sar[0][i]){
+            fsar[i] = LOWEST(i-1, C.DS.low, n0);
         }
     }
 
@@ -42,6 +53,7 @@ function* sar (C) {
                         af = af == 0 ? step : af;
                     }
                     setSar(i, true, sar[0][i - 1] + af * (C.DS[i - 1].high - sar[0][i - 1]));
+                    setFSar(i);
                 }
             } else {
                 if (C.DS[i - 1].high > sar[0][i - 1]) {
@@ -54,8 +66,11 @@ function* sar (C) {
                         af = af == 0 ? step : af;
                     }
                     setSar(i, false, sar[0][i - 1] - af * (sar[0][i - 1] - C.DS[i - 1].low));
+                    setFSar(i);
                 }
             }
+        } else {
+            setFSar(i);
         }
     }
 }

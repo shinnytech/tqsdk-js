@@ -122,6 +122,7 @@ gulp.task('copy', [], function () {
         './src/ta/ace-min/snippets/text.js',
         './src/libs/func/*',
         './src/libs/ind/*',
+        './src/libs/custom/*',
         './src/libs/task/*',
         '!./src/libs/test/',
         '!./src/libs/test/*',

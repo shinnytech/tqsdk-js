@@ -6,9 +6,9 @@ function* kdj(C){
         state: "KLINE",
     });
     //参数
-    let n = C.PARAM(3, "N");
-    let m1 = C.PARAM(5, "M1");
-    let m2 = C.PARAM(5, "M2");
+    let n = C.PARAM(9, "N");
+    let m1 = C.PARAM(3, "M1");
+    let m2 = C.PARAM(3, "M2");
     //输出序列
     let k = C.OUTS("LINE", "k", {color: RED});
     let d = C.OUTS("LINE", "d", {color: GREEN});
