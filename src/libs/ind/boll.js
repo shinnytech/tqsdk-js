@@ -7,7 +7,7 @@ function* boll(C){
     });
     //参数
     let n = C.PARAM(3, "N", {memo: "按N个周期计算均值与标准差"});
-    let p = C.PARAM(5, "P", {memo: "上下轨与中线的距离为P个标准差"});
+    let p = C.PARAM(5, "P", {type:"DOUBLE", memo: "上下轨与中线的距离为P个标准差"});
     //输出序列
     let top = C.OUTS("LINE", "top", {color: YELLOW});
     let bottom = C.OUTS("LINE", "bottom", {color: LIGHTRED});

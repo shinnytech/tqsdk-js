@@ -3,11 +3,10 @@
 
 <body>
     TATEST
-    <!--<script type="text/javascript" src="lib/utils.js"></script>-->
-    <!--<script type="text/javascript" src="lib/task.js"></script>-->
-    <!--<script type="text/javascript" src="lib/dm.js"></script>-->
-    <!--<script type="text/javascript" src="lib/ta.js"></script>-->
-    <!--<script type="text/javascript" src="lib/websocket.js"></script>-->
+    <script type="text/javascript" src="assets/jquery.min.js"></script>
+    <script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="assets/highlight/highlight.pack.js"></script>
+    <script type="text/javascript" src="assets/noty.js"></script>
     <script type="text/javascript" src="libs/tqsdk.js"></script>
     <script type="text/javascript" src="libs/func/basefuncs.js"></script>
     <!--<script type="text/javascript" src="libs/ind/kdj.js"></script>-->
@@ -66,15 +65,6 @@
                 ma2[i] = MA(i, C.DS.close, n2, ma2);
                 ma3[i] = MA(i, C.DS.close, n3, ma3);
                 ma4[i] = MA(i, C.DS.close, n4, ma4);
-                //优先处理停止条件
-                if (  C.DS.close[i] >= q.upper_limit - 50
-                    ||C.DS.close[i] <= q.lower_limit + 50      //价格接近停板
-//                    ||TIME(this.DS[-1].datetime) > 145900                       //接近收盘
-                    ||cancel_count > 480                           //撤单数过高
-                ){
-                    stop();
-                    return;
-                }
                 //正常运行
                 let buy_open_condition = (C.DS.close[i] >= ma1[i] + x1)
                     && (C.DS.close[i] >= ma2[i] + x2)
@@ -90,15 +80,15 @@
                 ;
                 let sell_close_condition_2 = (C.DS.close[i] >= ma1[i] + x7);
 
-                if (!buy_open_condition && !sell_close_condition){
+                if (!buy_open_condition && !sell_close_condition && !sell_close_condition_2){
                     //开仓下单及平仓下单条件均不满足, 撤单
                     cancel_count += C.CANCEL_ALL();
-                }else if (buy_open_condition){
-                    C.ORDER(i, "BUY", "OPEN", 1, C.DS.close[i] + over);
-                } else if (sell_close_condition_2) {
-                    C.ORDER(i, "SELL", "CLOSE", 1, C.DS.close[i]);
-                } else if (sell_close_condition) {
-                    C.ORDER(i, "SELL", "CLOSE", 1, C.DS.close[i] - over);
+                }
+                if (buy_open_condition){
+                    C.ORDER(i, "BUY", "OPEN", v, C.DS.close[i] + over);
+                }
+                if (sell_close_condition_2 || sell_close_condition) {
+                    C.ORDER(i, "SELL", "CLOSE", v, C.DS.close[i] + over);
                 }
             }
         }
