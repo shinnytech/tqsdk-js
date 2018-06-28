@@ -98,7 +98,7 @@ class IndicatorRunContext {
         let calc_left = -1, calc_right = -1;
         let isDefault = false;
 
-        if (left == undefined || right == undefined) {
+        if (left === undefined || right === undefined) {
             // 1 默认值  => 没有数据就不计算
             left = this.view_left < this._ds.left_id ? this._ds.left_id : this.view_left;
             right = this.view_right > this._ds.last_id ? this._ds.last_id : this.view_right;
@@ -114,7 +114,7 @@ class IndicatorRunContext {
          * ------[-----------------]------- this._ds.d
          *   valid_left        valid_right
          */
-        if(this.valid_left == -1 || this.valid_right == -1 || right < this.valid_left || left > this.valid_right ){
+        if(this.valid_left === -1 || this.valid_right === -1 || right < this.valid_left || left > this.valid_right ){
             // -------------------------------
             // --(***)--[----------------]----
             // ----[----------------]--(***)--
@@ -213,10 +213,10 @@ class IndicatorRunContext {
         this.trade_oc_cycle = b;
     }
     ISLAST(i){
-        return this._ds.last_id == i;
+        return this._ds.last_id === i;
     }
     ORDER(current_i, direction, offset, volume, limit_price = undefined, order_symbol = this.trade_symbol) {
-        if (this.is_error || !this._ds || this._ds.last_id == -1)
+        if (this.is_error || !this._ds || this._ds.last_id === -1)
             return;
         if (!this.out_series_mark) {
             this.out_series_mark = this.OUTS('MARK', 'mk', {});
@@ -226,10 +226,10 @@ class IndicatorRunContext {
             return;
 
         // 要求在K线完成的时刻满足下单条件才会动作
-        if (this.trade_at_close && (current_i <= this.last_i || this._ds.last_id != current_i + 1))
+        if (this.trade_at_close && (current_i <= this.last_i || this._ds.last_id !== current_i + 1))
             return;
         // 要求任意时刻满足下单条件都会动作
-        if (!this.trade_at_close && this._ds.last_id != current_i)
+        if (!this.trade_at_close && this._ds.last_id !== current_i)
             return;
 
         this.last_i = current_i;
@@ -237,7 +237,7 @@ class IndicatorRunContext {
         if (!limit_price){
             // 引用了上层的 TQ
             let quote = this.TQ.GET_QUOTE(order_symbol);
-            let price_field = direction == "BUY" ? 'ask_price1' : 'bid_price1';
+            let price_field = direction === "BUY" ? 'ask_price1' : 'bid_price1';
             if (!quote[price_field]) // 取不到对应的价格 包括 NaN 、 undefined
                 return;
             limit_price = quote[price_field];
@@ -246,16 +246,16 @@ class IndicatorRunContext {
         let position = this.TQ.GET_UNIT_POSITION(this.unit_id, order_symbol);
         let volume_open = 0;
         let volume_close = 0;
-        if (offset == "CLOSE" || offset == "CLOSEOPEN") {
+        if (offset === "CLOSE" || offset === "CLOSEOPEN") {
             let long_closeable_volume = position.volume_long?position.volume_long - position.order_volume_sell_close:0;
             let short_closeable_volume = position.volume_short?position.volume_short - position.order_volume_buy_close:0;
-            if (direction == "BUY") {
+            if (direction === "BUY") {
                 volume_close = Math.min(short_closeable_volume, volume);
             } else {
                 volume_close = Math.min(long_closeable_volume, volume);
             }
             if (volume_close > 0){
-                this.TQ.INSERT_ORDER({
+                return this.TQ.INSERT_ORDER({
                     symbol: order_symbol,
                     direction: direction,
                     offset: order_symbol.startsWith("SHFE.")?"CLOSETODAY":"CLOSE",
@@ -265,11 +265,11 @@ class IndicatorRunContext {
                 });
             }
         }
-        if (offset == "OPEN" || offset == "CLOSEOPEN") {
+        if (offset === "OPEN" || offset === "CLOSEOPEN") {
             let long_position_volume = (position.volume_long + position.order_volume_buy_open)?position.volume_long + position.order_volume_buy_open:0;
             let short_position_volume = (position.volume_short + position.order_volume_sell_open)?position.volume_short + position.order_volume_sell_open:0;
-            let pos_volume = (direction == "BUY")?long_position_volume:short_position_volume;
-            if (pos_volume == 0 || !this.trade_oc_cycle){
+            let pos_volume = (direction === "BUY")?long_position_volume:short_position_volume;
+            if (pos_volume === 0 || !this.trade_oc_cycle){
                 if (this.volume_limit) {
                     if (this.volume_limit > pos_volume)
                         volume_open = Math.min(this.volume_limit - pos_volume, volume);
@@ -280,7 +280,7 @@ class IndicatorRunContext {
                 }
             }
             if (volume_open > 0) {
-                this.TQ.INSERT_ORDER({
+                return this.TQ.INSERT_ORDER({
                     symbol: order_symbol,
                     direction: direction,
                     offset: "OPEN",
@@ -300,7 +300,7 @@ class IndicatorRunContext {
         var out_serial = [];
         this.out_values[name] = out_serial;
         let self = this;
-        if(style=="COLORBAR" || style=="COLORDOT"){
+        if(style === 'COLORBAR' || style === 'COLORDOT'){
             out_serial[0] = [];
             out_serial[1] = [];
             this.outs[name] = function (left, right = null) {
@@ -308,7 +308,7 @@ class IndicatorRunContext {
                 //如果提供了left/right 两个参数,则返回一个 array
                 //如果只提供left, 则返回一个value
                 //无法输出结果的情形
-                if (self.is_error || !self._ds || self._ds.last_id == -1){
+                if (self.is_error || !self._ds || self._ds.last_id === -1){
                     if (right == null)
                         return null;
                     else
@@ -333,7 +333,7 @@ class IndicatorRunContext {
                 //如果提供了left/right 两个参数,则返回一个 array
                 //如果只提供left, 则返回一个value
                 //无法输出结果的情形
-                if (self.is_error || !self._ds || self._ds.last_id == -1){
+                if (self.is_error || !self._ds || self._ds.last_id === -1){
                     if (right == null)
                         return null;
                     else
