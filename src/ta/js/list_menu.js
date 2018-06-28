@@ -293,11 +293,13 @@ class IndCtrl{
     workerFeedbackCB(content){
         if (content.error) {
             Notify.error(content);
-            this.errStore.add(content.func_name);
-            this.updateUI();
-            if (content.type === 'run' || content.type === 'define') {
-                this.webworker.worker.terminate();
-                this.webworker.init();
+            if(content.func_name){
+                this.errStore.add(content.func_name);
+                this.updateUI();
+                if (content.type === 'run' || content.type === 'define') {
+                    this.webworker.worker.terminate();
+                    this.webworker.init();
+                }
             }
         } else {
             this.errStore.remove(content.func_name);
