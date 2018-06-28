@@ -4,57 +4,66 @@ function* sar (C) {
         cname: "抛物线指标",
         state: "KLINE",
     });
-
-    let n = C.PARAM(4, "N"); // 计算周期
+    let n = C.PARAM(4, "N", {memo: "计算周期"}); // 计算周期
     let step = C.PARAM(0.02, "Step", {type: "DOUBLE"}); // 步长
     let max = C.PARAM(0.2, "Max", {type: "DOUBLE"}); // 极值
 
     let sar = C.OUTS("COLORDOT", "Sar");
 
-    let af = 0; // 加速因子
-    let uptrend = undefined;
-    let isReverse = false;
+    let af = []; // 加速因子
+    let trends = []; // 1 up -1 down
+    let ep = [];
 
     function setSar(i, isUp, val){
         sar[0][i] = val;
-        if (isUp) {
-            sar[1][i] = RED;
-        } else {
-            sar[1][i] = GREEN;
-        }
+        sar[1][i] = isUp ? RED : GREEN;
+        trends[i] = isUp ? 1 : -1;
     }
 
     while(true) {
         let i = yield;
-        if(!sar[0][i]) {
-            if (!sar[0][i - 1]) {
-                uptrend = C.DS.close[i] - C.DS.open[i] > 0;
-                uptrend ? setSar(i, uptrend, LOWEST(i-1, C.DS.low, n)) : setSar(i, uptrend, HIGHEST(i-1, C.DS.high, n));
-            } else if (sar[1][i - 1] == RED) {
-                // 上一次上升趋势
-                if (C.DS[i - 1].low < sar[0][i - 1]) { // 本次需要转向
-                    setSar(i, false, HIGHEST(i-1, C.DS.high, n));
-                    af = 0;
-                } else {
-                    if (C.DS[i - 1].high > C.DS[i - 2].high) {
-                        af = Math.min(af + step, max);
-                    } else {
-                        af = af == 0 ? step : af;
-                    }
-                    setSar(i, true, sar[0][i - 1] + af * (C.DS[i - 1].high - sar[0][i - 1]));
-                }
+
+        if(!sar[0][i - 1]){
+            let uptrend = C.DS.close[i] - C.DS.open[i];
+            if(uptrend > 0) {
+                setSar(i, true, LOWEST(i-1, C.DS.low, n));
             } else {
-                if (C.DS[i - 1].high > sar[0][i - 1]) {
+                setSar(i, false, HIGHEST(i-1, C.DS.high, n));
+            }
+            af[i-1] = 0;
+        }
+        if(!sar[0][i]) {
+            if(trends[i] === trends[i-1]) {
+                let temp = sar[0][i - 1] + af[i-1] * (ep[i-1] - sar[0][i - 1]);
+                setSar(i, trends[i] === 1, temp);
+            } else {
+                if(trends[i] === 1){
                     setSar(i, true, LOWEST(i-1, C.DS.low, n));
-                    af = 0;
                 } else {
-                    if (C.DS[i - 1].low < C.DS[i - 2].low) {
-                        af = Math.min(af + step, max);
-                    } else {
-                        af = af == 0 ? step : af;
-                    }
-                    setSar(i, false, sar[0][i - 1] - af * (sar[0][i - 1] - C.DS[i - 1].low));
+                    setSar(i, false, HIGHEST(i-1, C.DS.high, n));
                 }
+            }
+        }
+        if(trends[i] === 1){
+            if (sar[0][i] > C.DS[i].low) {
+                // 转向跌
+                ep[i] = C.DS[i].low; //LOWEST(i, C.DS.low, n);
+                af[i] = step;
+                trends[i+1] = -1;
+            } else {
+                ep[i] = C.DS[i].high; //HIGHEST(i, C.DS.high, n);
+                af[i] = ep[i] > HIGHEST(i-1, C.DS.high, n-1) ? Math.min(af[i-1] + step, max) : af[i-1];
+                trends[i+1] = 1;
+            }
+        } else {
+            if (sar[0][i] < C.DS[i].high) {
+                ep[i] = C.DS[i].high; //HIGHEST(i, C.DS.low, n);
+                af[i] = step;
+                trends[i+1] = 1;
+            } else {
+                ep[i] = C.DS[i].low; //LOWEST(i, C.DS.low, n);
+                af[i] = ep[i] < LOWEST(i-1, C.DS.low, n-1) ? Math.min(af[i-1] + step, max) : af[i-1];
+                trends[i+1] = -1;
             }
         }
     }
