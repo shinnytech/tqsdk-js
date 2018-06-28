@@ -107,8 +107,16 @@ class TaskManager{
             try {
                 this.runTask(this.aliveTasks[taskId]);
             } catch (err) {
-                if (err == 'not logined')
-                    Notify.error('未登录，请在软件中登录后重试。');
+                if (err == 'not logined'){
+                    if(IsBrowser) Notify.error('未登录交易，请在软件中登录后重试。');
+                    else if(IsWebWorker) self.postMessage({
+                        cmd: 'feedback',
+                        content: {
+                            error: true,
+                            message: '未登录交易，请在软件中登录后重试。'
+                        }
+                    });
+                }
                 else
                     console.log(err)
             }
