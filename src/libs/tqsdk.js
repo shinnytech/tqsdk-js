@@ -371,21 +371,22 @@ class TQSDK {
 
     CANCEL_ORDER(order) {
         let orders = {};
-        if (typeof order == 'object') {
+        if (typeof order === 'object') {
             orders[order.order_id] = order;
-        } else if (typeof order == 'string')  {
+        } else if (typeof order === 'string')  {
             let all_orders = this.dm.get('trade', this.dm.account_id, 'orders');
             for (var order_id in all_orders) {
                 var ord = all_orders[order_id];
-                if (ord.status == "ALIVE" && order_id.startsWith(order))
+                if (ord.status === "ALIVE" && order_id.startsWith(order))
                     orders[order_id] = ord;
             }
         }
         for (let order_id in orders) {
-            this.ws.send_json({
-                "aid": "cancel_order",
-                "order_id": order_id,
-            });
+            if(orders[order_id].status === "ALIVE")
+                this.ws.send_json({
+                    "aid": "cancel_order",
+                    "order_id": order_id,
+                });
         }
         return Object.keys(orders).length;
     }
