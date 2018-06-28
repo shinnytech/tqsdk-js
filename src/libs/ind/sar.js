@@ -22,7 +22,6 @@ function* sar (C) {
 
     while(true) {
         let i = yield;
-
         if(!sar[0][i - 1]){
             let uptrend = C.DS.close[i] - C.DS.open[i];
             if(uptrend > 0) {
@@ -45,23 +44,23 @@ function* sar (C) {
             }
         }
         if(trends[i] === 1){
-            if (sar[0][i] > C.DS[i].low) {
+            if (sar[0][i] > C.DS.low[i]) {
                 // 转向跌
-                ep[i] = C.DS[i].low; //LOWEST(i, C.DS.low, n);
+                ep[i] = C.DS.low[i]; //LOWEST(i, C.DS.low, n);
                 af[i] = step;
                 trends[i+1] = -1;
             } else {
-                ep[i] = C.DS[i].high; //HIGHEST(i, C.DS.high, n);
+                ep[i] = C.DS.high[i]; //HIGHEST(i, C.DS.high, n);
                 af[i] = ep[i] > HIGHEST(i-1, C.DS.high, n-1) ? Math.min(af[i-1] + step, max) : af[i-1];
                 trends[i+1] = 1;
             }
         } else {
-            if (sar[0][i] < C.DS[i].high) {
-                ep[i] = C.DS[i].high; //HIGHEST(i, C.DS.low, n);
+            if (sar[0][i] < C.DS.high[i]) {
+                ep[i] = C.DS.high[i]; //HIGHEST(i, C.DS.low, n);
                 af[i] = step;
                 trends[i+1] = 1;
             } else {
-                ep[i] = C.DS[i].low; //LOWEST(i, C.DS.low, n);
+                ep[i] = C.DS.low[i]; //LOWEST(i, C.DS.low, n);
                 af[i] = ep[i] < LOWEST(i-1, C.DS.low, n-1) ? Math.min(af[i-1] + step, max) : af[i-1];
                 trends[i+1] = -1;
             }
