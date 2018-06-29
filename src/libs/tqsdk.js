@@ -1,6 +1,6 @@
 
 GLOBAL_CONTEXT = {
-    current_symbol: "SHFE.cu1801",
+    current_symbol: "SHFE.cu1810",
     current_dur: "5000000000",
 };
 
@@ -406,18 +406,18 @@ class TQSDK {
     }
     NEW_INDICATOR_INSTANCE(ind_func, symbol, dur_sec, params={}, instance_id=RandomStr()) {
         let dur_nano = dur_sec * 1000000000;
-        if (Object.keys(this.ta.class_dict) == 0){
-            // 如果是 task 新建 NEW_INDICATOR_INSTANCE
+        if (symbol && dur_sec) {
             this.ws.send_json({
                 "aid": "set_chart",
-                "chart_id": RandomStr(),
+                "chart_id": instance_id,
                 "ins_list": symbol,
                 "duration": dur_nano,
-                "view_width": 100, // 默认为 100
+                "view_width": 500, // 默认为 100
             });
+            let ds = this.dm.get_kline_serial(symbol, dur_nano);
+            return this.ta.new_indicator_instance(ind_func, symbol, dur_sec, ds, params, instance_id);
         }
-        let ds = this.dm.get_kline_serial(symbol, dur_nano);
-        return this.ta.new_indicator_instance(ind_func, symbol, dur_sec, ds, params, instance_id);
+        return null;
     }
     DELETE_INDICATOR_INSTANCE(ind_instance){
         return this.ta.delete_indicator_instance(ind_instance);

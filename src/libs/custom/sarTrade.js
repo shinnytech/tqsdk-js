@@ -30,7 +30,8 @@ function* sarTrade (C) {
         return fixed(Math.abs((sar_sell - price)/(price - sar_buy)), 4); // 计算盈亏比
     }
     function cal_Cd(price, sar, r0){
-        return fixed(price + r0 * (price - sar)); // 计算止盈线
+        let n = fixed(price + r0 * (price - sar));
+        return n; // 计算止盈线
     }
 
     function getState(i, serial){
@@ -57,6 +58,7 @@ function* sarTrade (C) {
     }
 
     function open_order(i, dir, vol){
+        if(records[i]) return;
         var rest_volume_long = max_vol_long - position.volume_long_today - position.volume_long_his;
         var rest_volume_short = max_vol_short - position.volume_short_today - position.volume_short_his;
         var pos = TQ.GET_UNIT_POSITION(C.unit_id, C.symbol);
@@ -67,13 +69,13 @@ function* sarTrade (C) {
         if(pos.volume_short != undefined){
             rest_volume_short = max_vol_short - pos.volume_short - pos.order_volume_sell_open;
         }
-        if(dir == 'SELL' && rest_volume_short > 0 && !records[i]){
+        if(dir == 'SELL' && rest_volume_short > 0){
             if (rest_volume_short < vol) vol = rest_volume_short;
             close_order(i, "SELL");
             order = C.ORDER(i, "SELL", "OPEN", vol);
             records[i] = true;
         }
-        if(dir == 'BUY' && rest_volume_long > 0 && !records[i]){
+        if(dir == 'BUY' && rest_volume_long > 0){
             if (rest_volume_long < vol) vol = rest_volume_long;
             close_order(i, "BUY");
             order = C.ORDER(i, "BUY", "OPEN", vol);
@@ -120,7 +122,7 @@ function* sarTrade (C) {
         }
         // 开仓逻辑
         if((bstate1 === 'UP' && cstate1 === 'DOWN') || (bstate1 === 'DOWN' && cstate1 === 'UP')){
-            var [short_sar, long_sar] = cstate1 === 'DOWN' ? [bfsar, cfsar] : [bfsar, cfsar];
+            var [short_sar, long_sar] = cstate1 === 'DOWN' ? [cfsar, bfsar] : [bfsar, cfsar];
             var [short_vol, long_vol] = cstate1 === 'DOWN' ? [c_sell_vol, b_buy_vol] : [b_sell_vol, c_buy_vol];
             var R_Buy = cal_R(short_sar, long_sar, quote.ask_price1);
             var R_Sell = cal_R(short_sar, long_sar, quote.bid_price1);
