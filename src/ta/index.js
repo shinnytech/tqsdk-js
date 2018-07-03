@@ -1,4 +1,4 @@
-const CODE_RUN_TIMEOUT = 50000;
+const CODE_RUN_TIMEOUT = 500000;
 $(function () {
     let IndicatorCtr = new IndCtrl('list_menu', 'editor', 'worker.js');
     $('#btn_new_indicator').on('click', IndicatorCtr.addNewIndicator.bind(IndicatorCtr));
