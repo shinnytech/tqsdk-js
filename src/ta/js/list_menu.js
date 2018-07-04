@@ -277,10 +277,18 @@ class IndCtrl{
         this.registerIndicator(this.sys_datas);
         this.registerIndicator(this.datas);
     }
+    isSysIndicator(name){
+        for(var i in this.sys_datas){
+            if(name === this.sys_datas[i].name) return true;
+        }
+        return false;
+    }
     workerCalcStartCB (content){
         this.errStore.records[content.id] = setTimeout((function(){
             Notify.error(content.className + ' 运行超时！');
-            this.errStore.add(content.className);
+            if(!this.isSysIndicator(content.className)){
+                this.errStore.add(content.className);
+            }
             this.updateUI();
             this.webworker.worker.terminate();
             this.webworker.init();
@@ -294,8 +302,10 @@ class IndCtrl{
         if (content.error) {
             Notify.error(content);
             if(content.func_name){
-                this.errStore.add(content.func_name);
-                this.updateUI();
+                if(!this.isSysIndicator(content.className)){
+                    this.errStore.add(content.func_name);
+                    this.updateUI();
+                }
                 if (content.type === 'run' || content.type === 'define') {
                     this.webworker.worker.terminate();
                     this.webworker.init();

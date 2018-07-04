@@ -326,8 +326,6 @@ class IndicatorRunContext extends IndicatorContext{
                     l = l < self._ds.left_id ? self._ds.left_id : l;
                     r = self._ds.last_id;
                 }
-                console.log(l, r);
-
                 let [calc_left, calc_right] = self.calc_range(l, r);
                 //输出数据结果
                 for (var i = 0; i < len; i++) {
