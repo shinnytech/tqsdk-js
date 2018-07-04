@@ -17,8 +17,9 @@ function* sarTrade (C) {
     let records = []; // 开仓交易记录
     let quote = TQ.GET_QUOTE(C.symbol);
     let position = TQ.GET_POSITION(C.symbol);
-    let b_ind_sar = TQ.NEW_INDICATOR_INSTANCE(self.sar, C.symbol, C.dur_nano / 1e9);
-    let c_ind_sar = TQ.NEW_INDICATOR_INSTANCE(self.sar, C.symbol, c_dur);
+
+    let b_ind_sar = TQ.NEW_INDICATOR_INSTANCE(self.sarFsar, C.symbol, C.dur_nano / 1e9);
+    let c_ind_sar = TQ.NEW_INDICATOR_INSTANCE(self.sarFsar, C.symbol, c_dur);
     let Cd = {buy: -1, sell: -1};
     let max_vol_long = Math.max(b_buy_vol, c_buy_vol); // 多仓最大手数
     let max_vol_short = Math.max(b_sell_vol, c_sell_vol); // 空仓最大手数
@@ -35,26 +36,9 @@ function* sarTrade (C) {
     }
 
     function getState(i, serial){
-        let id = i ? i : serial._ds.last_id;
-        if(!i) serial.outs.Sar(id-600 > 0 ? id - 600 : n0, id);
-        let cur = serial.outs.Sar(id);
-        let result = [0, null, null, NaN];
-        if(!cur) return result;
-        result[0] = cur[0];
-        result[3] = cur[0];
-        result[1] = cur[1] === RED ? 'UP' : 'DOWN';
-        result[2] = result[1];
-        if(result[1] === 'UP' && serial.DS.low[id] < result[0]){
-            result[1] = 'UP_CROSS';
-            result[2] = 'DOWN';
-            result[3] = HIGHEST(id-1, C.DS.high, n0);
-        }
-        if(result[1] === 'DOWN' && serial.DS.high[id] > result[0]){
-            result[1] = 'DOWN_CROSS';
-            result[2] = 'UP';
-            result[3] = LOWEST(id-1, C.DS.low, n0);
-        }
-        return result;
+        let sar = serial.outs.Sar(-1) ? serial.outs.Sar(-1)[0] : 0;
+        let fsar = serial.outs.FSar(-1) ? serial.outs.FSar(-1) : sar;
+        return [serial.outs.S0(-1), serial.outs.S1(-1), fsar];
     }
 
     function open_order(i, dir, vol){
@@ -100,9 +84,9 @@ function* sarTrade (C) {
 
     while(true) {
         let i = yield;
-        let [bsar, bstate, bstate1, bfsar] = getState(i, b_ind_sar);
-        let [csar, cstate, cstate1, cfsar] = getState(null, c_ind_sar);
-        if (i < C._ds.last_id) continue;
+        let [bstate, bstate1, bfsar] = getState(i, b_ind_sar);
+        let [cstate, cstate1, cfsar] = getState(null, c_ind_sar);
+        if (i < C.DS.last_id) continue;
         // 平仓逻辑
         if (bstate === 'UP_CROSS' || (bstate === 'DOWN' && cstate === 'UP_CROSS')) {
             close_order(i, "SELL");

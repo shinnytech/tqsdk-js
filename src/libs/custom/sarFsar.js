@@ -17,6 +17,8 @@ function* sarFsar (C) {
     });
 
     let sar = C.OUTS("COLORDOT", "Sar");
+    let s0 = C.OUTS("INVISIBLE", "S0");
+    let s1 = C.OUTS("INVISIBLE", "S1");
     let fsar = C.OUTS("DOT", "FSar", {color: YELLOW});
 
     while(true) {
@@ -24,11 +26,21 @@ function* sarFsar (C) {
         let cur = ind_sar.outs.Sar(i);
         sar[0][i] = cur[0];
         sar[1][i] = cur[1];
-        if (cur[1] == RED && C.DS[i].low < cur[0]){
-            fsar[i] = HIGHEST(i-1, C.DS.high, n0);
+        if (cur[1] == RED) {
+            s0[i] = s1[i] = 'UP';
+            if (C.DS.low[i] < cur[0]){
+                s0[i] += '_CROSS';
+                s1[i] = 'DOWN';
+                fsar[i] = HIGHEST(i-1, C.DS.high, n0);
+            }
         }
-        if (cur[1] == GREEN && C.DS[i].high > cur[0]) {
-            fsar[i] = LOWEST(i - 1, C.DS.low, n0);
+        if (cur[1] == GREEN){
+            s0[i] = s1[i] = 'DOWN';
+            if( C.DS.high[i] > cur[0]) {
+                s0[i] += '_CROSS';
+                s1[i] = 'UP';
+                fsar[i] = LOWEST(i - 1, C.DS.low, n0);
+            }
         }
     }
 }

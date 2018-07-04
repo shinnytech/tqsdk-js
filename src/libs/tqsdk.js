@@ -1,5 +1,5 @@
-
-GLOBAL_CONTEXT = {
+const GLOBAL_CONTEXT = {
+    current_account_id: "",
     current_symbol: "SHFE.cu1810",
     current_dur: "5000000000",
 };
@@ -7,11 +7,7 @@ GLOBAL_CONTEXT = {
 class TQSDK {
     constructor(mock_ws) {
         this.id = RandomStr(4);
-        if(mock_ws){
-            this.ws = mock_ws;
-        } else {
-            this.ws = new TqWebsocket('ws://127.0.0.1:7777/');
-        }
+        this.ws = mock_ws ? mock_ws : new TqWebsocket('ws://127.0.0.1:7777/');
 
         this.pd = new PublicData();
         this.dm = new DataManager();
@@ -55,6 +51,26 @@ class TQSDK {
         });
         this.init_ui(this);
         this.init_ws_handlers();
+
+        this._subcribe_charts = {};
+    }
+
+    subcribe_chart(symbol, dur_sec){
+        if (!symbol || !dur_sec) return undefined;
+        let key = symbol + '.' + dur_sec;
+        let dur_nano = dur_sec * 1e9;
+        if(!this._subcribe_charts[key]){
+            let chart_id = RandomStr();
+            this.ws.send_json({
+                "aid": "set_chart",
+                "chart_id": chart_id,
+                "ins_list": symbol,
+                "duration": dur_nano,
+                "view_width": 500, // 默认为 500
+            });
+            this._subcribe_charts[key] = chart_id;
+        }
+        return this.dm.get_kline_serial(symbol, dur_nano);
     }
 
     init_ws_handlers(){
@@ -228,14 +244,12 @@ class TQSDK {
         let datas = {};
         if(calc_left > -1){
             for (let sn in instance.out_values){
+                if(instance.out_define[sn].style === 'INVISIBLE')
+                    continue;
+                datas[sn] = [];
                 let s = instance.out_values[sn];
-                if(instance.out_define[sn].style == 'COLORBAR' || instance.out_define[sn].style == 'COLORDOT'){
-                    datas[sn] = [];
-                    for(let i in s){
-                        datas[sn][i] = s[i].slice(calc_left, calc_right + 1);
-                    }
-                }else {
-                    datas[sn] = [s.slice(calc_left, calc_right + 1)];
+                for(let i in s){
+                    datas[sn][i] = s[i].slice(calc_left, calc_right + 1);
                 }
             }
         }
@@ -315,20 +329,9 @@ class TQSDK {
         return this.dm.set_default({}, 'quotes', symbol);
     }
 
-    GET_KLINE({ kline_id = RandomStr(), symbol=GLOBAL_CONTEXT.symbol, duration=GLOBAL_CONTEXT.duration, width = 100 }={}) {
-        if (!symbol || !duration)
-            return undefined;
-        let dur_nano = duration * 1000000000;
-        this.ws.send_json({
-            "aid": "set_chart",
-            "chart_id": kline_id,
-            "ins_list": symbol,
-            "duration": dur_nano,
-            "view_width": width, // 默认为 100
-        });
-        let ks = this.dm.get_kline_serial(symbol, dur_nano);
-        //这里返回的是实际数据的proxy
-        return ks.d;
+    GET_KLINE({ kline_id = RandomStr(), symbol=GLOBAL_CONTEXT.symbol, dur_sec=GLOBAL_CONTEXT.duration, width = 100 }={}) {
+        let ds = this.subcribe_chart(symbol, dur_sec);
+        return ds.proxy; // 这里返回的是实际数据的 proxy
     }
 
     INSERT_ORDER({symbol, direction, offset, volume=1, price_type="LIMIT", limit_price, order_id, unit_id="EXT"}={}) {
@@ -392,10 +395,8 @@ class TQSDK {
     }
 
     REGISTER_INDICATOR_CLASS(ind_class){
-        this.ta.register_indicator_class(ind_class);
-        let define_context = new IndicatorDefineContext(ind_class);
-        let classDefine = define_context.get_define();
-        this.ws.send_json(classDefine);
+        let define_context = this.ta.register_indicator_class(ind_class);
+        this.ws.send_json(define_context.get_define());
     }
     UNREGISTER_INDICATOR_CLASS(ind_class_name){
         this.ta.unregister_indicator_class(ind_class_name);
@@ -404,18 +405,12 @@ class TQSDK {
             "name": ind_class_name
         });
     }
+
     NEW_INDICATOR_INSTANCE(ind_func, symbol, dur_sec, params={}, instance_id=RandomStr()) {
-        let dur_nano = dur_sec * 1000000000;
-        if (symbol && dur_sec) {
-            this.ws.send_json({
-                "aid": "set_chart",
-                "chart_id": instance_id,
-                "ins_list": symbol,
-                "duration": dur_nano,
-                "view_width": 500, // 默认为 100
-            });
-            let ds = this.dm.get_kline_serial(symbol, dur_nano);
-            return this.ta.new_indicator_instance(ind_func, symbol, dur_sec, ds, params, instance_id);
+        let ds = this.subcribe_chart(symbol, dur_sec);
+        if (ds) {
+            let dur_nano = dur_sec * 1e9;
+            return this.ta.new_indicator_instance(ind_func, symbol, dur_nano, ds, params, instance_id);
         }
         return null;
     }

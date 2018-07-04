@@ -1,15 +1,14 @@
-class IndicatorRunContext {
-    constructor(ind_func, instance_id, symbol, dur_nano, ds, tq){
+class IndicatorRunContext extends IndicatorContext{
+    constructor(ind_func, instance_id, symbol, dur_nano, params, ds, tq){
+        super(ind_func);
         //技术指标参数, 合约代码/周期也作为参数项放在这里面
-        this.ind = ind_func(this);
         this.TQ = tq;
-        this.ind_class_name = ind_func.name;
         this.instance_id = instance_id;
         this.symbol = symbol;
         this.dur_nano = dur_nano;
         this._ds = ds;   //基础序列, 用作输出序列的X轴
-        this.DS = ds.d;  //提供给用户代码使用的ds proxy
-        this.PARAMS = {}; //指标参数
+        this.DS = ds.proxy;  //提供给用户代码使用的ds proxy
+        this.PARAMS = params; //指标参数
         this.outs = {}; //输出序列访问函数
         this.out_define = {}; //输出序列格式声明
         this.out_values = {}; //输出序列值
@@ -28,16 +27,14 @@ class IndicatorRunContext {
         this.is_error = false;
         this.trade_at_close = false;
         this.trade_oc_cycle = false;
-    }
-    init(){
-        this.ind.next();
-    }
-    DEFINE(){
+
+        super.init(); // init
     }
 
     PARAM(defaultValue, name){
-        if (!(name in this.PARAMS))
+        if(!this.PARAMS[name]) {
             this.PARAMS[name] = defaultValue;
+        }
         return this.PARAMS[name];
     }
 
@@ -72,10 +69,10 @@ class IndicatorRunContext {
      * @param right
      * @returns 返回存在数据的最后一个 id, 如果不存在 返回的数字比 left 小
      */
-    _exist_data_range(left, right, dataArr=this._ds.d){
+    _exist_data_range(left, right){
         if (left > right)
             return left - 1;
-        for(let i = left; i<=right && !dataArr[i]; i++){
+        for(let i = left; i<=right && !this._ds.data[i]; i++){
             right = i-1;
             break;
         }
@@ -111,7 +108,7 @@ class IndicatorRunContext {
         }
 
         /**
-         * ------[-----------------]------- this._ds.d
+         * ------[-----------------]------- this._ds.data
          *   valid_left        valid_right
          */
         if(this.valid_left === -1 || this.valid_right === -1 || right < this.valid_left || left > this.valid_right ){
@@ -170,7 +167,7 @@ class IndicatorRunContext {
             if(IsWebWorker)
                 self.postMessage({ cmd: 'calc_start', content});
             for (let i = calc_left; i <= calc_right; i++) {
-                this.ind.next(i);
+                this.instance.next(i);
             }
             if(IsWebWorker)
                 self.postMessage({ cmd: 'calc_end', content});
@@ -295,65 +292,52 @@ class IndicatorRunContext {
         return this.TQ.CANCEL_ORDER(this.unit_id);
     };
     OUTS(style, name, options = {}){
-        options.style=style;
+        options.style = style;
         this.out_define[name] = options;
         var out_serial = [];
         this.out_values[name] = out_serial;
         let self = this;
-        if(style === 'COLORBAR' || style === 'COLORDOT'){
-            out_serial[0] = [];
-            out_serial[1] = [];
-            this.outs[name] = function (left, right = null) {
-                //每个序列的输出函数允许一次性提取一段数据(含left, right两点)
-                //如果提供了left/right 两个参数,则返回一个 array
-                //如果只提供left, 则返回一个value
-                //无法输出结果的情形
-                if (self.is_error || !self._ds || self._ds.last_id === -1){
-                    if (right == null)
-                        return null;
-                    else
-                        return [];
-                }
-                //负数支持, 如果left/right为负数, 需要先转换到正数, 这一转换又必须事先有一个合约/周期来标定X轴
-                if (left < 0)
-                    left = self._ds.last_id + left + 1;
-                if (right < 0)
-                    right = self._ds.last_id + right + 1;
-                //尝试更新计算数据
-                let [calc_left, calc_right] = self.calc_range(left, right?right:left);
-                //输出数据结果
-                if (right == null)
-                    return [out_serial[0][left], out_serial[1][left]];
-                else
-                    return [out_serial[0].slice(left, right+1), out_serial[1].slice(left, right+1)];
-            };
-        } else {
-            this.outs[name] = function (left, right = null) {
-                //每个序列的输出函数允许一次性提取一段数据(含left, right两点)
-                //如果提供了left/right 两个参数,则返回一个 array
-                //如果只提供left, 则返回一个value
-                //无法输出结果的情形
-                if (self.is_error || !self._ds || self._ds.last_id === -1){
-                    if (right == null)
-                        return null;
-                    else
-                        return [];
-                }
-                //负数支持, 如果left/right为负数, 需要先转换到正数, 这一转换又必须事先有一个合约/周期来标定X轴
-                if (left < 0)
-                    left = self._ds.last_id + left + 1;
-                if (right < 0)
-                    right = self._ds.last_id + right + 1;
-                //尝试更新计算数据
-                let [calc_left, calc_right] = self.calc_range(left, right?right:left);
-                //输出数据结果
-                if (right == null)
-                    return out_serial[left];
-                else
-                    return out_serial.slice(left, right+1);
-            };
+        let length_of_outs = this.OUTS_TYPE[style];
+        for(let i=0; i<length_of_outs; i++){
+            out_serial[i] = [];
         }
+        this.outs[name] = (function(len){
+            return function (left, right = null){
+                //每个序列的输出函数允许一次性提取一段数据(含left, right两点)
+                //如果提供了left/right 两个参数,则返回一个 array
+                //如果只提供left, 则返回一个value
+                //无法输出结果的情形
+                let result = [];
+                for (let i = 0; i < len; i++) {
+                    result[i] = right === null ? null : [];
+                }
+                if (self.is_error || !self._ds || self._ds.last_id === -1) {
+                    return result;
+                }
+                //负数支持, 如果left/right为负数, 需要先转换到正数, 这一转换又必须事先有一个合约/周期来标定X轴
+                if (left < 0)
+                    left = self._ds.last_id + left + 1;
+                if (right < 0)
+                    right = self._ds.last_id + right + 1;
+                //尝试更新计算数据
+                let [l, r] = [left, right ? right : left];
+                if(self.view_left === -1 && self.valid_right === -1 ){
+                    l = self._ds.last_id - 500;
+                    l = l < self._ds.left_id ? self._ds.left_id : l;
+                    r = self._ds.last_id;
+                }
+                console.log(l, r);
 
+                let [calc_left, calc_right] = self.calc_range(l, r);
+                //输出数据结果
+                for (var i = 0; i < len; i++) {
+                    result[i] = right === null ? out_serial[i][left] : out_serial[i].slice(left, right + 1);
+                }
+                if(len === 1) return result[0];
+                return result;
+            }
+        }(length_of_outs));
+        if(length_of_outs === 1) return out_serial[0];
         return out_serial;
     }
     // 模仿 wh 添加的接口

@@ -1,10 +1,10 @@
 /**
- * 返回array的一个proxy，以支持负数下标，并可选的为每个数据项提供一个读取转换函数
+ * 返回 klines object的一个proxy，目前不支持负数下标，并可选的为每个数据项提供一个读取转换函数
  * @param data_array
  * @param item_func
  * @returns {Proxy}
  */
-function make_array_proxy(data_array, item_func=undefined){
+function make_proxy(data_array, item_func=undefined){
     let handler = {
         get: function (target, property, receiver) {
             if (!isNaN(property)) {
@@ -13,9 +13,9 @@ function make_array_proxy(data_array, item_func=undefined){
                     return NaN;
                 // i = target.length + i;
                 if (item_func)
-                    return item_func(data_array[i]);
+                    return item_func(target.data[i]);
                 else
-                    return data_array[i];
+                    return target.data[i];
             } else{
                 return target[property];
             }
@@ -54,7 +54,8 @@ class DataManager{
                         if (target.left_id == undefined || isNaN(target.left_id) || Object.keys(value)[0] < target.left_id)
                             target.left_id = Number(Object.keys(value)[0]);
                         // @note: 后面使用 GET_KLINE 返回的是 target.data 的 proxy，这样可以方便取得 last_id
-                        target.data.last_id = target.last_id;
+                        // target 不是每次都有 last_id
+                        // if(target.last_id) target.data.last_id = target.last_id;
                         this.mergeObject(target[key], value, deleteNullObj);
                     } else if (key == "units"){
                         //@note: 不再接收主程序推送的unit相关数据, 改为sdk内部自行计算
@@ -64,15 +65,9 @@ class DataManager{
                     }
                     break;
                 case 'string':
-                    if (value === 'NaN') {
-                        target[key] = NaN;
-                    } else {
-                        target[key] = value;
-                    }
-                    break;
                 case 'boolean':
                 case 'number':
-                    target[key] = value;
+                    target[key] = value === 'NaN' ? NaN : value;
                     break;
                 case 'undefined':
                     break;
@@ -118,10 +113,7 @@ class DataManager{
         let node = this.datas;
         for (let i = 0; i < path.length; i++) {
             if (! (path[i] in node))
-                if (i+1 == path.length)
-                    node[path[i]] = default_value;
-                else
-                    node[path[i]] = {};
+                node[path[i]] = (i+1 === path.length) ? default_value : {};
             node = node[path[i]];
         }
         return node;
@@ -140,17 +132,32 @@ class DataManager{
     /**
      * 获取 k线序列
      */
+    // get_kline_serial(symbol, dur_nano) {
+    //     let ks = this.set_default({last_id: -1, data:[]}, "klines", symbol, dur_nano);
+    //     if (!ks.d){
+    //         ks.d = make_array_proxy(ks.data);
+    //         ks.d.open = make_array_proxy(ks.data, k => k?k.open:undefined);
+    //         ks.d.high = make_array_proxy(ks.data, k => k?k.high:undefined);
+    //         ks.d.low = make_array_proxy(ks.data, k => k?k.low:undefined);
+    //         ks.d.close = make_array_proxy(ks.data, k => k?k.close:undefined);
+    //         ks.d.volume = make_array_proxy(ks.data, k => k?k.volume:undefined);
+    //         ks.d.close_oi = make_array_proxy(ks.data, k => k?k.close_oi:undefined);
+    //         ks.d.open_oi = make_array_proxy(ks.data, k => k?k.open_oi:undefined);
+    //     }
+    //     return ks;
+    // }
+
     get_kline_serial(symbol, dur_nano) {
         let ks = this.set_default({last_id: -1, data:[]}, "klines", symbol, dur_nano);
-        if (! ks.d){
-            ks.d = make_array_proxy(ks.data);
-            ks.d.open = make_array_proxy(ks.data, k => k?k.open:undefined);
-            ks.d.high = make_array_proxy(ks.data, k => k?k.high:undefined);
-            ks.d.low = make_array_proxy(ks.data, k => k?k.low:undefined);
-            ks.d.close = make_array_proxy(ks.data, k => k?k.close:undefined);
-            ks.d.volume = make_array_proxy(ks.data, k => k?k.volume:undefined);
-            ks.d.close_oi = make_array_proxy(ks.data, k => k?k.close_oi:undefined);
-            ks.d.open_oi = make_array_proxy(ks.data, k => k?k.open_oi:undefined);
+        if (!ks.proxy){
+            ks.proxy = make_proxy(ks);
+            ks.proxy.open = make_proxy(ks, k => k?k.open:undefined);
+            ks.proxy.high = make_proxy(ks, k => k?k.high:undefined);
+            ks.proxy.low = make_proxy(ks, k => k?k.low:undefined);
+            ks.proxy.close = make_proxy(ks, k => k?k.close:undefined);
+            ks.proxy.volume = make_proxy(ks, k => k?k.volume:undefined);
+            ks.proxy.close_oi = make_proxy(ks, k => k?k.close_oi:undefined);
+            ks.proxy.open_oi = make_proxy(ks, k => k?k.open_oi:undefined);
         }
         return ks;
     }
