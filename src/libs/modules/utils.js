@@ -79,19 +79,6 @@ function getobj(obj, ...path){
     return node;
 }
 
-function set_obj_default(default_value, obj, ...path){
-    let node = obj;
-    for (let i = 0; i < path.length; i++) {
-        if (! (path[i] in node))
-            if (i+1 == path.length)
-                node[path[i]] = default_value;
-            else
-                node[path[i]] = {};
-        node = node[path[i]];
-    }
-    return node;
-}
-
 class Store {
     constructor (key){
         this.key = key;

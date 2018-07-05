@@ -284,7 +284,7 @@ class TQSDK {
             stat: {close_profit:0},
         }, "trade", this.dm.account_id, "units", unit_id);
         unit._epoch = this.dm.epoch;
-        let position = set_obj_default({
+        let position = this.dm.set_default({
             symbol,
             unit_id,
             order_volume_buy_open:0,

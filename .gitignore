@@ -8,6 +8,7 @@ doc/_build/
 doc/js_sdk/_build
 doc/ta/_build
 extensions/
+coverage/
 
 nohup.out
 buglist.md

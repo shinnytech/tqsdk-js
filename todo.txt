@@ -2,6 +2,8 @@
 使用新的 tqsdk 替换原先的指标系统
 使用新的 tqsdk 替换原先的程序交易
 
+ws://openmd.shinnytech.com/t/md/front/mobile
+
 bug list:
     切换合约，指标计算有问题 ==> 未重现
     测试文件不好debug ==> 模块化加载没做好

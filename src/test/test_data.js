@@ -1,4 +1,4 @@
-module.exports.init_test_data = function (TQ) {
+function init_test_data(TQ) {
     TQ.dm.on_rtn_data({
         "aid": "rtn_data",                                        // 数据推送
         "data": [                                                 // diff数据数组, 一次推送中可能含有多个数据包
@@ -185,7 +185,7 @@ module.exports.init_test_data = function (TQ) {
 /**
  * dur = 0  就生成 tick 数据
  */
-module.exports.batch_input_datas = function({TQ, symbol='SHFE.rb1810', dur=5, left_id=100, right_id=1000, last_id=1000} = {}){
+function batch_input_datas({TQ, symbol='SHFE.rb1810', dur=5, left_id=100, right_id=1000, last_id=1000} = {}){
     let obj = {
         "last_id": last_id,
         "data": {},
@@ -267,8 +267,9 @@ module.exports.batch_input_datas = function({TQ, symbol='SHFE.rb1810', dur=5, le
     }
 }
 
-module.exports.MockWebsocket = class MockWebsocket{
+class MockWebsocket extends EventTarget{
     constructor(url, callbacks){
+        super();
         this.send_objs = [];
     }
     send_json(obj) {
