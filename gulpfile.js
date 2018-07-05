@@ -14,6 +14,15 @@ var replace = require('gulp-replace');
 var gutil = require('gulp-util');
 var minimist = require('minimist');
 
+var Server = require('karma').Server;
+gulp.task('test', function (done) {
+    // Karma Run test once and exit
+    new Server({
+        configFile: __dirname + '/karma.config.js',
+        singleRun: true
+    }, done).start();
+});
+
 var minifyJs = composer(minifyJsEs6, console);
 var vString = '-v' + require('./package').version;
 
@@ -22,7 +31,7 @@ var dist = 'dist/';
 // 获取命令行参数
 var argv = minimist(process.argv.slice(2));
 
-gulp.task('default', ['clean'], function () {
+gulp.task('default', ['clean', 'test'], function () {
     fs.mkdirSync(dist);
     fs.mkdirSync(dist + 'libs');
     fs.mkdirSync(dist + 'ta');
@@ -124,8 +133,6 @@ gulp.task('copy', [], function () {
         './src/libs/ind/*',
         './src/libs/custom/*',
         './src/libs/task/*',
-        '!./src/libs/test/',
-        '!./src/libs/test/*',
     ], { base: "src" })
     .pipe(gulp.dest(dist));;
 });
