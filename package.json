@@ -49,6 +49,7 @@
     "karma-coverage": "^1.1.2",
     "karma-mocha": "^1.3.0",
     "karma-requirejs": "^1.1.0",
+    "karma-websocket-server": "^1.0.0",
     "mocha": "^5.1.0",
     "requirejs": "^2.3.5"
   }

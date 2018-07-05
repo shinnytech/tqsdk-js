@@ -1,11 +1,15 @@
-describe('Array', () => {
-    describe('#indexOf()', () => {
-        it('should return -1 when the value is not present', () => {
-            assert.equal(-1, [1,2,3].indexOf(4));
-            var TQ = new TQSDK(new MockWebsocket());
-            init_test_data(TQ);
-            assert.equal('object', typeof TQ);
-        });
+describe('New TQSDK', () => {
+    var TQ = new TQSDK(new MockWebsocket());
+    var symbol = 'SHFE.rb1810';
+    var dur = 5;
+
+    before( () => {
+        console.log('see.. this function is run ONCE only')
     });
+    beforeEach(function(){
+        console.log('see.. this function is run EACH time')
+    });
+
+
 });
 

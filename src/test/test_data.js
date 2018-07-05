@@ -1,5 +1,5 @@
-function init_test_data(TQ) {
-    TQ.dm.on_rtn_data({
+var init_test_data = function () {
+    return {
         "aid": "rtn_data",                                        // 数据推送
         "data": [                                                 // diff数据数组, 一次推送中可能含有多个数据包
             {
@@ -178,14 +178,15 @@ function init_test_data(TQ) {
                 }
             }
         ]
-    });
+    };
 };
 
 
 /**
  * dur = 0  就生成 tick 数据
  */
-function batch_input_datas({TQ, symbol='SHFE.rb1810', dur=5, left_id=100, right_id=1000, last_id=1000} = {}){
+
+var batch_input_datas = function ({symbol='SHFE.rb1810', dur=5, left_id=100, right_id=1000, last_id=1000} = {}){
     let obj = {
         "last_id": last_id,
         "data": {},
@@ -231,7 +232,7 @@ function batch_input_datas({TQ, symbol='SHFE.rb1810', dur=5, left_id=100, right_
     };
 
     if (dur == 0){
-        TQ.on_rtn_data({
+        return {
             "aid": "rtn_data",
             "data": [
                 {
@@ -245,9 +246,9 @@ function batch_input_datas({TQ, symbol='SHFE.rb1810', dur=5, left_id=100, right_
                     },
                 }
             ]
-        });
+        }
     }else{
-        TQ.on_rtn_data({
+        return {
             "aid": "rtn_data",
             "data": [
                 {
@@ -263,7 +264,7 @@ function batch_input_datas({TQ, symbol='SHFE.rb1810', dur=5, left_id=100, right_
                     },
                 }
             ]
-        });
+        }
     }
 }
 

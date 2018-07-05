@@ -331,8 +331,7 @@ class IndicatorRunContext extends IndicatorContext{
                 for (var i = 0; i < len; i++) {
                     result[i] = right === null ? out_serial[i][left] : out_serial[i].slice(left, right + 1);
                 }
-                if(len === 1) return result[0];
-                return result;
+                return len === 1 ? result[0] : result;
             }
         }(length_of_outs));
         if(length_of_outs === 1) return out_serial[0];
