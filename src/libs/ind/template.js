@@ -1,7 +1,7 @@
 function* ${1:function_name} (C) {
     // 定义指标
     C.DEFINE({
-        type: "${2:SUB}", // 指标类型, SUB=副图指标, MAIN=主图指标
+        type: "MAIN", // 指标类型, SUB=副图指标, MAIN=主图指标
     });
 
     //TODO: 定义参数. 如果技术指标需要参数, 请在这里按下面的例子定义:
