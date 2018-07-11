@@ -327,6 +327,17 @@ class IndCtrl{
         }
         tr.classList.add('active');
 
+        // 保存之前的修改
+        if(this.editing.type === 'custom'){
+            let code = this.editor.getSession().getValue().trim();
+            let pos = this.editor.getCursorPosition(); // {row: 25, column: 22}
+            if(code.length > 0 && this.editing && this.editing.name){
+                this.editing.code = code;
+                console.log(pos)
+                this.editing.cursorPos = pos;
+                this.cusFileHelper.write(this.editing.name + '.js', code);
+            }
+        }
         if(data.type == 'system'){
             this.editing = data;
         } else {
@@ -334,6 +345,10 @@ class IndCtrl{
         }
 
         this.editor.setValue(this.editing.code, 1);
+        console.log(this.editing.cursorPos)
+        if(this.editing.cursorPos){
+            this.editor.moveCursorToPosition(this.editing.cursorPos)
+        }
 
         if (data.type === 'system') {
             $('#btn_editor_save').attr('disabled', true);
