@@ -351,7 +351,8 @@ class TQSDK {
             "offset": offset,
             "volume": volume,
             "price_type": "LIMIT",
-            "limit_price": limit_price
+            "limit_price": limit_price,
+            "user_id": this.dm.account_id
         };
         this.ws.send_json(send_obj);
 
@@ -389,6 +390,7 @@ class TQSDK {
                 this.ws.send_json({
                     "aid": "cancel_order",
                     "order_id": order_id,
+                    "user_id": this.dm.account_id
                 });
         }
         return Object.keys(orders).length;
