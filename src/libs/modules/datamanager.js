@@ -4,7 +4,7 @@
  * @param item_func
  * @returns {Proxy}
  */
-function make_proxy(data_array, item_func=undefined){
+function make_array_proxy(data_array, parent_target, item_func=undefined){
     let handler = {
         get: function (target, property, receiver) {
             if (!isNaN(property)) {
@@ -13,9 +13,11 @@ function make_proxy(data_array, item_func=undefined){
                     return NaN;
                 // i = target.length + i;
                 if (item_func)
-                    return item_func(target.data[i]);
+                    return item_func(target[i]);
                 else
-                    return target.data[i];
+                    return target[i];
+            }  else if (property === 'last_id' || property === 'left_id'){
+                return parent_target[property];
             } else{
                 return target[property];
             }
@@ -80,15 +82,6 @@ class DataManager{
         return obj && obj._epoch ? obj._epoch == this.epoch : false;
     }
 
-    get_tdata_obj(insId, instanceId) {
-        var path = insId + '.0';
-        try {
-            return this.datas.ticks[insId].data;
-        } catch (e) {
-            return undefined;
-        }
-    }
-
     clear_data() {
         this.datas = {};
     }
@@ -129,35 +122,35 @@ class DataManager{
         return node;
     }
 
+    get_ticks_serial(symbol) {
+        let ts = this.set_default({last_id: -1, data:[]}, "ticks", symbol);
+        if (!ts.proxy){
+            ts.proxy = make_array_proxy(ts.data, ts);
+            ts.proxy.last_price = make_array_proxy(ts.data, ts, k => k?k.last_price:undefined);
+            ts.proxy.average = make_array_proxy(ts.data, ts, k => k?k.average:undefined);
+            ts.proxy.highest = make_array_proxy(ts.data, ts, k => k?k.highest:undefined);
+            ts.proxy.lowest = make_array_proxy(ts.data, ts, k => k?k.lowest:undefined);
+            ts.proxy.volume = make_array_proxy(ts.data, ts, k => k?k.volume:undefined);
+            ts.proxy.amount = make_array_proxy(ts.data, ts, k => k?k.amount:undefined);
+            ts.proxy.open_interest = make_array_proxy(ts.data, ts, k => k?k.open_interest:undefined);
+        }
+        return ts;
+    }
+
     /**
      * 获取 k线序列
      */
-    // get_kline_serial(symbol, dur_nano) {
-    //     let ks = this.set_default({last_id: -1, data:[]}, "klines", symbol, dur_nano);
-    //     if (!ks.d){
-    //         ks.d = make_array_proxy(ks.data);
-    //         ks.d.open = make_array_proxy(ks.data, k => k?k.open:undefined);
-    //         ks.d.high = make_array_proxy(ks.data, k => k?k.high:undefined);
-    //         ks.d.low = make_array_proxy(ks.data, k => k?k.low:undefined);
-    //         ks.d.close = make_array_proxy(ks.data, k => k?k.close:undefined);
-    //         ks.d.volume = make_array_proxy(ks.data, k => k?k.volume:undefined);
-    //         ks.d.close_oi = make_array_proxy(ks.data, k => k?k.close_oi:undefined);
-    //         ks.d.open_oi = make_array_proxy(ks.data, k => k?k.open_oi:undefined);
-    //     }
-    //     return ks;
-    // }
-
     get_kline_serial(symbol, dur_nano) {
         let ks = this.set_default({last_id: -1, data:[]}, "klines", symbol, dur_nano);
         if (!ks.proxy){
-            ks.proxy = make_proxy(ks);
-            ks.proxy.open = make_proxy(ks, k => k?k.open:undefined);
-            ks.proxy.high = make_proxy(ks, k => k?k.high:undefined);
-            ks.proxy.low = make_proxy(ks, k => k?k.low:undefined);
-            ks.proxy.close = make_proxy(ks, k => k?k.close:undefined);
-            ks.proxy.volume = make_proxy(ks, k => k?k.volume:undefined);
-            ks.proxy.close_oi = make_proxy(ks, k => k?k.close_oi:undefined);
-            ks.proxy.open_oi = make_proxy(ks, k => k?k.open_oi:undefined);
+            ks.proxy = make_array_proxy(ks.data, ks);
+            ks.proxy.open = make_array_proxy(ks.data, ks, k => k?k.open:undefined);
+            ks.proxy.high = make_array_proxy(ks.data, ks, k => k?k.high:undefined);
+            ks.proxy.low = make_array_proxy(ks.data, ks, k => k?k.low:undefined);
+            ks.proxy.close = make_array_proxy(ks.data, ks, k => k?k.close:undefined);
+            ks.proxy.volume = make_array_proxy(ks.data, ks, k => k?k.volume:undefined);
+            ks.proxy.close_oi = make_array_proxy(ks.data, ks, k => k?k.close_oi:undefined);
+            ks.proxy.open_oi = make_array_proxy(ks.data, ks, k => k?k.open_oi:undefined);
         }
         return ks;
     }
