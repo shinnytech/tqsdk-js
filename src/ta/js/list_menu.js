@@ -39,6 +39,9 @@ class FileHelper{
         return window.readFile('extension/libs/' + this.dir + path);
     }
     del(path){
+        if('chrome' === this.env){
+            return null;
+        }
         return window.removeFile('extension/libs/' + this.dir + path);
     }
     list(dirpath = ''){
