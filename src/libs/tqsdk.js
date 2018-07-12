@@ -7,7 +7,12 @@ const GLOBAL_CONTEXT = {
 class TQSDK {
     constructor(mock_ws) {
         this.id = RandomStr(4);
-        this.ws = mock_ws ? mock_ws : new TqWebsocket('ws://127.0.0.1:7777/');
+
+        if(mock_ws){
+            this.ws = typeof mock_ws === 'string' ? new TqWebsocket(mock_ws) : mock_ws;
+        } else {
+            this.ws = new TqWebsocket('ws://127.0.0.1:7777/')
+        }
 
         this.pd = new PublicData();
         this.dm = new DataManager();

@@ -2,17 +2,49 @@
 class FileHelper{
     constructor(dir = ''){
         this.dir = dir;
+        this.env = chrome.storage ? 'chrome' : 'tianqin';
+        this.files = [];
+        this.content = {};
+        if('chrome' === this.env){
+            dir = dir.split('/');
+            let key = dir.pop();
+            while (key.length === 0){
+                key = dir.pop();
+            }
+            this.key = key;
+            chrome.storage.sync.get([this.key], (function(d) {
+                this.files = d[this.key];
+                chrome.storage.sync.get(d[this.key], (function(d) {
+                    this.content = d;
+                }).bind(this));
+            }).bind(this));
+        }
     }
     write(path, content){
+        if('chrome' === this.env){
+            chrome.runtime.sendMessage({
+                cmd: 'savefile',
+                type: this.key,
+                name: path,
+                content: content
+            }, function (){});
+            return this.content[path] = content;
+        }
         return window.writeFile('extension/libs/' + this.dir + path, content);
     }
     read(path){
+        if('chrome' === this.env){
+            return this.content[path];
+        }
         return window.readFile('extension/libs/' + this.dir + path);
     }
     del(path){
         return window.removeFile('extension/libs/' + this.dir + path);
     }
     list(dirpath = ''){
+        if('chrome' === this.env){
+            return this.files;
+        }
         return window.listFile('extension/libs/' + this.dir + dirpath);
     }
 }
@@ -29,15 +61,8 @@ class IndCtrl{
 
         this.editor = ace.edit(editor_id);
 
-        this.webworker = new TqWebWorker(webworker_url, {
-            websocket_reconnect: this.workerWsReconnectCB.bind(this),
-            websocket_open: this.workerWsOpenCB.bind(this),
-            calc_start: this.workerCalcStartCB.bind(this),
-            calc_end: this.workerCalcEndCB.bind(this),
-            feedback: this.workerFeedbackCB.bind(this)
-        });
-        this.errStore = new ErrorStore('err', this.webworker);
-        
+
+
         // 指标数据存储
         this.sys_datas = {};
         this.waitingResult = new Set();
@@ -46,10 +71,28 @@ class IndCtrl{
         this.$trashModal = $('#TrashModal');
         // 当前编辑的指标
         this.editing = '';
-        
-        this.init();
-        this.init_editor();
-        this.init_editor_theme();
+
+        var init_func = (function(){
+            this.webworker = new TqWebWorker(webworker_url, {
+                websocket_reconnect: this.workerWsReconnectCB.bind(this),
+                websocket_open: this.workerWsOpenCB.bind(this),
+                calc_start: this.workerCalcStartCB.bind(this),
+                calc_end: this.workerCalcEndCB.bind(this),
+                feedback: this.workerFeedbackCB.bind(this)
+            });
+            this.errStore = new ErrorStore('err', this.webworker);
+            this.init();
+            this.init_editor();
+            this.init_editor_theme();
+        }).bind(this);
+
+        if(chrome.storage){
+            setTimeout(init_func, 3000)
+        } else {
+            init_func();
+        }
+
+
     }
     init(){
         this.sys_dom.append($('<div><h5>Loading...</h5></div>'));
@@ -333,7 +376,6 @@ class IndCtrl{
             let pos = this.editor.getCursorPosition(); // {row: 25, column: 22}
             if(code.length > 0 && this.editing && this.editing.name){
                 this.editing.code = code;
-                console.log(pos)
                 this.editing.cursorPos = pos;
                 this.cusFileHelper.write(this.editing.name + '.js', code);
             }
@@ -345,7 +387,6 @@ class IndCtrl{
         }
 
         this.editor.setValue(this.editing.code, 1);
-        console.log(this.editing.cursorPos)
         if(this.editing.cursorPos){
             this.editor.moveCursorToPosition(this.editing.cursorPos)
         }
@@ -599,6 +640,15 @@ class IndCtrl{
         }
     }
 }
+
+let ws_url = 'ws://127.0.0.1:7777';
+if(chrome.storage){
+    chrome.storage.sync.get(['ws_url'], function(d) {
+        ws_url = d.ws_url;
+    });
+}
+
+
 class TqWebWorker {
     constructor (url, callbacks){
         this.url = url;
@@ -608,6 +658,7 @@ class TqWebWorker {
     }
     init(){
         this.worker = new Worker(this.url);
+        this.post('start', {url: ws_url});
         let _this = this;
         this.worker.addEventListener('message', function (e) {
             switch (e.data.cmd) {
@@ -616,7 +667,7 @@ class TqWebWorker {
                     break;
                 case 'websocket_open':
                     _this.callbacks['websocket_open'](e.data.content);
-                    break;  
+                    break;
                 case 'calc_start':
                     _this.callbacks['calc_start'](e.data.content);
                     break;

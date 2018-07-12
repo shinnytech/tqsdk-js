@@ -13,16 +13,7 @@ importScripts('../libs/modules/websocket.js');
 importScripts('../libs/func/basefuncs.js');
 importScripts('../libs/tqsdk.js');
 
-const TQ = new TQSDK();
-
-TQ.register_ws_processor('onreconnect', function(){
-    postMessage({ cmd: 'websocket_reconnect' });
-});
-
-TQ.register_ws_processor('onopen', function(){
-    postMessage({ cmd: 'websocket_open' });
-});
-
+let TQ = null;
 let G_ERRORS = [];
 
 // -------------- worker listener start --------------
@@ -42,6 +33,15 @@ self.addEventListener('error', function (event) {
 self.addEventListener('message', function (event) {
     var content = event.data.content;
     switch (event.data.cmd) {
+        case 'start':
+            TQ = new TQSDK(content.url);
+            TQ.register_ws_processor('onreconnect', function(){
+                postMessage({ cmd: 'websocket_reconnect' });
+            });
+            TQ.register_ws_processor('onopen', function(){
+                postMessage({ cmd: 'websocket_open' });
+            });
+            break;
         case 'register_indicator_class':
             try {
                 importScripts(content.path);

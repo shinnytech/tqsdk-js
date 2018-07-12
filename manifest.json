@@ -1,0 +1,21 @@
+{
+  "name": "快问",
+  "description" : "Chrome App",
+  "version": "1.0",
+  "manifest_version": 2,
+  "permissions": [
+    "storage",
+    "alarms",
+    "tabs",
+    "webNavigation",
+    "*://*.google.com/"],
+  "background": {
+    "scripts": ["chrome_extension/background.js"],
+    "persistent": false
+  },
+  "content_security_policy": "default-src 'self' 'unsafe-eval'; connect-src http://ins.shinnytech.com ws://192.168.1.71:7777; script-src 'unsafe-eval' 'self';  style-src 'unsafe-inline'; child-src 'self' 'unsafe-eval'; object-src 'none'; img-src data:; ",
+  "options_page": "chrome_extension/options.html",
+  "browser_action":{
+    "default_icon": "icon.png"
+  }
+}
