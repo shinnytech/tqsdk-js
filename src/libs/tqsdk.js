@@ -246,8 +246,8 @@ class TQSDK {
     }
     send_indicator_data(instance, calc_left, calc_right){
         //计算指标值
-        let datas = {};
-        if(calc_left > -1){
+        if(calc_left > -1 && instance.view_left > -1){
+            let datas = {};
             for (let sn in instance.out_values){
                 if(instance.out_define[sn].style === 'INVISIBLE')
                     continue;
@@ -257,18 +257,18 @@ class TQSDK {
                     datas[sn][i] = s[i].slice(calc_left, calc_right + 1);
                 }
             }
+            let set_data = {
+                aid: "set_indicator_data",                    //必填, 标示此数据包为技术指标结果数据
+                instance_id: instance.instance_id,                     //必填, 指标实例ID，应当与 update_indicator_instance 中的值一致
+                epoch: instance.epoch,                                  //必填, 指标实例版本号，应当与 update_indicator_instance 中的值一致
+                range_left: calc_left,                             //必填, 表示此数据包中第一个数据对应图表X轴上的位置序号
+                range_right: calc_right,                            //必填, 表示此数据包中最后一个数据对应图表X轴上的位置序号
+                serials: instance.out_define,
+                datas: datas,
+                drawings: instance.out_drawings,
+            };
+            this.ws.send_json(set_data);
         }
-        let set_data = {
-            aid: "set_indicator_data",                    //必填, 标示此数据包为技术指标结果数据
-            instance_id: instance.instance_id,                     //必填, 指标实例ID，应当与 update_indicator_instance 中的值一致
-            epoch: instance.epoch,                                  //必填, 指标实例版本号，应当与 update_indicator_instance 中的值一致
-            range_left: calc_left,                             //必填, 表示此数据包中第一个数据对应图表X轴上的位置序号
-            range_right: calc_right,                            //必填, 表示此数据包中最后一个数据对应图表X轴上的位置序号
-            serials: instance.out_define,
-            datas: datas,
-            drawings: instance.out_drawings,
-        };
-        this.ws.send_json(set_data);
     }
 
     IS_CHANGING(obj){

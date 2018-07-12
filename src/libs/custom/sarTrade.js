@@ -79,7 +79,7 @@ function* sarTrade (C) {
             C.ORDER(i, "BUY", "CLOSE", position.volume_short_today + position.volume_short_his);
         }
     }
-    C.TRADE_OC_CYCLE(true);
+    // C.TRADE_OC_CYCLE(true);
     C.unit_id = 'MAIN';
 
     while(true) {
