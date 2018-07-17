@@ -16,7 +16,6 @@ function* sarTrade (C) {
 
     let records = []; // 开仓交易记录
     let quote = TQ.GET_QUOTE(C.symbol);
-    let position = TQ.GET_POSITION(C.symbol);
 
     let b_ind_sar = TQ.NEW_INDICATOR_INSTANCE(self.sarFsar, C.symbol, C.dur_nano / 1e9);
     let c_ind_sar = TQ.NEW_INDICATOR_INSTANCE(self.sarFsar, C.symbol, c_dur);
@@ -43,6 +42,7 @@ function* sarTrade (C) {
 
     function open_order(i, dir, vol){
         if(records[i]) return;
+        let position = TQ.GET_POSITION(C.symbol);
         var rest_volume_long = max_vol_long - position.volume_long_today - position.volume_long_his;
         var rest_volume_short = max_vol_short - position.volume_short_today - position.volume_short_his;
         var pos = TQ.GET_UNIT_POSITION(C.unit_id, C.symbol);
