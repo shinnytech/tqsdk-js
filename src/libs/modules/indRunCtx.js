@@ -212,7 +212,7 @@ class IndicatorRunContext extends IndicatorContext{
     ISLAST(i){
         return this._ds.last_id === i;
     }
-    ORDER(current_i, direction, offset, volume, limit_price = undefined, order_symbol = this.trade_symbol) {
+    ORDER(current_i, direction, offset, volume, price_type="LIMIT", limit_price = undefined, order_symbol = this.trade_symbol) {
         if (this.is_error || !this._ds || this._ds.last_id === -1)
             return;
         if (!this.out_series_mark) {
@@ -231,7 +231,7 @@ class IndicatorRunContext extends IndicatorContext{
 
         this.last_i = current_i;
         //确定下单价格
-        if (!limit_price){
+        if (price_type === 'LIMIT' && !limit_price){
             // 引用了上层的 TQ
             let quote = this.TQ.GET_QUOTE(order_symbol);
             let price_field = direction === "BUY" ? 'ask_price1' : 'bid_price1';
@@ -257,6 +257,7 @@ class IndicatorRunContext extends IndicatorContext{
                     direction: direction,
                     offset: order_symbol.startsWith("SHFE.")?"CLOSETODAY":"CLOSE",
                     volume: volume_close,
+                    price_type: price_type,
                     limit_price: limit_price,
                     unit_id: this.unit_id,
                 });
@@ -282,6 +283,7 @@ class IndicatorRunContext extends IndicatorContext{
                     direction: direction,
                     offset: "OPEN",
                     volume: volume_open,
+                    price_type: price_type,
                     limit_price: limit_price,
                     unit_id: this.unit_id,
                 });
