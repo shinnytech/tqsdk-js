@@ -291,6 +291,13 @@ class IndicatorRunContext extends IndicatorContext{
     CANCEL_ALL(){
         return this.TQ.CANCEL_ORDER(this.unit_id);
     };
+    LOG(msg, color = '#000000', bkcolor = '#ffffff'){
+        let dt = (new Date()).toISOString().slice(0, 23).replace('T', ' ');
+        let dt_css = 'background: #ddd; color: #000 ';
+        let d_css = 'background: #fff; color: #000 ';
+        let css ='background: ' + bkcolor + '; color:' + color;
+        console.log(`%c${dt}%c %c${JSON.stringify(msg)}`, dt_css, d_css, css);
+    }
     OUTS(style, name, options = {}){
         options.style = style;
         this.out_define[name] = options;

@@ -89,17 +89,39 @@ function* sarTrade (C) {
         if (i < C.DS.last_id) continue;
         // 平仓逻辑
         if (bstate === 'UP_CROSS' || (bstate === 'DOWN' && cstate === 'UP_CROSS')) {
+            C.LOG({
+                b: bstate,
+                c: cstate,
+                action: '卖平'
+            });
             close_order(i, "SELL");
         } else if (bstate === 'DOWN_CROSS' || (bstate === 'UP' && cstate === 'DOWN_CROSS' )) {
+            C.LOG({
+                b: bstate,
+                c: cstate,
+                action: '买平'
+            });
             close_order(i, "BUY");
         } else if((bstate === 'UP' && cstate === 'DOWN') || (bstate === 'DOWN' && cstate === 'UP')){
             if(Cd.buy > -1 && quote.bid_price1 >= Cd.buy){
-                console.log(Cd.buy, quote.bid_price1);
+                C.LOG({
+                    b: bstate,
+                    c: cstate,
+                    对手价: quote.bid_price1,
+                    Cd: Cd.buy,
+                    action: '买开'
+                });
                 close_order(i, "SELL");
                 Cd.buy = -1;
             }
             if(Cd.sell > -1 && quote.ask_price1 <= Cd.sell){
-                console.log(Cd.sell, quote.ask_price1);
+                C.LOG({
+                    b: bstate,
+                    c: cstate,
+                    对手价: quote.ask_price1 ,
+                    Cd: Cd.sell,
+                    action: '卖平'
+                });
                 close_order(i, "BUY");
                 Cd.sell = -1;
             }
@@ -113,20 +135,49 @@ function* sarTrade (C) {
             if (R_Buy > r0 && quote.ask_price1 - long_sar <= p0){
                 open_order(i, "BUY", long_vol);
                 Cd.buy = cal_Cd(quote.ask_price1, long_sar, r0);
+                C.LOG({
+                    b: bstate,
+                    c: cstate,
+                    R: R_Buy,
+                    Cd: Cd.buy,
+                    action: '买开'
+                });
             }
             if (R_Sell <= 1/r0 && short_sar - quote.bid_price1 <= q0){
                 open_order(i, "SELL", short_vol);
                 Cd.sell = cal_Cd(quote.bid_price1, short_sar, r0);
+                C.LOG({
+                    b: bstate,
+                    c: cstate,
+                    R: R_Sell,
+                    Cd: Cd.sell,
+                    action: '卖开'
+                });
             }
         } else if (bstate1 === 'UP' && cstate1 === 'UP'){
             if(quote.ask_price1 - bfsar <= p0) {
                 open_order(i, "BUY", b_buy_vol);
                 Cd.Buy = -1;
+                C.LOG({
+                    b: bstate,
+                    c: cstate,
+                    bfsar: bfsar,
+                    Cd: Cd.Buy,
+                    action: '买开'
+                });
+                C.LOG('b:' + bstate + '; c:' + cstate + ' => 买开' );
             }
         } else if (bstate1 === 'DOWN' && cstate1 === 'DOWN'){
             if(bfsar - quote.bid_price1 <= p0) {
                 open_order(i, "SELL", b_sell_vol);
                 Cd.sell = -1;
+                C.LOG({
+                    b: bstate,
+                    c: cstate,
+                    bfsar: bfsar,
+                    Cd: Cd.sell,
+                    action: '卖开'
+                });
             }
         }
     }
