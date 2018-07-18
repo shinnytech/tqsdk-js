@@ -16,7 +16,7 @@ function* sarTrade (C) {
 
     let records = []; // 开仓交易记录
     let quote = TQ.GET_QUOTE(C.symbol);
-    let position = TQ.GET_POSITION(C.symbol);
+    let position = null;
 
     let b_ind_sar = TQ.NEW_INDICATOR_INSTANCE(self.sarFsar, C.symbol, C.dur_nano / 1e9);
     let c_ind_sar = TQ.NEW_INDICATOR_INSTANCE(self.sarFsar, C.symbol, c_dur);
@@ -43,15 +43,16 @@ function* sarTrade (C) {
 
     function open_order(i, dir, vol){
         if(records[i]) return;
-        var rest_volume_long = max_vol_long - position.volume_long_today - position.volume_long_his;
-        var rest_volume_short = max_vol_short - position.volume_short_today - position.volume_short_his;
+        if(!position) position = TQ.GET_POSITION(C.symbol);
+        var rest_volume_long = vol - position.volume_long_today - position.volume_long_his;
+        var rest_volume_short = vol - position.volume_short_today - position.volume_short_his;
         var pos = TQ.GET_UNIT_POSITION(C.unit_id, C.symbol);
         var order = null;
         if(pos.volume_long != undefined){
-            rest_volume_long = max_vol_long - pos.volume_long - pos.order_volume_buy_open;
+            rest_volume_long = vol - pos.volume_long - pos.order_volume_buy_open;
         }
         if(pos.volume_short != undefined){
-            rest_volume_short = max_vol_short - pos.volume_short - pos.order_volume_sell_open;
+            rest_volume_short = vol - pos.volume_short - pos.order_volume_sell_open;
         }
         if(dir == 'SELL' && rest_volume_short > 0){
             if (rest_volume_short < vol) vol = rest_volume_short;
@@ -73,13 +74,14 @@ function* sarTrade (C) {
     }
 
     function close_order(i, dir){
+        if(!position) position = TQ.GET_POSITION(C.symbol);
         if(dir === 'SELL'){
             C.ORDER(i, "SELL", "CLOSE", position.volume_long_today + position.volume_long_his);
         } else {
             C.ORDER(i, "BUY", "CLOSE", position.volume_short_today + position.volume_short_his);
         }
     }
-    // C.TRADE_OC_CYCLE(true);
+    //C.TRADE_OC_CYCLE(true);
     C.unit_id = 'MAIN';
 
     while(true) {

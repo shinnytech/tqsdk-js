@@ -355,8 +355,11 @@ class TQSDK {
             "direction": direction,
             "offset": offset,
             "volume": volume,
-            "price_type": "LIMIT",
+            "price_type": price_type,
             "limit_price": limit_price,
+            "time_condition": price_type === 'ANY' ? 'IOC' : 'GFD',
+            "volume_condition": "ANY",
+            "hedge_flag": "SPECULATION",
             "user_id": this.dm.account_id
         };
         this.ws.send_json(send_obj);
@@ -371,7 +374,7 @@ class TQSDK {
             exchange_id: exchange_id,
             instrument_id: instrument_id,
             limit_price: limit_price,
-            price_type: "LIMIT",
+            price_type: price_type
         }, "trade", this.dm.account_id, "orders", order_id);
         order._epoch = this.dm.epoch;
         this.process_unit_order(order, volume);

@@ -43,7 +43,7 @@
     "gulp-jsdoc3": "^1.0.1",
     "gulp-replace": "^0.6.1",
     "gulp-watch": "^4.3.11",
-    "karma": "^2.0.2",
+    "karma": "^2.0.4",
     "karma-chai": "^0.1.0",
     "karma-chrome-launcher": "^2.2.0",
     "karma-coverage": "^1.1.2",

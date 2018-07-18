@@ -103,11 +103,13 @@ class DataManager{
     }
 
     set_default(default_value, ...path){
-        let node = this.datas;
+        let node = typeof path[0] === 'object' ? path[0] : this.datas;
         for (let i = 0; i < path.length; i++) {
-            if (! (path[i] in node))
-                node[path[i]] = (i+1 === path.length) ? default_value : {};
-            node = node[path[i]];
+            if(typeof path[i] === 'string' || typeof path[i] === 'number'){
+                if (! (path[i] in node))
+                    node[path[i]] = (i+1 === path.length) ? default_value : {};
+                node = node[path[i]];
+            }
         }
         return node;
     }
