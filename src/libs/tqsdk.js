@@ -84,6 +84,9 @@ class TQSDK {
                 case "rtn_data":
                     this.on_rtn_data(message.data);
                     break;
+                case "delete_indicator_instance":
+                    this.on_delete_indicator_instance(message.data);
+                    break;
                 case "update_indicator_instance":
                     this.on_update_indicator_instance(message.data);
                     break;
@@ -208,6 +211,13 @@ class TQSDK {
         }
     }
 
+    on_delete_indicator_instance(pack){
+        if(this.ta.instance_dict[pack.instance_id]){
+            this.ta.instance_dict[pack.instance_id].instance.return();
+            this.ta.delete_indicator_instance(pack.instance_id);
+        }
+    }
+
     on_update_indicator_instance(pack){
         //重置指标参数
         let instance_id = pack.instance_id;
@@ -225,7 +235,7 @@ class TQSDK {
             instance = this.ta.new_indicator_instance(c, pack.ins_id, pack.dur_nano, ds, params, pack.instance_id);
         }else{
             instance = this.ta.instance_dict[pack.instance_id];
-            if (ds != instance.ds || !Object.equals(params, instance.PARAMS)){
+            if (ds != instance._ds || !Object.equals(params, instance.PARAMS)){
                 this.ta.delete_indicator_instance(instance);
                 instance = this.ta.new_indicator_instance(c, pack.ins_id, pack.dur_nano, ds, params, pack.instance_id);
             }
