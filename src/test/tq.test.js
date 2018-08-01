@@ -1,40 +1,24 @@
-var assert = require('assert');
-var {init_test_data, batch_input_datas, MockWebsocket} = require('./test_data.js');
-var importScripts = require('./importScripts.js');
-importScripts('src/libs/func/basefuncs.js', 'src/libs/tqsdk.js', 'src/libs/ind/ma.js');
-
-var TQ = new TQSDK(new MockWebsocket());
-init_test_data(TQ);
-
-let symbol = "CFFEX.IF1809";
-batch_input_datas({TQ, symbol, dur:5});
-
-function* demo(C){
-    //指标定义
-    C.DEFINE({
-        type: "MAIN",
-        cname: "下单策略演示",
-        state: "KLINE",
-    });
-    // 参数
-    // 输出序列
-    // 计算
-    while(true) {
-        let i = yield;
-        if (C.DS.open[i] % 2 === 0)  //买进
-            C.ORDER(i, "BUY", "CLOSEOPEN", 1);
-        if (C.DS.open[i] % 2 === 1)  //卖出
-            C.ORDER(i, "SELL", "CLOSEOPEN", 1);
-    }
-}
-
 describe('指标中下单', function () {
-    TQ.REGISTER_INDICATOR_CLASS(demo);
+    var TQ = new TQSDK(new MockWebsocket());
+    var symbol = "CFFEX.IF1801";
+    var dur = 5;
+    before( () => {
+        TQ.REGISTER_INDICATOR_CLASS(mat);
+        TQ.on_rtn_data(init_test_data());
+        TQ.on_rtn_data(batch_input_datas({
+            symbol,
+            dur,
+            left_id: 100,
+            right_id: 1000,
+            last_id: 1000
+        }));
+    });
+
     it('发送 mk 序列', function () {
         //请求创建指标实例
         let r = {
             "aid": "update_indicator_instance",
-            "ta_class_name": "demo",
+            "ta_class_name": "mat",
             "instance_id": "abc324238",
             "epoch": 1,
             "ins_id": symbol,
@@ -54,11 +38,12 @@ describe('指标中下单', function () {
         assert.equal(send_obj.epoch, 1);
         assert.equal(send_obj.range_left, 600);
         assert.equal(send_obj.range_right, 1000);
-        assert.equal(send_obj.datas.mk[0].length, 401);
-        assert.equal(send_obj.datas.mk[0][0], 1);
-        assert.equal(send_obj.datas.mk[0][1], 2);
+        console.log(Object.keys(send_obj.serials))
+        assert.equal(send_obj.datas.ma3[0].length, 401);
+        // assert.equal(send_obj.datas.mk[0][0], 1);
+        // assert.equal(send_obj.datas.mk[0][1], 2);
 
-        batch_input_datas({TQ, symbol, dur:5, left_id:1001, right_id:1001, last_id:1001});
+        TQ.on_rtn_data(batch_input_datas({TQ, symbol, dur:5, left_id:1001, right_id:1001, last_id:1001}));
 
         send_obj = TQ.ws.send_objs.pop();
 
@@ -67,10 +52,9 @@ describe('指标中下单', function () {
         assert.equal(send_obj.epoch, 1);
         assert.equal(send_obj.range_left, 1000);
         assert.equal(send_obj.range_right, 1001);
-        assert.equal(send_obj.datas.mk[0].length, 2);
-        assert.equal(send_obj.datas.mk[0][0], 1);
-        assert.equal(send_obj.datas.mk[0][1], 2);
+        assert.equal(send_obj.datas.ma3[0].length, 2);
+        // assert.equal(send_obj.datas.mk[0][0], 1);
+        // assert.equal(send_obj.datas.mk[0][1], 2);
 
-        console.log(TQ.ws.send_objs)
     });
 });

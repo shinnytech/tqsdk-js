@@ -82,7 +82,7 @@ describe('New TQSDK', () => {
 
         let outs_data2 = ind.outs.ma3(1000, 1010);
         assert.equal(outs_data2.length, 11);
-        console.log(outs_data2)
+        // console.log(outs_data2)
         assert.ok(isNaN(outs_data2[0]));
         assert.ok(isNaN(outs_data2[1]));
         assert.equal(outs_data2[2], 1001);

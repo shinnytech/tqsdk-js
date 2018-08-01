@@ -35,6 +35,9 @@ module.exports = function(config) {
             { pattern: 'libs/tqsdk.js', included: true},
             { pattern: 'test/test_data.js', included: true},
             'test/ta.test.js',
+            'test/dm.test.js',
+            'test/performance.test.js',
+            'test/tq.test.js',
         ],
 
 

@@ -1,16 +1,23 @@
-var assert = require('assert');
-var {init_test_data, batch_input_datas, MockWebsocket} = require('./test_data.js');
-var importScripts = require('./importScripts.js');
-importScripts('src/libs/func/basefuncs.js', 'src/libs/tqsdk.js');
-
-var TQ = new TQSDK(new MockWebsocket());
-init_test_data(TQ);
-let symbol = "CFFEX.IF1801";
 
 let order_ids = [];
 
-
 describe('下单', function () {
+    var TQ = new TQSDK(new MockWebsocket());
+    var symbol = "CFFEX.IF1801";
+    var dur = 5;
+
+    before( () => {
+        TQ.REGISTER_INDICATOR_CLASS(ma); // 定义指标
+        TQ.on_rtn_data(init_test_data());
+        TQ.on_rtn_data(batch_input_datas({
+            symbol,
+            dur,
+            left_id: 1000,
+            right_id: 10000,
+            last_id: 10000
+        }));
+    });
+
     it('单个函数', function () {
         //下单
         let order1 = TQ.INSERT_ORDER({

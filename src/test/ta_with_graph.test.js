@@ -1,16 +1,19 @@
-var assert = require('assert');
-var {init_test_data, batch_input_datas, MockWebsocket} = require('./test_data.js');
-var importScripts = require('./importScripts.js');
-importScripts('src/libs/func/basefuncs.js', 'src/libs/tqsdk.js', 'src/libs/ind/ma.js', 'src/libs/ind/voi.js');
-
-var TQ = new TQSDK(new MockWebsocket());
-init_test_data(TQ);
-let symbol = "CFFEX.IF1801";
-
 describe('技术指标与图表结合使用', function () {
-    TQ.REGISTER_INDICATOR_CLASS(ma);
-    TQ.REGISTER_INDICATOR_CLASS(voi);
-    batch_input_datas({TQ, symbol, dur:5, left_id:1000, right_id:3000, last_id:3000});
+    var TQ = new TQSDK(new MockWebsocket());
+    var symbol = "CFFEX.IF1801";
+    var dur = 5;
+    before( () => {
+        TQ.REGISTER_INDICATOR_CLASS(ma);
+        TQ.REGISTER_INDICATOR_CLASS(voi);
+        TQ.on_rtn_data(init_test_data());
+        TQ.on_rtn_data(batch_input_datas({
+            symbol,
+            dur,
+            left_id: 1000,
+            right_id: 3000,
+            last_id: 3000
+        }));
+    });
 
     it('常规流程', function () {
         //请求创建指标实例
