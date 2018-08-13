@@ -54,12 +54,8 @@ class DataManager{
                         if (!(key in target)) target.data = [];
                         // @note: 后面使用 GET_KLINE 返回的是 target.data 的 proxy，这样可以方便取得 last_id
                         // target 不是每次都有 last_id
-                        // if(target.last_id) target.data.last_id = target.last_id;
+                        if(target.last_id) target.data.last_id = target.last_id;
                         this.mergeObject(target[key], value, deleteNullObj);
-                        // @note: every 对数组中的每个元素都执行一次指定的函数（callback），直到此函数返回 false，如果发现这个元素，every 将返回 false，如果回调函数对每个元素执行后都返回 true ，every 将返回 true。它只对数组中的非空元素执行指定的函数，没有赋值或者已经删除的元素将被忽略
-                        target.data.every(function(val, index, arr){
-                            target.left_id = index;
-                        });
                     } else if (key == "units"){
                         //@note: 不再接收主程序推送的unit相关数据, 改为sdk内部自行计算
                     } else {

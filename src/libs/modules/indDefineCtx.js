@@ -35,6 +35,14 @@ class IndicatorContext {
     ORDER() {};
     TRADE_AT_CLOSE(){};
     TRADE_OC_CYCLE(){};
+    DRAW(){};
+    DRAW_LINE(){};
+    DRAW_RAY(){};
+    DRAW_SEG(){};
+    DRAW_BOX(){};
+    DRAW_PANEL(){};
+    DRAW_ICON(){};
+    DRAW_TEXT(){};
 }
 
 class IndicatorDefineContext extends IndicatorContext{

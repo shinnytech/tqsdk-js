@@ -90,84 +90,63 @@ class IndicatorRunContext extends IndicatorContext{
         if (this.is_error || !this._ds || this._ds.last_id == -1 || left > this._ds.last_id){
             return [-1, -1];
         }
-
-
         let calc_left = -1, calc_right = -1;
         let isDefault = false;
 
         if (left === undefined || right === undefined) {
             // 1 默认值  => 没有数据就不计算
-            left = this.view_left < this._ds.left_id ? this._ds.left_id : this.view_left;
+            isDefault = true;
+            left = this.view_left;
             right = this.view_right > this._ds.last_id ? this._ds.last_id : this.view_right;
             if(right < left) return [-1, -1];
-            isDefault = true;
 
-        } else {
-            // 2 用户输入值 => 即使没有数据也要计算填入 NaN, 把用户输入的范围记下来
-            [calc_left, calc_right] = [left, right];
-        }
-
-        /**
-         * ------[-----------------]------- this._ds.data
-         *   valid_left        valid_right
-         */
-        if(this.valid_left === -1 || this.valid_right === -1 || right < this.valid_left || left > this.valid_right ){
-            // -------------------------------
-            // --(***)--[----------------]----
-            // ----[----------------]--(***)--
-            right = this._exist_data_range(left, right);
-            if (right >= left) {
-                this.valid_left = left;
-                this.valid_right = right;
-            } else {
-                if(isDefault) return [-1, -1];
-            }
-        } else if(left < this.valid_left){
-            // 向前移动
-            // --(***[**************]***)--
-            // --(***[****)---------]------
-            let temp_right = this._exist_data_range(left, this.valid_left);
-            if(temp_right >= left){
-                if (temp_right < this.valid_left) {
-                    // this.valid_left 之前有不存在的数据
-                    this.valid_right = right = temp_right;
-                } else if (right > this.valid_right) {
-                    // --(***[**************]***)--
-                    right = this._exist_data_range(this.valid_right, right);
-                    this.valid_right = right;
-                } else {
-                    // --(***[****)---------]------
-                    calc_right = right = this.valid_left;
+            if (this.valid_left > -1 && this.valid_right > -1){
+                if(left < this.valid_left){
+                    if (right >= this.valid_left && right <= this.valid_right){
+                        right = this.valid_left;
+                    }
+                } else if(left >= this.valid_left && left <= this.valid_right) {
+                    if (right >= this.valid_right){
+                        left = this.valid_right;
+                    } else {
+                        left = right = -1;
+                    }
                 }
-                this.valid_left = left;
-            } else {
-                if(isDefault) return [-1, -1];
-            }
-        } else {
-            // 向后移动
-            if (right < this.valid_right ){
-                // --[---(*******)-----]-----
-                return [-1, -1];
-            } else {
-                // --[---(************]***)--
-                calc_left = left = this.valid_right;
-                right = this._exist_data_range(this.valid_right, right);
-                this.valid_right = right;
             }
         }
-        if(isDefault) [calc_left, calc_right] = [left, right];
+        // 2 用户输入值 => 即使没有数据也要计算填入 NaN, 把用户输入的范围记下来
+
         let runId = TaManager.Keys.next().value;
         let content = {
             id: runId,
             instanceId: this.instance_id,
-            className: this.ind_class_name,
-            range: [calc_left, calc_right]
+            className: this.ind_class_name
         };
+
         try{
             if(IsWebWorker)
                 self.postMessage({ cmd: 'calc_start', content});
-            for (let i = calc_left; i <= calc_right; i++) {
-                this.instance.next(i);
+            for (let i = left; i <= right; i++) {
+                if(this._ds.data[i]){
+                    this.instance.next(i);
+                    if(calc_left < 0) calc_left = i;
+                    calc_right = i;
+                } else {
+                    if (isDefault && calc_left > -1) break;
+                    if (!isDefault) this.instance.next(i);
+                }
+            }
+            if (calc_left > -1 && calc_right > -1){
+                if(this.valid_left > -1 && this.valid_right > -1 ){
+                    let _valid_left = this.valid_left;
+                    if (calc_left < this.valid_left || calc_left > this.valid_right)
+                        this.valid_left = calc_left;
+                    if (calc_right < _valid_left || calc_right > this.valid_right)
+                        this.valid_right = calc_right;
+                } else {
+                    this.valid_left = calc_left;
+                    this.valid_right = calc_right;
+                }
             }
             if(IsWebWorker)
                 self.postMessage({ cmd: 'calc_end', content});
@@ -241,6 +220,18 @@ class IndicatorRunContext extends IndicatorContext{
         }
 
         let position = this.TQ.GET_UNIT_POSITION(this.unit_id, order_symbol);
+
+        if (this.unit_id === 'MAIN'){
+            let unit_position = position;
+            position = this.TQ.GET_POSITION(order_symbol);
+            position.volume_long = position.volume_long_today + position.volume_long_his;
+            position.volume_short = position.volume_short_today + position.volume_short_his;
+            position.order_volume_buy_open = unit_position.order_volume_buy_open;
+            position.order_volume_buy_close = unit_position.order_volume_buy_close;
+            position.order_volume_sell_open = unit_position.order_volume_sell_open;
+            position.order_volume_sell_close = unit_position.order_volume_sell_close;
+        }
+
         let volume_open = 0;
         let volume_close = 0;
         if (offset === "CLOSE" || offset === "CLOSEOPEN") {
@@ -332,7 +323,6 @@ class IndicatorRunContext extends IndicatorContext{
                 let [l, r] = [left, right ? right : left];
                 if(self.view_left === -1 && self.valid_right === -1 ){
                     l = self._ds.last_id - 500;
-                    l = l < self._ds.left_id ? self._ds.left_id : l;
                     r = self._ds.last_id;
                 }
                 let [calc_left, calc_right] = self.calc_range(l, r);
