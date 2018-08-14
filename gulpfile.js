@@ -132,6 +132,7 @@ gulp.task('copy', [], function () {
         './src/libs/func/*',
         './src/libs/ind/*',
         './src/libs/custom/*',
+        '!./src/libs/custom/sarTrade.js',
         './src/libs/task/*',
     ], { base: "src" })
     .pipe(gulp.dest(dist));;

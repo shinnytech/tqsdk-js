@@ -9,5 +9,6 @@ function* drawline (C) {
          C.DRAW_LINE('line1', i-20, C.DS.close[i-20], i, C.DS.high[i], WHITE, 2, 0);
          C.DRAW_RAY('line2', i-20, C.DS.close[i-20], i, C.DS.high[i], YELLOW, 2, 0);
          C.DRAW_SEG('line3', i-20, C.DS.close[i-20], i, C.DS.high[i], RED, 1, 0);
+         C.DRAW_PANEL('box', i-20, C.DS.close[i-20], i, C.DS.high[i], GREEN, 2, 0 )
     }
 }

@@ -60,6 +60,7 @@ class IndicatorRunContext extends IndicatorContext{
         this.out_drawings[id] = {type:"ICON", x1, y1, icon};
     };
     DRAW_TEXT(id, x1, y1, text="", color=0xFFFFFF){
+        if(typeof text != 'string') text = text.toString();
         this.out_drawings[id] = {type:"TEXT", x1, y1, text, color};
     };
 
