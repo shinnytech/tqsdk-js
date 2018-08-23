@@ -14,7 +14,8 @@ function* sarTrade (C) {
     let c_sell_vol = C.PARAM(4, "大周期空单手数");
     let q0 = C.PARAM(12, "大周期建仓优化参数");
 
-    let records = []; // 开仓交易记录
+    let records_buy = []; // 开仓交易记录
+    let records_sell = [];
     let quote = TQ.GET_QUOTE(C.symbol);
     let position = null;
 
@@ -41,9 +42,26 @@ function* sarTrade (C) {
         return [serial.outs.S0(-1), serial.outs.S1(-1), fsar];
     }
 
-    function open_order(i, dir, vol){
-        if(records[i]) return;
+    function lock_order(i, dir){
         if(!position) position = TQ.GET_POSITION(C.symbol);
+        var vol = dir == 'BUY' ? position.volume_short_today + position.volume_short_his - position.volume_long_today - position.volume_long_his
+            : position.volume_long_today + position.volume_long_his - position.volume_short_today - position.volume_short_his;
+        if (vol > 0){
+            var order = C.ORDER(i, dir, "OPEN", vol);
+            setTimeout(function(){
+                if(order && order.order_id){
+                    TQ.CANCEL_ORDER(order);
+                }
+            }, 1000);
+        }
+    }
+
+    function open_order(i, dir, vol){
+        if(dir === 'BUY' && records_buy[i]) return;
+        if(dir === 'SELL' && records_sell[i]) return;
+
+        if(!position) position = TQ.GET_POSITION(C.symbol);
+
         var rest_volume_long = vol - position.volume_long_today - position.volume_long_his;
         var rest_volume_short = vol - position.volume_short_today - position.volume_short_his;
         var pos = TQ.GET_UNIT_POSITION(C.unit_id, C.symbol);
@@ -54,17 +72,16 @@ function* sarTrade (C) {
         if(pos.volume_short != undefined){
             rest_volume_short = vol - pos.volume_short - pos.order_volume_sell_open;
         }
+
         if(dir == 'SELL' && rest_volume_short > 0){
             if (rest_volume_short < vol) vol = rest_volume_short;
-            close_order(i, "SELL");
             order = C.ORDER(i, "SELL", "OPEN", vol);
-            records[i] = true;
+            if(vol > 0) records_buy[i] = true;
         }
         if(dir == 'BUY' && rest_volume_long > 0){
             if (rest_volume_long < vol) vol = rest_volume_long;
-            close_order(i, "BUY");
             order = C.ORDER(i, "BUY", "OPEN", vol);
-            records[i] = true;
+            if(vol > 0) records_sell[i] = true;
         }
         setTimeout(function(){
             if(order && order.order_id){
@@ -84,50 +101,79 @@ function* sarTrade (C) {
     //C.TRADE_OC_CYCLE(true);
     C.unit_id = 'MAIN';
 
-    while(true) {
-        let i = yield;
-        let [bstate, bstate1, bfsar] = getState(i, b_ind_sar);
-        let [cstate, cstate1, cfsar] = getState(null, c_ind_sar);
-        if (i < C.DS.last_id) continue;
-        // 平仓逻辑
-        if (bstate === 'UP_CROSS' || (bstate === 'DOWN' && cstate === 'UP_CROSS')) {
-            close_order(i, "SELL");
-        } else if (bstate === 'DOWN_CROSS' || (bstate === 'UP' && cstate === 'DOWN_CROSS' )) {
-            close_order(i, "BUY");
-        } else if((bstate === 'UP' && cstate === 'DOWN') || (bstate === 'DOWN' && cstate === 'UP')){
-            if(Cd.buy > -1 && quote.bid_price1 >= Cd.buy){
-                close_order(i, "SELL");
-                Cd.buy = -1;
-            }
-            if(Cd.sell > -1 && quote.ask_price1 <= Cd.sell){
-                close_order(i, "BUY");
-                Cd.sell = -1;
-            }
-        }
-        // 开仓逻辑
+    function checkOpen(bstate1, cstate1, bfsar, cfsar){
+        var result = 0;
         if((bstate1 === 'UP' && cstate1 === 'DOWN') || (bstate1 === 'DOWN' && cstate1 === 'UP')){
             var [short_sar, long_sar] = cstate1 === 'DOWN' ? [cfsar, bfsar] : [bfsar, cfsar];
             var [short_vol, long_vol] = cstate1 === 'DOWN' ? [c_sell_vol, b_buy_vol] : [b_sell_vol, c_buy_vol];
             var R_Buy = cal_R(short_sar, long_sar, quote.ask_price1);
             var R_Sell = cal_R(short_sar, long_sar, quote.bid_price1);
             if (R_Buy > r0 && quote.ask_price1 - long_sar <= p0){
-                open_order(i, "BUY", long_vol);
+                result = long_vol;
                 Cd.buy = cal_Cd(quote.ask_price1, long_sar, r0);
             }
             if (R_Sell <= 1/r0 && short_sar - quote.bid_price1 <= q0){
-                open_order(i, "SELL", short_vol);
+                result = -short_vol;
                 Cd.sell = cal_Cd(quote.bid_price1, short_sar, r0);
             }
         } else if (bstate1 === 'UP' && cstate1 === 'UP'){
             if(quote.ask_price1 - bfsar <= p0) {
-                open_order(i, "BUY", b_buy_vol);
+                result = b_buy_vol;
                 Cd.Buy = -1;
             }
         } else if (bstate1 === 'DOWN' && cstate1 === 'DOWN'){
             if(bfsar - quote.bid_price1 <= p0) {
-                open_order(i, "SELL", b_sell_vol);
+                result = -b_sell_vol;
                 Cd.sell = -1;
             }
+        }
+        return result;
+    }
+
+    function checkClose(bstate, cstate){
+        var result = null;
+        if (bstate === 'UP_CROSS' || (bstate === 'DOWN' && cstate === 'UP_CROSS')) {
+            result = 'SELL';
+        } else if (bstate === 'DOWN_CROSS' || (bstate === 'UP' && cstate === 'DOWN_CROSS' )) {
+            result = 'BUY';
+        } else if((bstate === 'UP' && cstate === 'DOWN') || (bstate === 'DOWN' && cstate === 'UP')){
+            if(Cd.buy > -1 && quote.bid_price1 >= Cd.buy){
+                result = 'SELL';
+                Cd.buy = -1;
+            }
+            if(Cd.sell > -1 && quote.ask_price1 <= Cd.sell){
+                result = 'BUY';
+                Cd.sell = -1;
+            }
+        }
+        return result;
+    }
+
+    while(true) {
+        let i = yield;
+        let [bstate, bstate1, bfsar] = getState(i, b_ind_sar);
+        let [cstate, cstate1, cfsar] = getState(null, c_ind_sar);
+        if (i < C.DS.last_id) continue;
+
+        var close = checkClose(bstate, cstate);
+        var open = checkOpen(bstate1, cstate1, bfsar, cfsar);
+        if(close === 'BUY'){
+            if(open > 0){
+                close_order(i, "BUY");
+                open_order(i, 'BUY', Math.abs(open));
+            } else {
+                lock_order(i, 'BUY');
+            }
+        } else if(close === 'SELL'){
+            if(open < 0){
+                close_order(i, "SELL");
+                open_order(i, 'SELL', Math.abs(open));
+            } else {
+                lock_order(i, 'SELL');
+            }
+        } else if(open !== 0) {
+            close_order(i, open > 0 ? 'BUY' : 'SELL');
+            open_order(i, open > 0 ? 'BUY' : 'SELL', Math.abs(open));
         }
     }
 }
