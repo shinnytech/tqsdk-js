@@ -33,7 +33,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-9">
-                            <input type="text" class="form-control  input-sm" id="symbol" placeholder="合约代码" value='SHFE.rb1810'>
+                            <input type="text" class="form-control  input-sm" id="symbol" placeholder="合约代码" value='DCE.c1901'>
                         </div>
                     </div>
                     <div class="row">
@@ -93,7 +93,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-4">
-                            <input type="number" id='price_from' class="form-control  input-sm" value="20">
+                            <input type="number" id='price_from' class="form-control  input-sm" value="1000">
                         </div>
                         <div class="col col-xs-1">
                             <span class="pull-right">
@@ -101,7 +101,7 @@
                             </span>
                         </div>
                         <div class="col col-xs-4">
-                            <input type="number" id='price_to' class="form-control  input-sm" value="4000">
+                            <input type="number" id='price_to' class="form-control  input-sm" value="6000">
                         </div>
                     </div>
                     <div class="row">
@@ -242,62 +242,40 @@
             let min_price = Math.min(TQ.UI.price_from, TQ.UI.price_to);
             // 价格设定为跟盘价格
             let price_field = (TQ.UI.direction === 'SELL') ? 'ask_price1' : 'bid_price1';
-            let order_params = Object.assign(TQ.UI(), {unit_id: 'split'});
-            let offset_dir = (TQ.UI.offset + '_' + TQ.UI.direction).toLowerCase();
+            let order_params = Object.assign(TQ.UI());
 
-            let orders = TQ.GET_ORDER_DICT();
-            let trades = TQ.GET_TRADE_DICT(); //
+            let order = null;
             let total_volume = TQ.UI.all_volume; //总共要成交的手数, 一直不变
             let traded_volume = 0; //确定已成交的手数
-            let order_volume = 0; //当前正在挂单中的手数
             let traded_cost = 0;
             while(true){
                 TQ.UI({ traded_volume, traded_avgprice: traded_cost/traded_volume}); // 更新显示已成交手数、已成交均价
                 if (traded_volume >= total_volume)
                     break;
                 //符合下单条件时下单
-                if (quote[price_field] <= max_price && quote[price_field] >= min_price) {
-                    order_params.volume = Math.min(total_volume - traded_volume, TQ.UI.max_one_volume - order_volume);
+                if (order == null && quote[price_field] <= max_price && quote[price_field] >= min_price) {
+                    order_params.volume = Math.min(total_volume - traded_volume, TQ.UI.max_one_volume);
                     if (order_params.volume > 0) {
                         order_params.limit_price = quote[price_field]; // 设置价格
-                        TQ.INSERT_ORDER(order_params);
-                        order_volume+=order_params.volume;
-                        console.log("Insert:" + order_volume);
+                        order = TQ.INSERT_ORDER(order_params);
                     }
                 }
                 let result = yield {
                     PRICE_CHANGED: function () { return quote[price_field] !== order_params.limit_price },
-                    ORDER_CHANGED: function () {return TQ.IS_CHANGING(orders)},
-                    NEW_TRADE: function () {return TQ.IS_CHANGING(trades)},
+                    ORDER_CHANGED: function () {return TQ.IS_CHANGING(order)},
                     USER_CLICK_STOP: TQ.ON_CLICK('STOP')
                 };
-                if (result.NEW_TRADE){
-                    for(let k in trades){
-                        let trade = trades[k];
-                        if (TQ.IS_CHANGING(trade) && trade.order_id.startsWith("split.")){
-                            traded_cost += trade.price * trade.volume;
-                            traded_volume += trade.volume;
-                            order_volume -= trade.volume;
-                            console.log("Trade:" + k +", " + trade.volume + ", " + order_volume);
-                        }
-                    }
+                if (order && order.status == "FINISHED"){
+                    traded_cost += order.limit_price * (order.volume_orign - order.volume_left);
+                    traded_volume += (order.volume_orign - order.volume_left) ;
+                    order = null;
                 }
-                if (result.ORDER_CHANGED){
-                    for(let k in orders){
-                        let order = orders[k];
-                        if (TQ.IS_CHANGING(order)
-                            && order.order_id.startsWith("split.")
-                            && order.status == "FINISHED"){
-                            order_volume -= order.volume_left;
-                            console.log("Order:" + k +", " + order.volume_left + ", " + order_volume);
-                        }
-                    }
+                if (result.PRICE_CHANGED && order && order.status == "ALIVE"){
+                    TQ.CANCEL_ORDER(order);
                 }
-                if (result.PRICE_CHANGED || result.USER_CLICK_STOP) {
-                    console.log("Cancel:");
-                    TQ.CANCEL_ORDER('split');
-                    if (result.USER_CLICK_STOP)
-                        break;
+                if (result.USER_CLICK_STOP){
+                    TQ.CANCEL_ORDER(order);
+                    break;
                 }
             }
             // 任务结束

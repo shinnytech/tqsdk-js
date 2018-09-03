@@ -384,7 +384,8 @@ class TQSDK {
             exchange_id: exchange_id,
             instrument_id: instrument_id,
             limit_price: limit_price,
-            price_type: price_type
+            price_type: price_type,
+            cancelable: true
         }, "trade", this.dm.account_id, "orders", order_id);
         order._epoch = this.dm.epoch;
         this.process_unit_order(order, volume);
@@ -393,7 +394,7 @@ class TQSDK {
 
     CANCEL_ORDER(order) {
         let orders = {};
-        if (typeof order === 'object') {
+        if (typeof order === 'object' && order && order.order_id) {
             orders[order.order_id] = order;
         } else if (typeof order === 'string')  {
             let all_orders = this.dm.get('trade', this.dm.account_id, 'orders');
@@ -404,12 +405,14 @@ class TQSDK {
             }
         }
         for (let order_id in orders) {
-            if(orders[order_id].status === "ALIVE")
+            if(orders[order_id].status === "ALIVE" && orders[order_id].cancelable ){
                 this.ws.send_json({
                     "aid": "cancel_order",
                     "order_id": order_id,
                     "user_id": this.dm.account_id
                 });
+                orders[order_id].cancelable = false;
+            }
         }
         return Object.keys(orders).length;
     }
