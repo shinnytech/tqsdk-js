@@ -29,7 +29,6 @@ class TQSDK {
 
         this.ws.init();
         this.filename = location.href.split('/').pop();
-        this.uistore = new Store(this.filename);
         this.UI = new Proxy(() => null, {
             get: function (target, key, receiver) {
                 let res = UiUtils.readNodeBySelector('input#' + key);
@@ -275,6 +274,7 @@ class TQSDK {
                 drawings: instance.out_drawings,
             };
             this.ws.send_json(set_data);
+            instance.out_drawings = {};
         }
     }
 
@@ -482,6 +482,7 @@ class TQSDK {
 
     init_ui(){
         if (IsBrowser) {
+            this.uistore = new Store(this.filename);
             var this_tq = this;
             $(() => {
                 // init code
