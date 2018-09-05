@@ -1,9 +1,3 @@
-const GLOBAL_CONTEXT = {
-    current_account_id: "",
-    current_symbol: "SHFE.cu1810",
-    current_dur: "5000000000",
-};
-
 class TQSDK {
     constructor(mock_ws) {
         this.id = RandomStr(4);
@@ -34,6 +28,8 @@ class TQSDK {
         this.STOP_TASK = this.tm.stop_task.bind(this.tm);
 
         this.ws.init();
+        this.filename = location.href.split('/').pop();
+        this.uistore = new Store(this.filename);
         this.UI = new Proxy(() => null, {
             get: function (target, key, receiver) {
                 let res = UiUtils.readNodeBySelector('input#' + key);
@@ -44,9 +40,10 @@ class TQSDK {
                 if (res[key]) return res[key];
                 return undefined;
             },
-            set: function (target, key, value, receiver) {
+            set: (function (target, key, value, receiver) {
+                this.uistore.set(key, value);
                 UiUtils.writeNode(key, value);
-            },
+            }).bind(this),
             apply: function (target, ctx, args) {
                 let params = args[0];
                 if (params) for (let key in params) UiUtils.writeNode(key, params[key]);
@@ -334,7 +331,7 @@ class TQSDK {
     GET_QUOTE(symbol){
         // 订阅行情
         var ins_list = this.dm.datas.ins_list;
-        if (ins_list && !ins_list.includes(symbol)) {
+        if (ins_list != undefined && !ins_list.includes(symbol)) {
             var s = ins_list + "," + symbol;
             this.ws.send_json({
                 aid: "subscribe_quote",
@@ -495,6 +492,12 @@ class TQSDK {
 
                 $('#collapse').on('hide.bs.collapse', () => $('#collapse_arrow').removeClass('glyphicon-menu-up').addClass('glyphicon-menu-down'));
                 $('#collapse').on('show.bs.collapse', () => $('#collapse_arrow').removeClass('glyphicon-menu-down').addClass('glyphicon-menu-up'));
+                var allui = this_tq.UI();
+                for(var k in allui){
+                    if(this_tq.uistore.get(k)){
+                        UiUtils.writeNode(k, this_tq.uistore.get(k));
+                    }
+                }
 
                 $(document).on('click', function (e) {
                     // 页面 Click 事件统一处理 4 类按钮 START RESUME PAUSE END
@@ -504,6 +507,7 @@ class TQSDK {
                 $('input').on('change', function (e) {
                     var dataSet = Object.assign({}, e.target.dataset);
                     this_tq.tm.run({ type: e.type, id: e.target.id, data: dataSet });
+                    this_tq.uistore.set(e.target.id, e.target.value);
                 });
             });
         }

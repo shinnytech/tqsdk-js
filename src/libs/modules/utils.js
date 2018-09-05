@@ -80,26 +80,24 @@ function getobj(obj, ...path){
 }
 
 class Store {
-    constructor (key){
-        this.key = key;
-        this.init();
-    }
-    init(){
-        if (localStorage.getItem(this.key) === null)
+    constructor(StoreKey){
+        this.key = StoreKey;
+        this.data = {};
+        if (localStorage.getItem(this.key) === null){
             localStorage.setItem(this.key, "{}");
+        } else {
+            this.data = JSON.parse(localStorage.getItem(this.key));
+        }
     }
-    save(obj){
-        obj = JSON.stringify(obj);
-        localStorage.setItem(this.key, obj);
-        return obj;
+    set(key, value){
+        this.data[key] = value;
+        localStorage.setItem(this.key, JSON.stringify(this.data));
     }
-    get(){
-        return JSON.parse(localStorage.getItem(this.key));
-    }
-    remove(){
-        localStorage.removeItem(this.key);
+    get(key){
+        return this.data[key];
     }
 }
+
 class ErrorStore{
     constructor (key, webworker){
         this.key = key;
