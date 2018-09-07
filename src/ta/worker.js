@@ -2,7 +2,6 @@
 importScripts('../libs/modules/utils.js');
 importScripts('../libs/modules/color.js');
 importScripts('../libs/modules/event.js');
-importScripts('../libs/modules/publicdata.js');
 importScripts('../libs/modules/datamanager.js');
 importScripts('../libs/modules/indDefineCtx.js');
 importScripts('../libs/modules/indRunCtx.js');

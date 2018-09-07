@@ -8,17 +8,9 @@ class TQSDK {
             this.ws = new TqWebsocket('ws://127.0.0.1:7777/')
         }
 
-        this.pd = new PublicData();
         this.dm = new DataManager();
         this.tm = new TaskManager();
         this.ta = new TaManager(this);
-
-        // 最小变动单位
-        this.GET_PTICK = this.pd.getPriceTick.bind(this.pd);
-        // 合约乘数
-        this.GET_VM = this.pd.getContractMultiplier.bind(this.pd);
-        this.GET_OPEN_TIME = this.pd.getOpenTime.bind(this.pd);
-        this.GET_CLOSE_TIME = this.pd.getCloseTime.bind(this.pd);
 
         this.DATA = this.dm.datas;
         this.SEND_MESSAGE = this.ws.send_json;
@@ -117,6 +109,20 @@ class TQSDK {
         //根据更新数据包, 调整unit信息
         for (let i = 0; i < message_rtn_data.data.length; i++) {
             let d = message_rtn_data.data[i];
+            if (!this.dm.account_id && d.trade){
+                this.dm.account_id = Object.keys(d.trade)[0];
+            }
+            let positions = this.dm.get('trade', this.dm.account_id, 'positions');
+            for(let symbol in positions){
+                if(positions[symbol].order_volume_sell_open === undefined){
+                    positions[symbol].order_volume_buy_open = 0;
+                    positions[symbol].order_volume_sell_open = 0;
+                    positions[symbol].order_volume_buy_close = 0;
+                    positions[symbol].order_volume_sell_close = 0;
+                    positions[symbol].order_volume_buy_closetoday = 0;
+                    positions[symbol].order_volume_sell_closetoday = 0;
+                }
+            }
             let orders = getobj(d, 'trade', this.dm.account_id, 'orders');
             for (let order_id in orders){
                 let order = orders[order_id];
@@ -126,11 +132,6 @@ class TQSDK {
                     volume_change = volume_change - orign_order.volume_left;
                 }
                 this.process_unit_order(order, volume_change);
-            }
-            let trades = getobj(d, 'trade', this.dm.account_id, 'trades');
-            for (let trade_id in trades){
-                let trade = trades[trade_id];
-                this.process_unit_trade(trade);
             }
         }
 
@@ -149,61 +150,10 @@ class TQSDK {
 
     process_unit_order(order, volume_change) {
         let symbol = order.exchange_id + "." + order.instrument_id;
-        let order_id_parts = order.order_id.split(".");
-
-        for (let i=0; i< order_id_parts.length; i++){
-            let unit_id = order_id_parts.slice(0, i).join(".");
-            let position = this.GET_UNIT_POSITION(unit_id, symbol);
-            if (order.offset == "OPEN"){
-                if (order.direction == "BUY")
-                    position.order_volume_buy_open += volume_change;
-                else
-                    position.order_volume_sell_open += volume_change;
-            } else {
-                if (order.direction == "BUY")
-                    position.order_volume_buy_close += volume_change;
-                else
-                    position.order_volume_sell_close += volume_change;
-            }
-        }
-    }
-
-    process_unit_trade(trade) {
-        let symbol = trade.exchange_id + "." + trade.instrument_id;
-        let order_id_parts = trade.order_id.split(".");
-        for (let i=0; i < order_id_parts.length; i++){
-            let unit_id = order_id_parts.slice(0, i).join(".");
-            let position = this.GET_UNIT_POSITION(unit_id, symbol);
-            let unit = this.dm.set_default({}, "trade", this.dm.account_id, "units", unit_id);
-            if (trade.offset == "OPEN") {
-                if (trade.direction == "BUY") {
-                    position.volume_long += trade.volume;
-                    position.cost_long += trade.volume * trade.price;
-                } else {
-                    position.volume_short += trade.volume;
-                    position.cost_short += trade.volume * trade.price;
-                }
-            } else {
-                let close_profit = 0;
-                if (trade.direction == "BUY") {
-                    let v = Math.min(trade.volume, position.volume_short);
-                    if (v > 0) {
-                        let c = position.cost_short / position.volume_short * v;
-                        close_profit = c - v * trade.price;
-                        position.cost_short -= c;
-                        position.volume_short -= v;
-                    }
-                } else {
-                    let v = Math.min(trade.volume, position.volume_long);
-                    if (v > 0){
-                        let c = position.cost_long / position.volume_long * v;
-                        close_profit = v * trade.price - c;
-                        position.cost_long -= c;
-                        position.volume_long -= v;
-                    }
-                }
-                unit.stat.close_profit += close_profit;
-            }
+        for(let user_id in this.dm.datas.trade ){
+            let position = this.GET_POSITION(symbol, user_id);
+            let dir_offset = order.direction.toLowerCase() + '_' + order.offset.toLowerCase();
+            position['order_volume_' + dir_offset] += volume_change;
         }
     }
 
@@ -274,7 +224,7 @@ class TQSDK {
                 drawings: instance.out_drawings,
             };
             this.ws.send_json(set_data);
-            instance.out_drawings = {};
+            instance.out_drawings = {}; // 清空 out_drawings，下次不会重复发送
         }
     }
 
@@ -282,35 +232,50 @@ class TQSDK {
         return this.dm.is_changing(obj);
     }
 
-    GET_ACCOUNT() {
-        return this.dm.set_default({}, 'trade', this.dm.account_id, 'accounts', 'CNY');
+    GET_ACCOUNT(user_id="") {
+        // todo: 未来支持传入不同的子账户
+        let account_id = this.dm.account_id + (user_id && (user_id != this.dm.account_id) ? '.' : '') + user_id;
+        return this.dm.set_default({}, 'trade', account_id, 'accounts', 'CNY');
     };
 
-    GET_POSITION(symbol) {
-        return this.dm.set_default({}, 'trade', this.dm.account_id, 'positions', symbol);
-    };
-
-    GET_UNIT_POSITION(unit_id, symbol) {
-        let unit = this.dm.set_default({
-            unit_id,
-            stat: {close_profit:0},
-        }, "trade", this.dm.account_id, "units", unit_id);
-        unit._epoch = this.dm.epoch;
-        let position = this.dm.set_default({
+    GET_POSITION(symbol, user_id="") {
+        // todo: 未来支持传入不同的子账户
+        let account_id = this.dm.account_id;
+        if(user_id && user_id != this.dm.account_id) account_id += '.' + user_id;
+        return this.dm.set_default({
             symbol,
-            unit_id,
+            volume_long:0,
+            volume_short:0,
             order_volume_buy_open:0,
             order_volume_sell_open:0,
             order_volume_buy_close:0,
             order_volume_sell_close:0,
-
-            volume_long:0,
-            cost_long:0,
-            volume_short:0,
-            cost_short:0,
-        }, unit, "positions", symbol);
-        return position;
+            order_volume_buy_closetoday:0,
+            order_volume_sell_closetoday:0
+        }, 'trade', account_id, 'positions', symbol);
     };
+
+    // GET_UNIT_POSITION(unit_id, symbol) {
+    //     let unit = this.dm.set_default({
+    //         unit_id,
+    //         stat: {close_profit:0},
+    //     }, "trade", this.dm.account_id, "units", unit_id);
+    //     unit._epoch = this.dm.epoch;
+    //     let position = this.dm.set_default({
+    //         symbol,
+    //         unit_id,
+    //         order_volume_buy_open:0,
+    //         order_volume_sell_open:0,
+    //         order_volume_buy_close:0,
+    //         order_volume_sell_close:0,
+    //
+    //         volume_long:0,
+    //         cost_long:0,
+    //         volume_short:0,
+    //         cost_short:0,
+    //     }, unit, "positions", symbol);
+    //     return position;
+    // };
 
     GET_COMBINE(combine_id){
         return this.dm.set_default({}, 'combines', 'USER.' + combine_id);
@@ -346,9 +311,16 @@ class TQSDK {
         return ds.proxy; // 这里返回的是实际数据的 proxy
     }
 
-    INSERT_ORDER({symbol, direction, offset, volume=1, price_type="LIMIT", limit_price, order_id, unit_id="EXT"}={}) {
-        if (!this.dm.account_id) {
-            Notify.error('未登录，请在软件中登录后重试。');
+    INSERT_ORDER({symbol, direction, offset, volume=1, price_type="LIMIT", limit_price, order_id, unit_id="EXT", user_id=""}={}) {
+        if (!this.dm.account_id){
+            if(IsBrowser) Notify.error('未登录交易，请在软件中登录后重试。');
+            else if(IsWebWorker) self.postMessage({
+                cmd: 'feedback',
+                content: {
+                    error: true,
+                    message: '未登录交易，请在软件中登录后重试。'
+                }
+            });
             return null;
         }
         if (!order_id)
@@ -367,7 +339,7 @@ class TQSDK {
             "time_condition": price_type === 'ANY' ? 'IOC' : 'GFD',
             "volume_condition": "ANY",
             "hedge_flag": "SPECULATION",
-            "user_id": this.dm.account_id
+            "user_id": this.dm.account_id + (user_id ? '.' : '') + user_id
         };
         this.ws.send_json(send_obj);
 

@@ -72,6 +72,12 @@ class DataManager{
                     break;
             }
         }
+        // _epoch 不应该被循环到的 key
+        if(! target["_epoch"]) Object.defineProperty(target, "_epoch", {
+            configurable: false,
+            enumerable: false,
+            writable: true
+        })
         target["_epoch"] = this.epoch;
     }
 

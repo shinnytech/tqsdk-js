@@ -32,7 +32,8 @@ class IndicatorRunContext extends IndicatorContext{
     }
 
     PARAM(defaultValue, name){
-        if(!this.PARAMS[name]) {
+        // 有可能是 0
+        if(this.PARAMS[name] == undefined) {
             this.PARAMS[name] = defaultValue;
         }
         return this.PARAMS[name];
@@ -220,44 +221,67 @@ class IndicatorRunContext extends IndicatorContext{
             limit_price = quote[price_field];
         }
 
-        let position = this.TQ.GET_UNIT_POSITION(this.unit_id, order_symbol);
-
-        if (this.unit_id === 'MAIN'){
-            let unit_position = position;
-            position = this.TQ.GET_POSITION(order_symbol);
-            position.volume_long = position.volume_long_today + position.volume_long_his;
-            position.volume_short = position.volume_short_today + position.volume_short_his;
-            position.order_volume_buy_open = unit_position.order_volume_buy_open;
-            position.order_volume_buy_close = unit_position.order_volume_buy_close;
-            position.order_volume_sell_open = unit_position.order_volume_sell_open;
-            position.order_volume_sell_close = unit_position.order_volume_sell_close;
-        }
-
+        let position = this.TQ.GET_POSITION(order_symbol);
         let volume_open = 0;
         let volume_close = 0;
+        let volume_close_today = 0;
         if (offset === "CLOSE" || offset === "CLOSEOPEN") {
-            let long_closeable_volume = position.volume_long?position.volume_long - position.order_volume_sell_close:0;
-            let short_closeable_volume = position.volume_short?position.volume_short - position.order_volume_buy_close:0;
+            let long_closeable_volume = position.volume_long - position.order_volume_sell_close - position.order_volume_sell_closetoday;
+            let short_closeable_volume = position.volume_short - position.order_volume_buy_close - position.order_volume_buy_closetoday;
+            let long_closeable_volume_today = position.volume_long_today - position.order_volume_sell_closetoday;
+            let short_closeable_volume_today = position.volume_short_today - position.order_volume_buy_closetoday;
             if (direction === "BUY") {
                 volume_close = Math.min(short_closeable_volume, volume);
+                volume_close_today = short_closeable_volume_today;
             } else {
                 volume_close = Math.min(long_closeable_volume, volume);
+                volume_close_today = long_closeable_volume_today;
             }
             if (volume_close > 0){
-                return this.TQ.INSERT_ORDER({
-                    symbol: order_symbol,
-                    direction: direction,
-                    offset: order_symbol.startsWith("SHFE.")?"CLOSETODAY":"CLOSE",
-                    volume: volume_close,
-                    price_type: price_type,
-                    limit_price: limit_price,
-                    unit_id: this.unit_id,
-                });
+                // 处理平今平昨
+                if(order_symbol.startsWith("SHFE.") || order_symbol.startsWith("INE.")){
+                    if(volume_close <= volume_close_today){
+                        return this.TQ.INSERT_ORDER({
+                            symbol: order_symbol,
+                            direction: direction,
+                            offset: "CLOSETODAY",
+                            volume: volume_close,
+                            price_type: price_type,
+                            limit_price: limit_price
+                        });
+                    } else {
+                        this.TQ.INSERT_ORDER({
+                            symbol: order_symbol,
+                            direction: direction,
+                            offset: "CLOSETODAY",
+                            volume: volume_close_today,
+                            price_type: price_type,
+                            limit_price: limit_price
+                        });
+                        return this.TQ.INSERT_ORDER({
+                            symbol: order_symbol,
+                            direction: direction,
+                            offset: "CLOSE",
+                            volume: volume_close - volume_close_today,
+                            price_type: price_type,
+                            limit_price: limit_price
+                        });
+                    }
+                } else {
+                    return this.TQ.INSERT_ORDER({
+                        symbol: order_symbol,
+                        direction: direction,
+                        offset: "CLOSE", //order_symbol.startsWith("SHFE.")?"CLOSETODAY":"",
+                        volume: volume_close,
+                        price_type: price_type,
+                        limit_price: limit_price
+                    });
+                }
             }
         }
         if (offset === "OPEN" || offset === "CLOSEOPEN") {
-            let long_position_volume = (position.volume_long + position.order_volume_buy_open)?position.volume_long + position.order_volume_buy_open:0;
-            let short_position_volume = (position.volume_short + position.order_volume_sell_open)?position.volume_short + position.order_volume_sell_open:0;
+            let long_position_volume = position.volume_long + position.order_volume_buy_open;
+            let short_position_volume = position.volume_short + position.order_volume_sell_open;
             let pos_volume = (direction === "BUY")?long_position_volume:short_position_volume;
             if (pos_volume === 0 || !this.trade_oc_cycle){
                 if (this.volume_limit) {
@@ -276,8 +300,7 @@ class IndicatorRunContext extends IndicatorContext{
                     offset: "OPEN",
                     volume: volume_open,
                     price_type: price_type,
-                    limit_price: limit_price,
-                    unit_id: this.unit_id,
+                    limit_price: limit_price
                 });
             }
         }
@@ -414,11 +437,13 @@ class IndicatorRunContext extends IndicatorContext{
 
     // current_i 当前 k 线距离收盘的分钟数
     CLOSE_MINUTE(current_i, order_symbol = this.trade_symbol){
-        // 收盘时间
-        let [close_hour, close_minute] = this.TQ.GET_CLOSE_TIME(order_symbol).split(':');
-        let close = null;
+        let quote = this.TQ.GET_QUOTE(order_symbol);
+        let day_list = quote.trading_time.day;
         let nowtime = this.DS[current_i].datetime;
         let now = new Date(nowtime/1000000);
+        // 收盘时间
+        let close = day_list.pop()[1].split(/[:]/);
+        let [close_hour, close_minute] = [close[0], close[1]]
         if(close_hour - now.getHours() >= 0){
             // 同一天
             close = new Date(now);

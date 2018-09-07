@@ -32,8 +32,7 @@ function* sarTrade (C) {
         return fixed(Math.abs((sar_sell - price)/(price - sar_buy)), 4); // 计算盈亏比
     }
     function cal_Cd(price, sar, r0){
-        let n = fixed(price + r0 * (price - sar));
-        return n; // 计算止盈线
+        return fixed(price + r0 * (price - sar)); // 计算止盈线
     }
 
     function getState(i, serial){
@@ -44,10 +43,10 @@ function* sarTrade (C) {
 
     function lock_order(i, dir){
         if(!position) position = TQ.GET_POSITION(C.symbol);
-        var vol = dir == 'BUY' ? position.volume_short_today + position.volume_short_his - position.volume_long_today - position.volume_long_his
-            : position.volume_long_today + position.volume_long_his - position.volume_short_today - position.volume_short_his;
+        let vol = dir === 'BUY' ? position.volume_short- position.volume_long : position.volume_long - position.volume_short;
+        vol = dir === 'BUY' ? Math.min(vol, max_vol_long) : Math.min(vol, max_vol_short);
         if (vol > 0){
-            var order = C.ORDER(i, dir, "OPEN", vol);
+            let order = C.ORDER(i, dir, "OPEN", vol);
             setTimeout(function(){
                 if(order && order.order_id){
                     TQ.CANCEL_ORDER(order);
@@ -57,23 +56,12 @@ function* sarTrade (C) {
     }
 
     function open_order(i, dir, vol){
-        if(dir === 'BUY' && records_buy[i]) return;
-        if(dir === 'SELL' && records_sell[i]) return;
-
+        if((dir === 'BUY' && records_buy[i]) || (dir === 'SELL' && records_sell[i])) return;
         if(!position) position = TQ.GET_POSITION(C.symbol);
-
-        var rest_volume_long = vol - position.volume_long_today - position.volume_long_his;
-        var rest_volume_short = vol - position.volume_short_today - position.volume_short_his;
-        var pos = TQ.GET_UNIT_POSITION(C.unit_id, C.symbol);
-        var order = null;
-        if(pos.volume_long != undefined){
-            rest_volume_long = vol - pos.volume_long - pos.order_volume_buy_open;
-        }
-        if(pos.volume_short != undefined){
-            rest_volume_short = vol - pos.volume_short - pos.order_volume_sell_open;
-        }
-
-        if(dir == 'SELL' && rest_volume_short > 0){
+        let rest_volume_long = Math.min(vol, max_vol_long) - position.volume_long - position.order_volume_buy_open;
+        let rest_volume_short = Math.min(vol, max_vol_short) - position.volume_short - position.order_volume_sell_open;
+        let order = null;
+        if(dir === 'SELL' && rest_volume_short > 0){
             if (rest_volume_short < vol) vol = rest_volume_short;
             order = C.ORDER(i, "SELL", "OPEN", vol);
             if(vol > 0) records_buy[i] = true;
@@ -93,21 +81,21 @@ function* sarTrade (C) {
     function close_order(i, dir){
         if(!position) position = TQ.GET_POSITION(C.symbol);
         if(dir === 'SELL'){
-            C.ORDER(i, "SELL", "CLOSE", position.volume_long_today + position.volume_long_his);
+            C.ORDER(i, "SELL", "CLOSE", position.volume_long - position.order_volume_sell_close - position.order_volume_sell_closetoday);
         } else {
-            C.ORDER(i, "BUY", "CLOSE", position.volume_short_today + position.volume_short_his);
+            C.ORDER(i, "BUY", "CLOSE", position.volume_short - position.order_volume_buy_close - position.order_volume_buy_closetoday);
         }
     }
     //C.TRADE_OC_CYCLE(true);
     C.unit_id = 'MAIN';
 
     function checkOpen(bstate1, cstate1, bfsar, cfsar){
-        var result = 0;
+        let result = 0;
         if((bstate1 === 'UP' && cstate1 === 'DOWN') || (bstate1 === 'DOWN' && cstate1 === 'UP')){
-            var [short_sar, long_sar] = cstate1 === 'DOWN' ? [cfsar, bfsar] : [bfsar, cfsar];
-            var [short_vol, long_vol] = cstate1 === 'DOWN' ? [c_sell_vol, b_buy_vol] : [b_sell_vol, c_buy_vol];
-            var R_Buy = cal_R(short_sar, long_sar, quote.ask_price1);
-            var R_Sell = cal_R(short_sar, long_sar, quote.bid_price1);
+            let [short_sar, long_sar] = cstate1 === 'DOWN' ? [cfsar, bfsar] : [bfsar, cfsar];
+            let [short_vol, long_vol] = cstate1 === 'DOWN' ? [c_sell_vol, b_buy_vol] : [b_sell_vol, c_buy_vol];
+            let R_Buy = cal_R(short_sar, long_sar, quote.ask_price1);
+            let R_Sell = cal_R(short_sar, long_sar, quote.bid_price1);
             if (R_Buy > r0 && quote.ask_price1 - long_sar <= p0){
                 result = long_vol;
                 Cd.buy = cal_Cd(quote.ask_price1, long_sar, r0);
@@ -131,7 +119,7 @@ function* sarTrade (C) {
     }
 
     function checkClose(bstate, cstate){
-        var result = null;
+        let result = null;
         if (bstate === 'UP_CROSS' || (bstate === 'DOWN' && cstate === 'UP_CROSS')) {
             result = 'SELL';
         } else if (bstate === 'DOWN_CROSS' || (bstate === 'UP' && cstate === 'DOWN_CROSS' )) {
@@ -154,18 +142,17 @@ function* sarTrade (C) {
         let [bstate, bstate1, bfsar] = getState(i, b_ind_sar);
         let [cstate, cstate1, cfsar] = getState(null, c_ind_sar);
         if (i < C.DS.last_id) continue;
-
-        var close = checkClose(bstate, cstate);
-        var open = checkOpen(bstate1, cstate1, bfsar, cfsar);
+        let close = checkClose(bstate, cstate); // "BUY" | "SELL
+        let open = checkOpen(bstate1, cstate1, bfsar, cfsar); // 正数买，负数卖
         if(close === 'BUY'){
-            if(open > 0){
+            if(open >= 0){
                 close_order(i, "BUY");
                 open_order(i, 'BUY', Math.abs(open));
             } else {
                 lock_order(i, 'BUY');
             }
         } else if(close === 'SELL'){
-            if(open < 0){
+            if(open <= 0){
                 close_order(i, "SELL");
                 open_order(i, 'SELL', Math.abs(open));
             } else {
