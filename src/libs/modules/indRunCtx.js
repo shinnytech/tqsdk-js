@@ -28,7 +28,13 @@ class IndicatorRunContext extends IndicatorContext{
         this.trade_at_close = false;
         this.trade_oc_cycle = false;
 
-        super.init(); // init
+        this.next();
+    }
+
+    next(i){
+        if(!this.TQ.ta.running_instance) this.TQ.ta.running_instance = this;
+        this.instance.next(i);
+        if(this.TQ.ta.running_instance === this) this.TQ.ta.running_instance = null;
     }
 
     PARAM(defaultValue, name){
@@ -130,12 +136,12 @@ class IndicatorRunContext extends IndicatorContext{
                 self.postMessage({ cmd: 'calc_start', content});
             for (let i = left; i <= right; i++) {
                 if(this._ds.data[i]){
-                    this.instance.next(i);
+                    this.next(i);
                     if(calc_left < 0) calc_left = i;
                     calc_right = i;
                 } else {
                     if (isDefault && calc_left > -1) break;
-                    if (!isDefault) this.instance.next(i);
+                    if (!isDefault) this.next(i);
                 }
             }
             if (calc_left > -1 && calc_right > -1){

@@ -2,6 +2,7 @@ class IndicatorContext {
     constructor(ind_func) {
         this.instance = ind_func(this);
         this.ind_class_name = ind_func.name;
+        this.children = [];
         this.OUTS_TYPE = new Proxy({}, {
             get: function (target, property, receiver) {
                 switch (property){

@@ -160,6 +160,10 @@ class TQSDK {
     on_delete_indicator_instance(pack){
         if(this.ta.instance_dict[pack.instance_id]){
             this.ta.instance_dict[pack.instance_id].instance.return();
+            let children = this.ta.instance_dict[pack.instance_id].children;
+            for(let i=0; i<children.length; i++){
+                delete this.ta.instance_dict[children[i]].instance.return();
+            }
             this.ta.delete_indicator_instance(pack.instance_id);
         }
     }
