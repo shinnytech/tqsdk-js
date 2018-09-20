@@ -41,35 +41,16 @@ function* sarTrade (C) {
         return [serial.outs.S0(-1), serial.outs.S1(-1), fsar];
     }
 
-    function lock_order(i, dir){
-        if(!position) position = TQ.GET_POSITION(C.symbol);
-        let vol = dir === 'BUY' ? position.volume_short- position.volume_long : position.volume_long - position.volume_short;
-        vol = dir === 'BUY' ? Math.min(vol, max_vol_long) : Math.min(vol, max_vol_short);
-        if (vol > 0){
-            let order = C.ORDER(i, dir, "OPEN", vol);
-            setTimeout(function(){
-                if(order && order.order_id){
-                    TQ.CANCEL_ORDER(order);
-                }
-            }, 1000);
-        }
-    }
-
     function open_order(i, dir, vol){
         if((dir === 'BUY' && records_buy[i]) || (dir === 'SELL' && records_sell[i])) return;
-        if(!position) position = TQ.GET_POSITION(C.symbol);
-        let rest_volume_long = Math.min(vol, max_vol_long) - position.volume_long - position.order_volume_buy_open;
-        let rest_volume_short = Math.min(vol, max_vol_short) - position.volume_short - position.order_volume_sell_open;
-        let order = null;
-        if(dir === 'SELL' && rest_volume_short > 0){
-            if (rest_volume_short < vol) vol = rest_volume_short;
+        var order = null;
+        if(dir === 'SELL' && vol > 0){
             order = C.ORDER(i, "SELL", "OPEN", vol);
-            if(vol > 0) records_buy[i] = true;
+            records_sell[i] = true;
         }
-        if(dir == 'BUY' && rest_volume_long > 0){
-            if (rest_volume_long < vol) vol = rest_volume_long;
+        if(dir == 'BUY' && vol > 0){
             order = C.ORDER(i, "BUY", "OPEN", vol);
-            if(vol > 0) records_sell[i] = true;
+            records_buy[i] = true;
         }
         setTimeout(function(){
             if(order && order.order_id){
@@ -78,12 +59,14 @@ function* sarTrade (C) {
         }, 1000);
     }
 
-    function close_order(i, dir){
+    function close_order(i, dir, close_vol){
         if(!position) position = TQ.GET_POSITION(C.symbol);
         if(dir === 'SELL'){
-            C.ORDER(i, "SELL", "CLOSE", position.volume_long - position.order_volume_sell_close - position.order_volume_sell_closetoday);
+            let vol = close_vol ? close_vol : position.volume_long;
+            C.ORDER(i, "SELL", "CLOSE", vol - position.order_volume_sell_close - position.order_volume_sell_closetoday);
         } else {
-            C.ORDER(i, "BUY", "CLOSE", position.volume_short - position.order_volume_buy_close - position.order_volume_buy_closetoday);
+            let vol = close_vol ? close_vol : position.volume_short;
+            C.ORDER(i, "BUY", "CLOSE", vol - position.order_volume_buy_close - position.order_volume_buy_closetoday);
         }
     }
     //C.TRADE_OC_CYCLE(true);
@@ -119,7 +102,7 @@ function* sarTrade (C) {
     }
 
     function checkClose(bstate, cstate){
-        let result = null;
+        let result = "";
         if (bstate === 'UP_CROSS' || (bstate === 'DOWN' && cstate === 'UP_CROSS')) {
             result = 'SELL';
         } else if (bstate === 'DOWN_CROSS' || (bstate === 'UP' && cstate === 'DOWN_CROSS' )) {
@@ -137,6 +120,27 @@ function* sarTrade (C) {
         return result;
     }
 
+    function set_target(i, target_vol){
+        if(!position) position = TQ.GET_POSITION(C.symbol);
+        let volume_long = position.volume_long - position.order_volume_buy_open;
+        let volume_short = position.volume_short - position.order_volume_sell_open;
+        let vol = target_vol - volume_long + volume_short;
+        if(vol === 0) return;
+        if(vol > 0 ){
+            if(volume_long == 0) open_order(i, "BUY", vol);
+            else{
+                close_order(i, "BUY", vol);
+                open_order(i, "BUY", target_vol - volume_long);
+            }
+        } else {
+            if(volume_short == 0) open_order(i, "SELL", Math.abs(vol));
+            else{
+                close_order(i, "SELL", Math.abs(vol));
+                open_order(i, "SELL", Math.abs(target_vol) - volume_short);
+            }
+        }
+    }
+
     while(true) {
         let i = yield;
         let [bstate, bstate1, bfsar] = getState(i, b_ind_sar);
@@ -144,23 +148,12 @@ function* sarTrade (C) {
         if (i < C.DS.last_id) continue;
         let close = checkClose(bstate, cstate); // "BUY" | "SELL
         let open = checkOpen(bstate1, cstate1, bfsar, cfsar); // 正数买，负数卖
-        if(close === 'BUY'){
-            if(open >= 0){
-                close_order(i, "BUY");
-                open_order(i, 'BUY', Math.abs(open));
-            } else {
-                lock_order(i, 'BUY');
-            }
-        } else if(close === 'SELL'){
-            if(open <= 0){
-                close_order(i, "SELL");
-                open_order(i, 'SELL', Math.abs(open));
-            } else {
-                lock_order(i, 'SELL');
-            }
+        console.log(i, close, open);
+        if(close === 'BUY' || close === 'SELL'){
+            if(open > 0) set_target(i, open);
+            else set_target(i, 0);
         } else if(open !== 0) {
-            close_order(i, open > 0 ? 'BUY' : 'SELL');
-            open_order(i, open > 0 ? 'BUY' : 'SELL', Math.abs(open));
+            set_target(i, open);
         }
     }
 }

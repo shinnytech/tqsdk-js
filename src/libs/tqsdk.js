@@ -259,28 +259,6 @@ class TQSDK {
         }, 'trade', account_id, 'positions', symbol);
     };
 
-    // GET_UNIT_POSITION(unit_id, symbol) {
-    //     let unit = this.dm.set_default({
-    //         unit_id,
-    //         stat: {close_profit:0},
-    //     }, "trade", this.dm.account_id, "units", unit_id);
-    //     unit._epoch = this.dm.epoch;
-    //     let position = this.dm.set_default({
-    //         symbol,
-    //         unit_id,
-    //         order_volume_buy_open:0,
-    //         order_volume_sell_open:0,
-    //         order_volume_buy_close:0,
-    //         order_volume_sell_close:0,
-    //
-    //         volume_long:0,
-    //         cost_long:0,
-    //         volume_short:0,
-    //         cost_short:0,
-    //     }, unit, "positions", symbol);
-    //     return position;
-    // };
-
     GET_COMBINE(combine_id){
         return this.dm.set_default({}, 'combines', 'USER.' + combine_id);
     }
@@ -342,7 +320,7 @@ class TQSDK {
             "limit_price": limit_price,
             "time_condition": price_type === 'ANY' ? 'IOC' : 'GFD',
             "volume_condition": "ANY",
-            "hedge_flag": "SPECULATION",
+            // "hedge_flag": "SPECULATION",
             "user_id": this.dm.account_id + (user_id ? '.' : '') + user_id
         };
         this.ws.send_json(send_obj);
