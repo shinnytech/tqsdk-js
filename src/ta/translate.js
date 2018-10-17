@@ -17,7 +17,7 @@ $(function () {
     $('div.left-menu table.wh-param-list').find('input').on('click', function (e) {
         $(this).attr('readonly', false);
     });
-    $('input#indicator-name').on('keyup', checkIndName);
+    $('input#indicator-name').on('input', checkIndName);
 
     $('button#translate').on('click', function (e) {
         if(!checkIndName()) return;
