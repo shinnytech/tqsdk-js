@@ -1,5 +1,5 @@
-const CONVERT_WH_URL = 'http://tools.tq18.cn/convert/wh';
-// const CONVERT_WH_URL = 'http://192.168.1.80:8000/convert/wh';
+const CONVERT_WH_URL = 'http://tools.shinnytech.com/translator/wh/';
+//const CONVERT_WH_URL = 'http://192.168.1.80:8000/convert/wh';
 
 $(function () {
     // 初始化代码编辑区域
