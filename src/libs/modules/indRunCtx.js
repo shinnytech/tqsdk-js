@@ -109,11 +109,12 @@ class IndicatorRunContext extends IndicatorContext{
             if(right < left) return [-1, -1];
 
             if (this.valid_left > -1 && this.valid_right > -1){
-                if(left < this.valid_left){
-                    if (right >= this.valid_left && right <= this.valid_right){
-                        right = this.valid_left;
-                    }
-                } else if(left >= this.valid_left && left <= this.valid_right) {
+                // if(left < this.valid_left){
+                //     if (right >= this.valid_left && right <= this.valid_right){
+                //         right = this.valid_left;
+                //     }
+                // } else
+                if(left >= this.valid_left && left <= this.valid_right) {
                     if (right >= this.valid_right){
                         left = this.valid_right;
                     } else {
