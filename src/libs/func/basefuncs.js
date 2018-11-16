@@ -1,6 +1,6 @@
 function _sum(serial, n, p) {
     var s = 0;
-    for (var i = p - n + 1; i <= p; i++) {
+    for (var i = p - n + 1; i <= p && !isNaN(s); i++) {
         s += serial[i];
     }
     return s;
