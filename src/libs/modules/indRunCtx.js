@@ -135,6 +135,7 @@ class IndicatorRunContext extends IndicatorContext{
         try{
             if(IsWebWorker)
                 self.postMessage({ cmd: 'calc_start', content});
+            // console.time('run+' + runId)
             for (let i = left; i <= right; i++) {
                 if(this._ds.data[i]){
                     this.next(i);
@@ -148,15 +149,23 @@ class IndicatorRunContext extends IndicatorContext{
             if (calc_left > -1 && calc_right > -1){
                 if(this.valid_left > -1 && this.valid_right > -1 ){
                     let _valid_left = this.valid_left;
-                    if (calc_left < this.valid_left || calc_left > this.valid_right)
+                    // if (calc_left < this.valid_left || calc_left > this.valid_right)
+                    //     this.valid_left = calc_left;
+                    // if (calc_right < _valid_left || calc_right > this.valid_right)
+                    //     this.valid_right = calc_right;
+                    if (calc_left < this.valid_left || calc_left > this.valid_right){
                         this.valid_left = calc_left;
-                    if (calc_right < _valid_left || calc_right > this.valid_right)
                         this.valid_right = calc_right;
+                    } else if (calc_right > this.valid_right){
+                        this.valid_right = calc_right;
+                    }
                 } else {
                     this.valid_left = calc_left;
                     this.valid_right = calc_right;
                 }
             }
+            // console.log(runId, this.instance_id, this.symbol, this.ind_class_name, '需要计算范围(', left, right, ')', '本次计算范围(', calc_left, calc_right, ')', '有效数据范围(', this.valid_left, this.valid_right, ')')
+            // console.timeEnd('run+' + runId)
             if(IsWebWorker)
                 self.postMessage({ cmd: 'calc_end', content});
         } catch (e){
