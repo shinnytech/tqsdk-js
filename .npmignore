@@ -1,0 +1,6 @@
+/src/
+/node_modules/
+/.idea/
+/test/
+
+nohup.out
