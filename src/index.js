@@ -16,7 +16,7 @@ class TQSDK extends EventPrototype{
   } = {}) {
     super()
     this._symbol_services_url = symbolsServerUrl
-    this._prefix = 'TQJS.' + (prefix ? prefix + '.' : '')
+    this._prefix = 'TQJS_' + (prefix ? prefix + '_' : '')
 
     this.brokers = null
 
@@ -88,6 +88,10 @@ class TQSDK extends EventPrototype{
     }
   }
 
+  off(eventName, fn){
+    this.removeEventListener(eventName, fn)
+  }
+
   _initWebsocketsCb() {
     let tqsdk_this = this
 
@@ -146,6 +150,7 @@ class TQSDK extends EventPrototype{
   }
 
   get_quote (symbol) {
+    if (symbol === '') return {}
     let symbolObj = this.dm.setDefault('quote', 'quotes', symbol)
     if (!symbolObj['class'] && this.quotesInfo[symbol]) {
       // quotesInfo 中的 last_price
@@ -153,7 +158,6 @@ class TQSDK extends EventPrototype{
       Object.assign(symbolObj, this.quotesInfo[symbol], {last_price})
     }
     return symbolObj
-
   }
 
   get_account_id () {
@@ -162,7 +166,15 @@ class TQSDK extends EventPrototype{
 
   get_positions () {
     if (this.is_logined()) {
-      return this.get_by_path(['trade', this.login_user_id, 'positions'])
+      return this.dm.setDefault({}, 'trade', this.login_user_id, 'positions');
+    } else {
+      return null
+    }
+  }
+
+  get_trades () {
+    if (this.is_logined()) {
+      return this.dm.setDefault({}, 'trade', this.login_user_id, 'trades');
     } else {
       return null
     }
@@ -178,7 +190,7 @@ class TQSDK extends EventPrototype{
 
   get_orders () {
     if (this.is_logined()) {
-      return this.get_by_path(['trade', this.login_user_id, 'orders'])
+      return this.dm.setDefault({}, 'trade', this.login_user_id, 'orders');
     } else {
       return null
     }
@@ -200,9 +212,9 @@ class TQSDK extends EventPrototype{
     }
   }
 
-  get_account (currency = 'CNY') {
+  get_account (user_id = this.login_user_id, currency = 'CNY') {
     if (this.is_logined()) {
-      return this.dm.setDefault('account', 'trade', this.login_user_id, 'accounts')[currency]
+      return this.dm.setDefault('account', 'trade', this.login_user_id, 'accounts', currency)
     } else {
       return null
     }
@@ -217,8 +229,22 @@ class TQSDK extends EventPrototype{
     return ''
   }
 
+  get_klines (symbol, duration) {
+    return this.dm.getKlines(symbol, duration)
+  }
+
+  get_ticks (symbol) {
+    return this.dm.getTicks(symbol)
+  }
+
   is_logined () {
     return !! (this.login_user_id && this.get_trading_day())
+  }
+
+  is_changed (target, source) {
+    if (target._epoch) return target._epoch === this.dm._epoch
+    if (typeof target === 'string') return this.dm.isChanging(target, source)
+    return false
   }
 
   insert_order (payload) {
@@ -373,7 +399,7 @@ class TQSDK extends EventPrototype{
     }
     this.quotesWs.send(Object.assign({
       aid: 'set_chart',
-      chart_id: this._prefix + (payload.chart_id ? payload.chart_id : 'kline_chart'),
+      chart_id: payload.chart_id ? payload.chart_id : (this._prefix + 'kline_chart'),
       ins_list: payload.ins_list ? payload.ins_list.join(',') : payload.symbol,
       duration: payload.duration
     }, content))

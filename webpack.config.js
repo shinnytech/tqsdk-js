@@ -5,15 +5,16 @@ let exec = require('child_process').exec;
 let version = require('./package.json').version;
 let UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
-let env = process.env.NODE_ENV || 'development';
+let env = process.env;
+
 
 let plugins = [];
 
-if (env === 'development') {
+if (env.NODE_ENV === 'development' && env.npm_lifecycle_event === 'dev_watch') {
   plugins.push({
     apply: (compiler) => {
       compiler.hooks.afterEmit.tap('AfterEmitPlugin', (compilation) => {
-        exec('cp lib/*.js /Users/yanqiong/Documents/shinny/shinny-futures-h5/lib/',
+        exec('cp -f lib/*.js /Users/yanqiong/Documents/shinny/shinny-futures-h5/lib/ && cp -f lib/*.js /Users/yanqiong/Documents/shinny/shinny-futures-web-alpha/node_modules/tqsdk/lib/',
           (err, stdout, stderr) => {
             if (stdout) process.stdout.write(stdout);
             if (stderr) process.stderr.write(stderr);

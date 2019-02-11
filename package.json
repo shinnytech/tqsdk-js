@@ -1,12 +1,12 @@
 {
   "name": "tqsdk",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "",
-  "main": "lib/tqsdk-1.0.9.js",
+  "main": "lib/tqsdk-1.0.10.js",
   "scripts": {
     "build": "babel src/event.js --out-dir lib",
     "dev": "webpack --mode development",
-    "devh5": "webpack --watch --mode development",
+    "dev_watch": "webpack --watch --mode development",
     "prepublish": "rm lib/*.js && webpack --mode production",
     "test": "mocha --require babel-register"
   },

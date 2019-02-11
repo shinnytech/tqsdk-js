@@ -85,6 +85,7 @@ export default class TqWebsocket extends EventPrototype {
     }
 
     this.ws.onclose = function (event) {
+      console.log('close', event)
       _this.fire('close')
       // 清空 queue
       _this.queue = []

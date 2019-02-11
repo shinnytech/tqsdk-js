@@ -82,20 +82,43 @@ class DataManager extends EventPrototype {
   }
 
   getKlines (symbol, dur_nano) {
-    let ks = this.setDefault({last_id: -1, data: []}, 'klines', symbol, dur_nano)
-    let ksData = this.setDefault([], 'klines', symbol, dur_nano, 'data')
+    if (symbol === '') return null
+    let ks = this._getByPath(['klines', symbol, dur_nano])
+    if (!ks || !ks.data || ks.last_id === -1) {
+      MergeObject(this._data, {
+        klines: {
+          [symbol]: {
+            [dur_nano]: {
+              last_id: -1, data: {}
+            }
+          }
+        }
+      }, this._epoch - 1, false)
+    }
+    ks = this._getByPath(['klines', symbol, dur_nano])
     if (!ks.proxy) {
-      ks.proxy = MakeArrayProxy(ksData, ks)
+      ks.proxy = MakeArrayProxy(ks.data, ks)
       let arr = ['open', 'close', 'high', 'low', 'volume', 'close_oi', 'open_oi', 'datetime']
       arr.forEach(key => {
-        ks.data[key] = MakeArrayProxy(ksData, ks, d => d ? d[key] : NaN)
+        ks.data[key] = MakeArrayProxy(ks.data, ks, d => d ? d[key] : NaN)
       })
     }
     return ks.proxy
   }
 
   getTicks (symbol) {
-    let ts = this.setDefault({last_id: -1, data: []}, 'ticks', symbol)
+    if (symbol === '') return null
+    let ts = this._getByPath(['ticks', symbol])
+    if (!ts || !ts.data) {
+      MergeObject(this._data, {
+        ticks: {
+          [symbol]: {
+            last_id: -1, data: {}
+          }
+        }
+      }, this._epoch - 1, false)
+    }
+    ts = this._getByPath(['ticks', symbol])
     if (!ts.proxy) {
       ts.proxy = MakeArrayProxy(ts.data, ts)
       let arr = ['last_price', 'average', 'highest', 'lowest', 'ask_price1', 'ask_volume1', 'bid_price1',
