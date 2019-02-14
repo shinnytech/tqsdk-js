@@ -1,8 +1,17 @@
 import TqWebsocket from './tqwebsocket'
 import Datamanager from './datamanage'
 import EventPrototype from './event'
+import { RandomStr } from './utils'
 
-import { UnifyArrayStyle, IsEmptyObject, RandomStr } from './utils'
+/**
+ * 事件类型
+ + ready: 收到合约基础数据（全局只出发一次）
+ + rtn_brokers: 收到期货公司列表
+ + notify: 收到通知对象
+ + rtn_data: 数据更新（每一次数据更新触发）
+ + error: 发生错误(目前只有一种：合约服务下载失败)
+ */
+
 
 class TQSDK extends EventPrototype{
   constructor({
@@ -148,6 +157,52 @@ class TQSDK extends EventPrototype{
   get_by_path (_path) {
     return this.dm._getByPath(_path)
   }
+
+  get_quotes_by_input (_input) {
+    if (typeof _input !== 'string' && !_input.input) return []
+    let option = {
+      input: (typeof _input === 'string') ? _input.toLowerCase() : _input.input.toLowerCase(),
+      instrument_id: _input.instrument_id ? _input.instrument_id : true, // 是否根据合约ID匹配
+      pinyin: _input.pinyin ? _input.pinyin : true, // 是否根据拼音匹配
+      include_expired: _input.include_expired ? _input.include_expired : false, // 匹配结果是否包含已下市合约
+      FUTURE: _input.future ? !!_input.future : true, // 匹配结果是否包含期货合约
+      FUTURE_INDEX: _input.future_index ? !!_input.future_index: false, // 匹配结果是否包含期货指数
+      FUTURE_CONT: _input.future_cont ? !!_input.future_cont: false, // 匹配结果是否包含期货主连
+      OPTION: _input.option ? !!_input.option: false, // 匹配结果是否包含期权
+      COMBINE: _input.combine ? !!_input.combine: false // 匹配结果是否包含组合
+    }
+
+    let filterSymbol = function (filterOption, quote, by) {
+      if (filterOption[quote.class] && (filterOption.include_expired || (!filterOption.include_expired && !quote.expired))) {
+        if (by === 'instrument_id' && (quote.product_id.toLowerCase() === filterOption.input || quote.instrument_id.toLowerCase() === filterOption.input)) {
+          return true
+        } else if (by === 'pinyin' && quote.py.split(',').indexOf(filterOption.input) > -1) {
+          return true
+        } else {
+          return false
+        }
+      }
+      return false
+    }
+
+    let result = []
+    if (option.instrument_id) {
+      for(let symbol in this.quotesInfo) {
+        if (filterSymbol(option, this.quotesInfo[symbol], 'instrument_id')){
+          result.push(symbol)
+        }
+      }
+    }
+    if (option.pinyin) {
+      for(let symbol in this.quotesInfo) {
+        if(filterSymbol(option, this.quotesInfo[symbol], 'pinyin')){
+          result.push(symbol)
+        }
+      }
+    }
+    return result
+  }
+
 
   get_quote (symbol) {
     if (symbol === '') return {}

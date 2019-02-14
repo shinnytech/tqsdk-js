@@ -1,8 +1,8 @@
 {
   "name": "tqsdk",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "",
-  "main": "lib/tqsdk-1.0.10.js",
+  "main": "lib/tqsdk-1.0.11.js",
   "scripts": {
     "build": "babel src/event.js --out-dir lib",
     "dev": "webpack --mode development",

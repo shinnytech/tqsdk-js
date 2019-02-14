@@ -1,29 +1,5 @@
 /* eslint-disable vue/no-parsing-error */
 
-// Number.EPSILON
-// Number.MAX_SAFE_INTEGER
-// Number.MAX_VALUE
-// Number.MIN_SAFE_INTEGER
-// Number.MIN_VALUE
-//
-// Number.NaN
-// Number.POSITIVE_INFINITY
-// Number.NEGATIVE_INFINITY
-//
-// Number.isFinite()
-// Number.isInteger()
-// Number.isNaN()
-// Number.isSafeInteger()
-// Number.parseFloat()
-// Number.parseInt()
-// Number.prototype.toExponential()
-// Number.prototype.toFixed()
-// Number.prototype.toLocaleString()
-// Number.prototype.toPrecision()
-// Number.prototype.toSource()
-// Number.prototype.toString()
-// Number.prototype.valueOf()
-
 class QUOTE {
   constructor() {
     this.instrument_id = ''; // 'SHFE.au1906'

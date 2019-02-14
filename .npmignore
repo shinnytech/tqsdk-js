@@ -4,3 +4,5 @@
 /test/
 
 nohup.out
+webpack.config.js
+babel.config.js
