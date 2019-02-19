@@ -43,7 +43,11 @@ class TQSDK extends EventPrototype{
 
     let options = {reconnectInterval, reconnectMaxTimes}
     this.quotesWs = new TqWebsocket(wsQuoteUrl, options)
-    this.tradeWs = new TqWebsocket(wsTradeUrl, options)
+    if(wsTradeUrl === '' || wsTradeUrl === wsQuoteUrl) {
+      this.tradeWs = this.quotesWs
+    } else {
+      this.tradeWs = new TqWebsocket(wsTradeUrl, options)
+    }
     this._initWebsocketsCb()
   }
 
