@@ -6,7 +6,6 @@ let version = require('./package.json').version;
 let UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 module.exports = function(env, argv){
-  console.log(env, argv)
   let plugins = [];
   if (argv.mode === 'development' && (process.env.npm_config_watch || argv.watch)) {
     plugins.push({
@@ -33,7 +32,7 @@ module.exports = function(env, argv){
     },
     output: {
       path: path.resolve(__dirname, 'lib'),
-      filename: 'tqsdk-' + version +'.js',
+      filename: 'tqsdk.js',
       library: 'TQSDK',
       libraryTarget: 'umd',
       libraryExport: 'default',
@@ -55,7 +54,11 @@ module.exports = function(env, argv){
       colors: true
     },
 
-    plugins,
+    plugins: plugins.concat([
+      new webpack.DefinePlugin({
+        __VERSION__: JSON.stringify(version),
+      })
+    ]),
 
     optimization: {
       minimizer: [

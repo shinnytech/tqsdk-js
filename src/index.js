@@ -24,6 +24,7 @@ class TQSDK extends EventPrototype{
                 needsQuotesService = true
   } = {}) {
     super()
+    this.version = __VERSION__
     this._symbol_services_url = symbolsServerUrl
     this._prefix = 'TQJS_' + (prefix ? prefix + '_' : '')
 
