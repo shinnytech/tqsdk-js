@@ -12,15 +12,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ashleygwilliams/my_package.git"
+    "url": "https://github.com/shinnytech/tqsdk-js"
   },
   "keywords": [],
   "author": "ma_yanqiong@163.com",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ashleygwilliams/my_package/issues"
+    "url": "https://github.com/shinnytech/tqsdk-js/issues"
   },
-  "homepage": "https://github.com/ashleygwilliams/my_package",
+  "homepage": "https://github.com/shinnytech/tqsdk-js",
   "devDependencies": {
     "@babel/cli": "^7.2.3",
     "@babel/core": "^7.2.2",
