@@ -8,6 +8,7 @@
     "dev": "webpack --mode development",
     "dev_watch": "webpack --watch --mode development",
     "prepublish": "rm -f lib/*.js && webpack --mode production",
+    "local_wiki": "cd ../tqsdk-js.wiki && gollum",
     "test": "mocha --require babel-register"
   },
   "repository": {
