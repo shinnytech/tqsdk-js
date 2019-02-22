@@ -100,18 +100,31 @@ tqsdk.set_chart([object])
 ### 4. 获取数据 api
 
 #### get_account: ƒ get_account()
+
 #### get_account_id: ƒ get_account_id()
+
 #### get_accounts: ƒ get_accounts()
+
 #### get_by_path: ƒ get_by_path(_path)
+
 #### get_order: ƒ get_order(order_id)
+
 #### get_orders: ƒ get_orders()
+
 #### get_position: ƒ get_position(symbol)
+
 #### get_positions: ƒ get_positions() 
+
 #### get_quote: ƒ get_quote(symbol)
+
 #### get_quotes_by_input: ƒ get_quotes_by_input(_input)
+
 #### get_trades: ƒ get_trades()
+
 #### get_trading_day: ƒ get_trading_day()
+
 #### is_changed: ƒ is_changed(target, source)
+
 #### is_logined: ƒ is_logined()
 
 ## 关于监听事件
