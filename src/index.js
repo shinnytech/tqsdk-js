@@ -179,8 +179,14 @@ class TQSDK extends EventPrototype{
 
     let filterSymbol = function (filterOption, quote, by) {
       if (filterOption[quote.class] && (filterOption.include_expired || (!filterOption.include_expired && !quote.expired))) {
-        if (by === 'instrument_id' && (quote.product_id.toLowerCase() === filterOption.input || quote.instrument_id.toLowerCase().indexOf(filterOption.input)>-1 )) {
-          return true
+        if (by === 'instrument_id') {
+          if (quote.product_id.toLowerCase() === filterOption.input){
+            return true
+          } else if (filterOption.input.length > 2 && quote.instrument_id.toLowerCase().indexOf(filterOption.input)>-1 ){
+            return true
+          } else {
+            return false
+          }
         } else if (by === 'pinyin' && quote.py.split(',').indexOf(filterOption.input) > -1) {
           return true
         } else {
