@@ -22,7 +22,7 @@ module.exports = function(env, argv){
   }
   return {
     entry: {
-      main: './src/index.js'
+      main: ['@babel/polyfill', './src/index.js']
     },
     mode: argv.mode === 'development' ? 'development' : 'production', // development | production | none
     watch: argv.mode === 'development' && (process.env.npm_config_watch || argv.watch) ? true : false,

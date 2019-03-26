@@ -1,10 +1,11 @@
 {
   "name": "tqsdk",
-  "version": "1.0.12",
+  "version": "1.0.14",
   "description": "",
   "main": "lib/tqsdk.js",
   "scripts": {
-    "build": "babel src/event.js --out-dir lib",
+    "babel": "babel src/tes.js --out-dir lib",
+    "build": "webpack --mode production",
     "dev": "webpack --mode development",
     "dev_watch": "webpack --watch --mode development",
     "prepublish": "rm -f lib/*.js && webpack --mode production",
@@ -34,6 +35,9 @@
     "webpack-cli": "^3.2.1"
   },
   "dependencies": {
-    "@babel/polyfill": "^7.2.5"
+    "@babel/polyfill": "^7.2.5",
+    "axios": "^0.18.0",
+    "eventemitter3": "^3.1.0",
+    "proxy-polyfill": "^0.3.0"
   }
 }

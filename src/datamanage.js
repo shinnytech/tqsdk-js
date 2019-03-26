@@ -1,21 +1,23 @@
-import EventPrototype from './event'
+import EventEmitter from 'eventemitter3'
 import GenPrototype from './datastructure'
 import {UnifyArrayStyle, IsEmptyObject} from './utils'
 
-const MakeArrayProxy = (data_array, parent_target, item_func = undefined) => {
-  return new Proxy(data_array, {
-    get: function (target, prop, receiver) {
-      if (!isNaN(prop)) {
-        let i = Number(prop)
-        return i < 0 ? NaN : (item_func ? item_func(target[i]) : target[i])
-      } else if (['last_id', 'trading_day_start_id', 'trading_day_end_id'].includes(prop)) {
-        return parent_target[prop]
-      } else {
-        return target[prop]
-      }
-    }
-  })
-}
+// TODO: 先去掉 Proxy 对象支持，因为 IE 全系不支持此对象
+
+// const MakeArrayProxy = (data_array, parent_target, item_func = undefined) => {
+//   return new Proxy(data_array, {
+//     get: function (target, prop, receiver) {
+//       if (!isNaN(prop)) {
+//         let i = Number(prop)
+//         return i < 0 ? NaN : (item_func ? item_func(target[i]) : target[i])
+//       } else if (['last_id', 'trading_day_start_id', 'trading_day_end_id'].includes(prop)) {
+//         return parent_target[prop]
+//       } else {
+//         return target[prop]
+//       }
+//     }
+//   })
+// }
 
 const MergeObject = (target, source, _epoch = 0, deleteNullObj = true) => {
   for (let property in source) {
@@ -28,7 +30,9 @@ const MergeObject = (target, source, _epoch = 0, deleteNullObj = true) => {
           continue
         } else if (Array.isArray(value) || property === 'data') {
           // @note: 这里做了一个特例, 使得 K 线序列数据被保存为一个 array, 而非 object
-          if (!(property in target)) target[property] = []
+          if (!(property in target)){
+            target[property] = new Array()
+          }
         } else {
           if (!(property in target)) target[property] = {}
         }
@@ -69,7 +73,7 @@ const MergeObject = (target, source, _epoch = 0, deleteNullObj = true) => {
 
 
 
-class DataManager extends EventPrototype {
+class DataManager extends EventEmitter {
   constructor ({ } = {}) {
     super()
     this._epoch = 0 // 数据版本控制
@@ -77,7 +81,8 @@ class DataManager extends EventPrototype {
       quotes: {},
       klines: {},
       ticks: {},
-      charts: {}
+      charts: {},
+      trade: {}
     }
   }
 
@@ -95,15 +100,17 @@ class DataManager extends EventPrototype {
         }
       }, this._epoch - 1, false)
     }
-    ks = this._getByPath(['klines', symbol, dur_nano])
-    if (!ks.proxy) {
-      ks.proxy = MakeArrayProxy(ks.data, ks)
-      let arr = ['open', 'close', 'high', 'low', 'volume', 'close_oi', 'open_oi', 'datetime']
-      arr.forEach(key => {
-        ks.data[key] = MakeArrayProxy(ks.data, ks, d => d ? d[key] : NaN)
-      })
-    }
-    return ks.proxy
+    return this._getByPath(['klines', symbol, dur_nano])
+
+    // ks = this._getByPath(['klines', symbol, dur_nano])
+    // if (!ks.proxy) {
+    //   ks.proxy = MakeArrayProxy(ks.data, ks)
+    //   let arr = ['open', 'close', 'high', 'low', 'volume', 'close_oi', 'open_oi', 'datetime']
+    //   arr.forEach(key => {
+    //     ks.data[key] = MakeArrayProxy(ks.data, ks, d => d ? d[key] : NaN)
+    //   })
+    // }
+    // return ks.proxy
   }
 
   getTicks (symbol) {
@@ -118,16 +125,18 @@ class DataManager extends EventPrototype {
         }
       }, this._epoch - 1, false)
     }
-    ts = this._getByPath(['ticks', symbol])
-    if (!ts.proxy) {
-      ts.proxy = MakeArrayProxy(ts.data, ts)
-      let arr = ['last_price', 'average', 'highest', 'lowest', 'ask_price1', 'ask_volume1', 'bid_price1',
-        'bid_volume1', 'volume', 'amount', 'open_interest', 'datetime']
-      arr.forEach(key => {
-        ts.data[key] = MakeArrayProxy(ts.data, ts, d => d ? d[key] : NaN)
-      })
-    }
-    return ts.proxy
+    return this._getByPath(['ticks', symbol])
+
+    // ts = this._getByPath(['ticks', symbol])
+    // if (!ts.proxy) {
+    //   ts.proxy = MakeArrayProxy(ts.data, ts)
+    //   let arr = ['last_price', 'average', 'highest', 'lowest', 'ask_price1', 'ask_volume1', 'bid_price1',
+    //     'bid_volume1', 'volume', 'amount', 'open_interest', 'datetime']
+    //   arr.forEach(key => {
+    //     ts.data[key] = MakeArrayProxy(ts.data, ts, d => d ? d[key] : NaN)
+    //   })
+    // }
+    // return ts.proxy
   }
 
   setDefault (default_value, ...path) {
@@ -154,9 +163,11 @@ class DataManager extends EventPrototype {
     let i = 0
     for (; i < path.length; i++) {
       d = d[path[i]]
-      if (d === undefined) break
+      if (d === undefined){
+        return d
+      }
     }
-    return (i < path.length - 1) ? {} : d
+    return d
   }
 
   mergeData (source, epochIncrease = true, deleteNullObj = true) {
@@ -170,7 +181,7 @@ class DataManager extends EventPrototype {
       }
     }
     if (epochIncrease && this._data._epoch === this._epoch) {
-      this.fire('data', null)
+      this.emit('data', null)
     }
   }
 
@@ -197,7 +208,5 @@ class DataManager extends EventPrototype {
     return false
   }
 }
-
-
 
 export default DataManager
