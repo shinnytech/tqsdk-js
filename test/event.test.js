@@ -1,5 +1,5 @@
 var assert = require('assert');
-var TQSDK = require('../src/index').default
+var TQSDK = require('../lib/tqsdk')
 
 describe('DataManager', function() {
     let tq = new TQSDK();
@@ -21,7 +21,7 @@ describe('DataManager', function() {
     afterEach(function() {
         // runs after each test in this block
     });
-    
+
     describe('# new datamanager', function() {
         it('初始化', function() {
             assert.equal(tq.dm.account_id, '');

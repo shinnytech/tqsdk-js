@@ -42,11 +42,6 @@ let tqsdk = new TQSDK({})
 ### 1. 初始化
 
 ```js
-var tqsdk = new TQSDK({
-  reconnectInterval, // websocket 最大重连时间间隔 默认 3000
-  reconnectMaxTimes // websocket 最大重连次数 默认 5
-})
-
 // 全部使用默认参数
 var tqsdk = new TQSDK()
 ```
@@ -66,8 +61,8 @@ tqsdk.off(eventName, cb)
 |eventName|cb 回调函数参数|事件触发说明|
 |---|---|---|
 |ready | | 收到合约基础数据|
-|rtn_brokers | (array) -- 期货公司列表 | 收到期货公司列表|
-|notify | (object) -- 单个通知对象 | 收到通知对象|
+|rtn_brokers | [] 期货公司列表 | 收到期货公司列表|
+|notify | {} 单个通知对象 | 收到通知对象|
 |rtn_data | | 数据更新（每一次数据更新触发）|
 |error | error | 发生错误(目前只有一种：合约服务下载失败)|
 
@@ -99,33 +94,67 @@ tqsdk.set_chart([object])
 
 ### 4. 获取数据 api
 
-#### get_account: ƒ get_account()
+#### get: f get (payload) 
 
-#### get_account_id: ƒ get_account_id()
+```js
+payload = {}
 
-#### get_accounts: ƒ get_accounts()
+  -- name // ( default 'users')
+  // 交易 ['users', 'user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
+  // 行情 ['quotes', 'quote', 'ticks', 'klines']
+  
+  -- user_id
+  // 以下 name 有效 ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
+  
+  -- currency 
+  // 以下 name 有效 ['account']
+  
+  -- symbol
+  // 以下 name 有效 ['position'] ['quote', 'ticks', 'klines']
+  
+  -- order_id 
+  // 以下 name 有效 ['order']
+  
+  -- trade_id
+  // 以下 name 有效 ['trade']
+  
+  -- input 
+  // 以下 name 有效 ['quotes']
+  
+  -- duration
+  // 以下 name 有效 ['klines']
+} 
+```
+
+|name|payload|
+|---|---|
+|'users' | `{name}` |
+|'user' | `{name, user_id}` |
+|'session' | `{name, user_id}` |
+|'accounts' | `{name, user_id}` |
+|'account' | `{name, user_id, currency}` |
+|'positions' | `{name, user_id}` |
+|'orders' | `{name, user_id}` |
+|'trades' | `{name, user_id}` |
+|'position' | `{name, user_id, symbol}` |
+|'order' | `{name, user_id, order_id}` |
+|'trade' | `{name, user_id, trade_id}` |
+|'quotes' | `{name, input}` |
+|'quote' | `{name, symbol}` |
+|'klines' | `{name, symbol, duration}` |
+|'ticks' | `{name, symbol}` |
 
 #### get_by_path: ƒ get_by_path(_path)
-
-#### get_order: ƒ get_order(order_id)
-
-#### get_orders: ƒ get_orders()
-
-#### get_position: ƒ get_position(symbol)
-
-#### get_positions: ƒ get_positions() 
 
 #### get_quote: ƒ get_quote(symbol)
 
 #### get_quotes_by_input: ƒ get_quotes_by_input(_input)
 
-#### get_trades: ƒ get_trades()
-
 #### get_trading_day: ƒ get_trading_day()
 
 #### is_changed: ƒ is_changed(target, source)
 
-#### is_logined: ƒ is_logined()
+#### is_logined: ƒ is_logined(payload)
 
 ## 关于监听事件
 
