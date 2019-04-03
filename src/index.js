@@ -43,9 +43,10 @@ class TQSDK extends EventEmitter {
     this.isReady = false
     this.quotesInfo = {}
 
-    this.defaultTradeWs = new TqTradeWebsocket(wsQuoteUrl, dm)
+    this.defaultTradeWs = new TqTradeWebsocket(wsTradeUrl, this.dm)
     this.defaultTradeWs.on('rtn_brokers', function (brokers) {
-      this.brokers = brokers
+      tqsdk_this.emit('rtn_brokers')
+      tqsdk_this.brokers = brokers
     })
 
     axios.get(this._symbol_services_url, {
@@ -53,7 +54,7 @@ class TQSDK extends EventEmitter {
     }).then(response => {
       tqsdk_this.quotesInfo = response.data
       // 建立行情连接
-      tqsdk_this.quotesWs = new TqQuoteWebsocket(wsQuoteUrl)
+      tqsdk_this.quotesWs = new TqQuoteWebsocket(wsQuoteUrl, this.dm)
       tqsdk_this.isReady = true
       tqsdk_this.emit('ready')
     }).catch(error => {

@@ -49,7 +49,7 @@ class TqWebsocket extends EventEmitter {
       CLOSED: 3
     }
 
-    this.init()
+    this.__init()
   }
 
   // string or object
@@ -66,7 +66,7 @@ class TqWebsocket extends EventEmitter {
     return this.ws.readyState === WebSocket.OPEN
   }
 
-  init() {
+  __init() {
     this.ws = new WebSocket(this.urlList[this.reconnectUrlIndex])
 
     if (this.reconnectUrlIndex === this.urlList.length - 1) {
