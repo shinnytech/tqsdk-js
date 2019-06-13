@@ -41,12 +41,13 @@ class TQSDK extends EventEmitter {
     this.trade_accounts = {} // 添加账户
 
     this.isReady = false
+    this.quotesWs = new TqQuoteWebsocket(wsQuoteUrl, this.dm)
     this.quotesInfo = {}
 
     this.defaultTradeWs = new TqTradeWebsocket(wsTradeUrl, this.dm)
     this.defaultTradeWs.on('rtn_brokers', function (brokers) {
-      tqsdk_this.emit('rtn_brokers')
       tqsdk_this.brokers = brokers
+      tqsdk_this.emit('rtn_brokers', brokers)
     })
 
     axios.get(this._symbol_services_url, {
@@ -54,7 +55,6 @@ class TQSDK extends EventEmitter {
     }).then(response => {
       tqsdk_this.quotesInfo = response.data
       // 建立行情连接
-      tqsdk_this.quotesWs = new TqQuoteWebsocket(wsQuoteUrl, this.dm)
       tqsdk_this.isReady = true
       tqsdk_this.emit('ready')
     }).catch(error => {
@@ -72,7 +72,10 @@ class TQSDK extends EventEmitter {
           this.defaultTradeWs : new TqTradeWebsocket(this._ws_trade_url, this.dm)
         let tqsdk_this = this
         ws.on('notify', function (n) {
-          tqsdk_this.emit('notify', n)
+          tqsdk_this.emit('notify', Object.assign(n, {
+            bid: bid,
+            user_id: user_id
+          }))
         })
         this.trade_accounts[user_id] = {
           bid,
@@ -93,6 +96,8 @@ class TQSDK extends EventEmitter {
         // close 相应的 websocket
         this.trade_accounts[user_id].ws.close()
         delete this.trade_accounts[user_id]
+        // 删除用户相应的数据
+        delete this.dm._data.trade[user_id]
       }
     }
   }
@@ -205,13 +210,14 @@ class TQSDK extends EventEmitter {
   /******************* 接口 get ********************/
   get({
         // 交易 ['users', 'user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
-        // 行情 ['quotes', 'quote', 'ticks', 'klines']
+        // 行情 ['quotes', 'quote', 'ticks', 'klines', 'charts', 'chart']
         name = 'users',
         user_id = '', // 以下 name 有效 ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
         currency = 'CNY', // 以下 name 有效 ['account']
         symbol = '', // 以下 name 有效 ['position'] ['quote', 'ticks', 'klines']
         order_id = '', // 以下 name 有效 ['order']
         trade_id = '', // 以下 name 有效 ['trade']
+        chart_id = '', // 以下 name 有效 ['chart']
         input = '', // 以下 name 有效 ['quotes']
         duration = 0,  // 以下 name 有效 ['klines']
       } = {}) {
@@ -239,6 +245,8 @@ class TQSDK extends EventEmitter {
       if (name === 'quote') return this.get_quote(symbol)
       if (name === 'klines') return this.dm.getKlines(symbol, duration)
       if (name === 'ticks') return this.dm.getTicks(symbol)
+      if (name === 'charts') return this.dm._getByPath(['charts'])
+      if (name === 'chart') return this.dm._getByPath(['charts', chart_id])
     }
   }
 
@@ -357,7 +365,9 @@ class TQSDK extends EventEmitter {
       aid: 'req_login',
       bid: payload.bid,
       user_name: payload.user_id,
-      password: payload.password
+      password: payload.password,
+      client_system_info: '',
+      client_app_id: 'SHINNY_XQ_1.0'
     })
   }
 

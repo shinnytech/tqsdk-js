@@ -100,7 +100,7 @@ class TqWebsocket extends EventEmitter {
             if (_this.ws.readyState === 3) {
               // 每次重连的时候设置 _this.reconnectUrlIndex
               _this.reconnectUrlIndex = (_this.reconnectUrlIndex + 1) < _this.urlList.length ? _this.reconnectUrlIndex + 1 : 0
-              _this.init()
+              _this.__init()
               _this.emit('reconnect', {
                 msg: '发起重连第 ' + _this.reconnectTimes + ' 次'
               })
@@ -224,15 +224,18 @@ class TqQuoteWebsocket extends TqWebsocket {
 
   send(obj) {
     if (obj.aid === 'subscribe_quote') {
-      this.subscribe_quote = obj
+      if (this.subscribe_quote === null || JSON.stringify(obj.ins_list) !== JSON.stringify(this.subscribe_quote.ins_list)){
+        this.subscribe_quote = obj
+        super.send(obj)
+      }
     } else if (obj.aid === 'set_chart') {
       if (obj.view_width === 0) {
         if (this.charts[obj.chart_id]) delete this.charts[obj.chart_id]
       } else {
         this.charts[obj.chart_id] = obj
       }
+      super.send(obj)
     }
-    super.send(obj)
   }
 }
 
