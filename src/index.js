@@ -20,7 +20,9 @@ class TQSDK extends EventEmitter {
   constructor({
                 symbolsServerUrl = 'https://openmd.shinnytech.com/t/md/symbols/latest.json',
                 wsQuoteUrl = 'wss://openmd.shinnytech.com/t/md/front/mobile',
-                wsTradeUrl = 'wss://t.shinnytech.com/trade/shinny'
+                wsTradeUrl = 'wss://t.shinnytech.com/trade/shinny',
+                client_system_info = '',
+                client_app_id = ''
               } = {}) {
     super()
     this.version = __VERSION__
@@ -28,6 +30,8 @@ class TQSDK extends EventEmitter {
     this._symbol_services_url = symbolsServerUrl
     this._ws_quote_url = wsQuoteUrl
     this._ws_trade_url = wsTradeUrl
+    this.client_system_info = client_system_info
+    this.client_app_id = client_app_id
 
     this._prefix = 'TQJS_'
 
@@ -366,8 +370,8 @@ class TQSDK extends EventEmitter {
       bid: payload.bid,
       user_name: payload.user_id,
       password: payload.password,
-      client_system_info: '',
-      client_app_id: 'SHINNY_XQ_1.0'
+      client_system_info: this.client_system_info,
+      client_app_id: this.client_app_id
     })
   }
 
