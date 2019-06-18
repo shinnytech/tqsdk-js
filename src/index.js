@@ -395,6 +395,15 @@ class TQSDK extends EventEmitter {
     })
   }
 
+  // 历史结算单
+  his_settlement(payload) {
+    this.trade_accounts[payload.user_id].ws.send({
+      aid: 'qry_settlement_info',
+      trading_day: Number(payload.trading_day)
+    })
+  }
+
+
   subscribe_quote(quotes) {
     this.quotesWs.send({
       aid: "subscribe_quote",
