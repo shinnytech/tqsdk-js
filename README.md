@@ -217,6 +217,17 @@ payload = {
 
 + transfer 银期转帐
 
++ his_settlement 查询历史结算单
+
+```
+function his_settlement(payload) : null
+payload = {
+    bid: string,
+    user_id: string,
+    trading_day: number
+}
+```
+
 + insert_order 下单 <sup style="color:red;">deprecated</sup>
 
 + auto_insert_order 自动平昨平今 <sup style="color:red;">deprecated</sup>
