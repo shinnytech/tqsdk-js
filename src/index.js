@@ -1,8 +1,9 @@
 import axios from 'axios'
-import {TqTradeWebsocket, TqQuoteWebsocket} from './tqwebsocket'
+import { TqQuoteWebsocket, TqTradeWebsocket } from './tqwebsocket'
 import Datamanager from './datamanage'
 import EventEmitter from 'eventemitter3'
-import {RandomStr} from './utils'
+import { RandomStr } from './utils'
+import store from './cache'
 
 /**
  * 事件类型
@@ -15,15 +16,14 @@ import {RandomStr} from './utils'
 
 // 支持多账户登录
 
-
 class TQSDK extends EventEmitter {
-  constructor({
-                symbolsServerUrl = 'https://openmd.shinnytech.com/t/md/symbols/latest.json',
-                wsQuoteUrl = 'wss://openmd.shinnytech.com/t/md/front/mobile',
-                wsTradeUrl = 'wss://t.shinnytech.com/trade/shinny',
-                client_system_info = '',
-                client_app_id = ''
-              } = {}) {
+  constructor ({
+                 symbolsServerUrl = 'https://openmd.shinnytech.com/t/md/symbols/latest.json',
+                 wsQuoteUrl = 'wss://openmd.shinnytech.com/t/md/front/mobile',
+                 wsTradeUrl = 'wss://t.shinnytech.com/trade/shinny',
+                 client_system_info = '',
+                 client_app_id = ''
+               } = {}) {
     super()
     this.version = __VERSION__
 
@@ -55,7 +55,7 @@ class TQSDK extends EventEmitter {
     })
 
     axios.get(this._symbol_services_url, {
-      headers: {Accept: 'application/json; charset=utf-8'}
+      headers: { Accept: 'application/json; charset=utf-8' }
     }).then(response => {
       tqsdk_this.quotesInfo = response.data
       // 建立行情连接
@@ -65,11 +65,11 @@ class TQSDK extends EventEmitter {
       tqsdk_this.emit('error', error)
       console.error('Error: ' + error.message)
       return error
-    });
+    })
   }
 
   // user_id 作为唯一 key
-  add_account(bid, user_id, password) {
+  add_account (bid, user_id, password) {
     if (bid && user_id && password) {
       if (!this.trade_accounts[user_id]) {
         let ws = this.defaultTradeWs.req_login === null ?
@@ -85,7 +85,7 @@ class TQSDK extends EventEmitter {
           bid,
           user_id,
           password,
-          ws,
+          ws
         }
       }
       return this.trade_accounts[user_id]
@@ -94,7 +94,7 @@ class TQSDK extends EventEmitter {
     }
   }
 
-  remove_account(bid, user_id, password) {
+  remove_account (bid, user_id, password) {
     if (bid && user_id) {
       if (this.trade_accounts[user_id]) {
         // close 相应的 websocket
@@ -106,16 +106,16 @@ class TQSDK extends EventEmitter {
     }
   }
 
-  update_data(data) {
+  update_data (data) {
     this.dm.mergeData(data, true, false)
   }
 
-  get_by_path(_path) {
+  get_by_path (_path) {
     return this.dm._getByPath(_path)
   }
 
   /******************* 行情接口 get_quotes_by_input ********************/
-  get_quotes_by_input(_input) {
+  get_quotes_by_input (_input) {
     if (typeof _input !== 'string' && !_input.input) return []
     let option = {
       input: (typeof _input === 'string') ? _input.toLowerCase() : _input.input.toLowerCase(),
@@ -167,19 +167,19 @@ class TQSDK extends EventEmitter {
   }
 
   /******************* 行情接口 get_quote ********************/
-  get_quote(symbol) {
+  get_quote (symbol) {
     if (symbol === '') return {}
     let symbolObj = this.dm.setDefault('quote', 'quotes', symbol)
     if (!symbolObj['class'] && this.quotesInfo[symbol]) {
       // quotesInfo 中的 last_price
       let last_price = symbolObj.last_price ? symbolObj.last_price : this.quotesInfo[symbol].last_price
-      Object.assign(symbolObj, this.quotesInfo[symbol], {last_price})
+      Object.assign(symbolObj, this.quotesInfo[symbol], { last_price })
     }
     return symbolObj
   }
 
   /******************* 行情接口 set_chart ********************/
-  set_chart(payload) {
+  set_chart (payload) {
     let content = {}
     if (payload.trading_day_start || payload.trading_day_count) {
       // 指定交易日，返回对应的数据
@@ -206,25 +206,27 @@ class TQSDK extends EventEmitter {
   }
 
   /******************* 交易接口 get_user ********************/
-  get_user(payload) {
+  get_user (payload) {
     let user_id = typeof payload === 'string' ? payload : payload.user_id
     return user_id ? this.dm._data.trade[user_id] : null
   }
 
   /******************* 接口 get ********************/
-  get({
-        // 交易 ['users', 'user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
-        // 行情 ['quotes', 'quote', 'ticks', 'klines', 'charts', 'chart']
-        name = 'users',
-        user_id = '', // 以下 name 有效 ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
-        currency = 'CNY', // 以下 name 有效 ['account']
-        symbol = '', // 以下 name 有效 ['position'] ['quote', 'ticks', 'klines']
-        order_id = '', // 以下 name 有效 ['order']
-        trade_id = '', // 以下 name 有效 ['trade']
-        chart_id = '', // 以下 name 有效 ['chart']
-        input = '', // 以下 name 有效 ['quotes']
-        duration = 0,  // 以下 name 有效 ['klines']
-      } = {}) {
+  get ({
+         // 交易 ['users', 'user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
+         // 结算单 ['his_settlements', 'his_settlement'] @20190618新增
+         // 行情 ['quotes', 'quote', 'ticks', 'klines', 'charts', 'chart']
+         name = 'users',
+         user_id = '', // 以下 name 有效 ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
+         currency = 'CNY', // 以下 name 有效 ['account']
+         symbol = '', // 以下 name 有效 ['position'] ['quote', 'ticks', 'klines']
+         order_id = '', // 以下 name 有效 ['order']
+         trade_id = '', // 以下 name 有效 ['trade']
+         trading_day = '', // 以下 name 有效 ['his_settlement']
+         chart_id = '', // 以下 name 有效 ['chart']
+         input = '', // 以下 name 有效 ['quotes']
+         duration = 0  // 以下 name 有效 ['klines']
+       } = {}) {
     if (name === 'users') {
       return Object.keys(this.trade_accounts)
     }
@@ -234,10 +236,10 @@ class TQSDK extends EventEmitter {
       if (name === 'user') {
         return user
       }
-      if (['session', 'accounts', 'positions', 'orders', 'trades'].indexOf(name) > -1) {
+      if (['session', 'accounts', 'positions', 'orders', 'trades', 'his_settlements'].indexOf(name) > -1) {
         return user && user[name] ? user[name] : null
       } else if (user && user[name + 's']) {
-        let k = name === 'account' ? currency : name === 'position' ? symbol : name === 'order' ? order_id : name === 'trade' ? trade_id : ''
+        let k = name === 'account' ? currency : name === 'position' ? symbol : name === 'order' ? order_id : name === 'trade' ? trade_id : name === 'his_settlement' ? trading_day : ''
         return user[name + 's'][k]
       }
       return null
@@ -254,7 +256,7 @@ class TQSDK extends EventEmitter {
     }
   }
 
-  is_logined(payload) {
+  is_logined (payload) {
     let session = this.get({
       name: 'session',
       user_id: payload.user_id
@@ -262,13 +264,13 @@ class TQSDK extends EventEmitter {
     return !!(session && session.trading_day)
   }
 
-  is_changed(target, source) {
+  is_changed (target, source) {
     if (target._epoch) return target._epoch === this.dm._epoch
     if (typeof target === 'string') return this.dm.isChanging(target, source)
     return false
   }
 
-  insert_order(payload) {
+  insert_order (payload) {
     if (!this.is_logined()) return null
     let order_id = this._prefix + RandomStr(8)
     let _order_common = {
@@ -281,7 +283,7 @@ class TQSDK extends EventEmitter {
       price_type: payload.price_type ? payload.price_type : "LIMIT", // "LIMIT" "ANY"
       limit_price: Number(payload.limit_price),
       volume_condition: "ANY", // 数量条件 (ANY=任何数量, MIN=最小数量, ALL=全部数量)
-      time_condition: payload.price_type === 'ANY' ? 'IOC' : 'GFD', // 时间条件 (IOC=立即完成，否则撤销, GFS=本节有效, *GFD=当日有效, GTC=撤销前有效, GFA=集合竞价有效)
+      time_condition: payload.price_type === 'ANY' ? 'IOC' : 'GFD' // 时间条件 (IOC=立即完成，否则撤销, GFS=本节有效, *GFD=当日有效, GTC=撤销前有效, GFA=集合竞价有效)
     }
 
     let _order_insert = Object.assign({
@@ -294,7 +296,7 @@ class TQSDK extends EventEmitter {
       volume_orign: payload.volume, // 总报单手数
       // 委托单当前状态
       status: 'ALIVE', // 委托单状态, (ALIVE=有效, FINISHED=已完)
-      volume_left: payload.volume, // 未成交手数
+      volume_left: payload.volume // 未成交手数
     }, _order_common)
     this.dm.mergeData({
       'trade': {
@@ -312,7 +314,7 @@ class TQSDK extends EventEmitter {
     })
   }
 
-  auto_insert_order(payload) {
+  auto_insert_order (payload) {
     if (!this.is_logined()) return null
 
     /* payload : {symbol, exchange_id, ins_id, direction, price_type, limit_price, offset, volume} */
@@ -355,7 +357,7 @@ class TQSDK extends EventEmitter {
     }
   }
 
-  cancel_order(payload) {
+  cancel_order (payload) {
     this.trade_accounts[payload.user_id].ws.send({
       aid: 'cancel_order',
       user_id: payload.user_id,
@@ -364,7 +366,7 @@ class TQSDK extends EventEmitter {
   }
 
   // 登录
-  login(payload) {
+  login (payload) {
     this.trade_accounts[payload.user_id].ws.send({
       aid: 'req_login',
       bid: payload.bid,
@@ -376,14 +378,14 @@ class TQSDK extends EventEmitter {
   }
 
   // 确认结算单
-  confirm_settlement(payload) {
+  confirm_settlement (payload) {
     this.trade_accounts[payload.user_id].ws.send({
       aid: 'confirm_settlement'
     })
   }
 
   // 银期转账
-  transfer(payload) {
+  transfer (payload) {
     this.trade_accounts[payload.user_id].ws.send({
       aid: 'req_transfer',
       bank_id: payload.bank_id, // 银行ID
@@ -396,15 +398,39 @@ class TQSDK extends EventEmitter {
   }
 
   // 历史结算单
-  his_settlement(payload) {
-    this.trade_accounts[payload.user_id].ws.send({
-      aid: 'qry_settlement_info',
-      trading_day: Number(payload.trading_day)
+  his_settlement (payload) {
+    // 历史结算单 读取优先级： dm -> 缓存(写入dm) -> 服务器(写入dm、缓存)
+    // 缓存策略 1 dm有历史结算单
+    let content = this.dm._getByPath(['trade', payload.user_id, 'his_settlements', payload.trading_day])
+    if (content !== undefined) return
+    // 缓存策略 2 缓存中读取历史结算单
+    let _this = this
+    content = store.getContent(payload.user_id, payload.trading_day).then(function (value) {
+      if (value === null) {
+        // 缓存策略 2.1 未读取到发送请求
+        _this.trade_accounts[payload.user_id].ws.send({
+          aid: 'qry_settlement_info',
+          trading_day: Number(payload.trading_day)
+        })
+      } else {
+        // 缓存策略 2.2 读取到存到dm
+        _this.dm.mergeData({
+          'trade': {
+            [payload.user_id]: {
+              'his_settlements': {
+                [payload.trading_day]: value
+              }
+            }
+          }
+        }, true, false)
+      }
+    }).catch(function (err) {
+      // 当出错时，此处代码运行
+      console.log(err)
     })
   }
 
-
-  subscribe_quote(quotes) {
+  subscribe_quote (quotes) {
     this.quotesWs.send({
       aid: "subscribe_quote",
       ins_list: Array.isArray(quotes) ? quotes.join(',') : quotes

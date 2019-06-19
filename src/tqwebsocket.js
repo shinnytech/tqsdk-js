@@ -1,6 +1,8 @@
 /* eslint-disable no-eval */
 
 import EventEmitter from 'eventemitter3';
+import store from './cache';
+import {ParseSettlementContent} from './utils'
 
 /**
  * let ws = new TqWebsocket(url, options)
@@ -161,6 +163,21 @@ class TqTradeWebsocket extends TqWebsocket {
         ws_this.dm.mergeData(payload.data)
       } else if (payload.aid === 'rtn_brokers') {
         ws_this.emit('rtn_brokers', payload.brokers)
+      } else if (payload.aid === 'qry_settlement_info') {
+        // 历史结算单 读取优先级： dm -> 缓存(写入dm) -> 服务器(写入dm、缓存)
+        let content = ParseSettlementContent(payload.settlement_info)
+        // 1 写入 dm
+        ws_this.dm.mergeData({
+          'trade': {
+            [payload.user_name] : {
+              'his_settlements': {
+                [payload.trading_day]: content
+              }
+            }
+          }
+        })
+        // 2 存入缓存
+        store.setContent(payload.user_name, payload.trading_day, content)
       }
     })
 
