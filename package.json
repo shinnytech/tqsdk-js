@@ -1,6 +1,6 @@
 {
   "name": "tqsdk",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "description": "",
   "main": "lib/tqsdk.js",
   "scripts": {
