@@ -76,7 +76,7 @@ class TqWebsocket extends EventEmitter {
       this.reconnectTimes += 1
     }
 
-    var _this = this
+    let _this = this
 
     this.ws.onmessage = function (message) {
       let data = eval('(' + message.data + ')')
@@ -94,11 +94,12 @@ class TqWebsocket extends EventEmitter {
       // 自动重连
       if (_this.reconnect) {
         if (_this.reconnectMaxTimes <= _this.reconnectTimes) {
+          clearTimeout(_this.reconnectTask);
           _this.emit('death', {
             msg: '超过重连次数' + _this.reconnectMaxTimes
           })
         } else {
-          _this.reconnectTask = setInterval(function () {
+          _this.reconnectTask = setTimeout(function () {
             if (_this.ws.readyState === 3) {
               // 每次重连的时候设置 _this.reconnectUrlIndex
               _this.reconnectUrlIndex = (_this.reconnectUrlIndex + 1) < _this.urlList.length ? _this.reconnectUrlIndex + 1 : 0
@@ -113,7 +114,6 @@ class TqWebsocket extends EventEmitter {
     }
 
     this.ws.onerror = error => {
-      console.error(error)
       _this.emit('error', error)
       _this.ws.close()
     }
@@ -125,7 +125,7 @@ class TqWebsocket extends EventEmitter {
       _this.reconnectTimes = 0
       _this.reconnectUrlIndex = 0
       if (this.reconnectTask) {
-        clearInterval(_this.reconnectTask)
+        clearTimeout(_this.reconnectTask)
       }
       while (_this.queue.length > 0) {
         if (_this.ws.readyState === 1) _this.ws.send(_this.queue.shift())
