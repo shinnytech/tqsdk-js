@@ -177,7 +177,7 @@ class TqTradeWebsocket extends TqWebsocket {
           }
         })
         // 2 存入缓存
-        store.setContent(payload.user_name, payload.trading_day, content)
+        store.setContent(payload.user_name, payload.trading_day, payload.settlement_info)
       }
     })
 

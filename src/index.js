@@ -2,7 +2,7 @@ import axios from 'axios'
 import { TqQuoteWebsocket, TqTradeWebsocket } from './tqwebsocket'
 import Datamanager from './datamanage'
 import EventEmitter from 'eventemitter3'
-import { RandomStr } from './utils'
+import { RandomStr, ParseSettlementContent } from './utils'
 import store from './cache'
 
 /**
@@ -413,12 +413,13 @@ class TQSDK extends EventEmitter {
           trading_day: Number(payload.trading_day)
         })
       } else {
+        let content = ParseSettlementContent(value)
         // 缓存策略 2.2 读取到存到dm
         _this.dm.mergeData({
           'trade': {
             [payload.user_id]: {
               'his_settlements': {
-                [payload.trading_day]: value
+                [payload.trading_day]: content
               }
             }
           }
