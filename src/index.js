@@ -310,6 +310,7 @@ class TQSDK extends EventEmitter {
 
     return this.get({
       name: 'order',
+      user_id: payload.user_id,
       order_id
     })
   }
