@@ -271,7 +271,7 @@ class TQSDK extends EventEmitter {
   }
 
   insert_order (payload) {
-    if (!this.is_logined()) return null
+    if (!this.is_logined(payload)) return null
     let order_id = this._prefix + RandomStr(8)
     let _order_common = {
       user_id: payload.user_id,
@@ -316,11 +316,12 @@ class TQSDK extends EventEmitter {
   }
 
   auto_insert_order (payload) {
-    if (!this.is_logined()) return null
+    if (!this.is_logined(payload)) return null
 
     /* payload : {symbol, exchange_id, ins_id, direction, price_type, limit_price, offset, volume} */
 
     let initOrder = {
+      user_id: payload.user_id,
       price_type: payload.price_type ? payload.price_type : "LIMIT", // "LIMIT" "ANY"
       volume_condition: "ANY",
       time_condition: payload.price_type === 'ANY' ? 'IOC' : 'GFD',
