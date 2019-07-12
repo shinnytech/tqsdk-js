@@ -265,7 +265,7 @@ class TQSDK extends EventEmitter {
   }
 
   is_changed (target, source) {
-    if (target._epoch) return target._epoch === this.dm._epoch
+    if (target && target._epoch) return target._epoch === this.dm._epoch
     if (typeof target === 'string') return this.dm.isChanging(target, source)
     return false
   }
