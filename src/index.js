@@ -61,6 +61,7 @@ class TQSDK extends EventEmitter {
       // 建立行情连接
       tqsdk_this.isReady = true
       tqsdk_this.emit('ready')
+      tqsdk_this.emit('rtn_data', null)
     }).catch(error => {
       tqsdk_this.emit('error', error)
       console.error('Error: ' + error.message)
