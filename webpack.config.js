@@ -37,7 +37,8 @@ module.exports = function(env, argv){
       library: 'TQSDK',
       libraryTarget: 'umd',
       libraryExport: 'default',
-      auxiliaryComment: 'Test Comment'
+      auxiliaryComment: 'Test Comment',
+      chunkFilename: '[name].bundle.js',
     },
     module: {
       // noParse: /node_modules\/localforage\/dist\/localforage.js/,
