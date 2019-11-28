@@ -1,0 +1,78 @@
+import TqDatamanager from '../src/datamanage'
+let tqData = null
+describe('test Datamanager', () => {
+  beforeAll(() => {
+    tqData = new TqDatamanager()
+  })
+  beforeEach(() => {
+
+  })
+  test('merge()', () => {
+    expect(tqsdk).toBeInstanceOf(TQSDK)
+    tqsdk.addUser()
+    expect(tqsdk).toBe(3)
+  })
+  afterAll(() => {
+
+  })
+  afterEach(() => {
+
+  })
+
+  describe('test Datamanager static function', () => {
+    let data = {}
+    const dataPack = {
+      quotes: {
+        'SHFE.cu1901': {
+          name: 'cu1901',
+          last_price: 1000
+        },
+        'SHFE.cu1902': {
+          name: 'cu1902',
+          last_price: 2000
+        }
+      }
+    }
+    const dataPack2 = {
+      quotes: {
+        'SHFE.cu1901': {
+          last_price: 1001
+        },
+        'SHFE.cu1903': {
+          name: 'cu1903',
+          last_price: 3000
+        }
+      }
+    }
+    beforeEach(() => {
+      data = {}
+    })
+    test('merge()', () => {
+      TqDatamanager.merge(data, dataPack)
+      expect(data.quotes['SHFE.cu1901'].name).toBe('cu1901')
+      expect(data.quotes['SHFE.cu1901'].last_price).toBe(1000)
+      expect(Object.keys(data.quotes).length).toBe(2)
+      TqDatamanager.merge(data, dataPack2)
+      expect(data.quotes['SHFE.cu1901'].name).toBe('cu1901')
+      expect(data.quotes['SHFE.cu1901'].last_price).toBe(2000)
+      expect(Object.keys(data.quotes).length).toBe(3)
+    })
+
+    test('isChanging()', () => {
+      TqDatamanager.merge(data, dataPack)
+      expect(TqDatamanager.isChanging(['quotes', 'SHFE.cu1901', 'name']).toBeTruthy()
+      expect(TqDatamanager.isChanging(['quotes', 'SHFE.cu1901', 'last_price']).not.toBeNaN()
+    })
+
+    test('getByPath()', () => {
+      TqDatamanager.merge(data, dataPack)
+      const getByPath = TqDatamanager.getByPath
+      expect(getByPath(data, ['quotes', 'SHFE.cu1901', 'name'])).toBe('cu1901')
+      expect(getByPath(data, ['quotes', 'SHFE.xxxxxx', 'name'])).toBeNull()
+      TqDatamanager.merge(data, dataPack2)
+      expect(getByPath(data, ['quotes', 'SHFE.cu1903', 'name'])).toBe('cu1903')
+      expect(getByPath(data, ['quotes', 'SHFE.xxxxxx', 'name'])).toBeNull()
+      expect(getByPath(data, ['quotes', 'SHFE.xxxxxx', 'name'])).toBeUndefined()
+    })
+  })
+})

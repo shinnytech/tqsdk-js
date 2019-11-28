@@ -1,17 +1,18 @@
 {
   "name": "tqsdk",
-  "version": "1.0.33",
+  "version": "1.1.0",
   "db_version": "3",
   "description": "",
-  "main": "lib/tqsdk.js",
+  "main": "dist/esm/tqsdk.js",
   "scripts": {
-    "babel": "babel src/tes.js --out-dir lib",
-    "build": "webpack --mode production",
-    "dev": "webpack --mode development",
-    "dev_watch": "webpack --watch --mode development",
-    "prepublish": "rm -f lib/*.js && webpack --mode production",
+    "build": "rollup --config",
+    "dev": "rollup -c",
+    "dev_watch": "rollup -c -w",
+    "prepublish": "rm -f lib/*.js && rollup --config",
     "local_wiki": "cd ../tqsdk-js.wiki && gollum",
-    "test": "mocha --require babel-register"
+    "test": "jest",
+    "coverage": "open ./coverage/lcov-report/index.html",
+    "lint": "eslint src/*"
   },
   "repository": {
     "type": "git",
@@ -25,22 +26,35 @@
   },
   "homepage": "https://github.com/shinnytech/tqsdk-js",
   "devDependencies": {
-    "@babel/cli": "^7.2.3",
-    "@babel/core": "^7.2.2",
-    "@babel/plugin-syntax-dynamic-import": "^7.2.0",
-    "@babel/preset-env": "^7.2.3",
-    "babel-loader": "^8.0.5",
-    "babel-register": "^6.26.0",
-    "mocha": "^5.2.0",
-    "uglifyjs-webpack-plugin": "^2.1.1",
-    "webpack": "^4.29.0",
-    "webpack-cli": "^3.2.1"
+    "@babel/core": "^7.7.4",
+    "@babel/preset-env": "^7.7.4",
+    "@types/jest": "^24.0.23",
+    "eslint": "^6.7.1",
+    "eslint-config-standard": "^14.1.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "husky": "^3.1.0",
+    "jest": "^24.9.0",
+    "rollup": "^1.27.5",
+    "rollup-plugin-babel": "^4.3.3",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-eslint": "^7.0.0",
+    "rollup-plugin-json": "^4.0.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-terser": "^5.1.2"
   },
   "dependencies": {
-    "@babel/polyfill": "^7.2.5",
     "axios": "^0.18.0",
+    "core-js": "^3.4.4",
     "eventemitter3": "^3.1.0",
-    "localforage": "^1.7.3",
-    "proxy-polyfill": "^0.3.0"
+    "localforage": "^1.7.3"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint",
+      "pre-push": "npm run test"
+    }
   }
 }
