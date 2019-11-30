@@ -29,10 +29,14 @@ export default [{
   plugins
 }, {
   input: 'main.js',
-  output: {
+  output: [{
     file: 'dist/esm/tqsdk.js',
     name: 'TQSDK',
     format: 'esm' // Keep the bundle as an ES module file, suitable for other bundlers and inclusion as a <script type=module> tag in modern browsers
-  },
+  }, {
+    file: 'dist/esm/tqsdk.min.js',
+    name: 'TQSDK',
+    format: 'umd'
+  }],
   plugins
 }]

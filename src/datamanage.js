@@ -65,10 +65,13 @@ DataManager.SetDefault = (root, pathArray, defaultValue) => {
       break
     }
     let _key = pathArray[i]
-    if (_key in node) {
-      node = node[_key]
-    } else {
+    if (!(_key in node)) {
       node[_key] = (i === pathArray.length - 1) ? defaultValue : {}
+    }
+    if (i === pathArray.length - 1) {
+      return node
+    } else {
+      node = node[_key]
     }
   }
   return node
@@ -92,7 +95,7 @@ DataManager.MergeObject = (target, source, _epoch = 0, deleteNullObj = true) => 
      * 2 'object' 包括了 null , Array, {} 服务器不会发送 Array
      * 3 'undefined' 不处理
      */
-    if (['string', 'boolean', 'number'].contains(type)) {
+    if (['string', 'boolean', 'number'].includes(type)) {
       target[property] = value === 'NaN' ? NaN : value
     } else if (value === null && deleteNullObj) {
       delete target[property] // 服务器 要求 删除对象
@@ -100,7 +103,7 @@ DataManager.MergeObject = (target, source, _epoch = 0, deleteNullObj = true) => 
       target[property] = value // 如果是数组类型就直接替换
     } else if (type === 'object') {
       // @note: 这里做了一个特例, 使得 K 线序列数据被保存为一个 array, 而非 object
-      target[property] = property === 'data' ? [] : {}
+      target[property] = target[property] || (property === 'data' ? [] : {})
       // quotes 对象单独处理
       if (property === 'quotes') {
         for (const symbol in value) {
