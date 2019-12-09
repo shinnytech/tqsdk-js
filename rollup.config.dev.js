@@ -16,27 +16,6 @@ const plugins = [
 ]
 export default [
   {
-    input: 'main-cache.js',
-    output: [{
-      file: 'dist/umd/tqsdk.js',
-      name: 'TQSDK',
-      format: 'umd', // Universal Module Definition, works as amd, cjs and iife all in one
-      globals: {
-        axios: 'axios'
-      }
-    }, {
-      file: 'dist/umd/tqsdk.min.js',
-      name: 'TQSDK',
-      format: 'umd',
-      globals: {
-        axios: 'axios'
-      },
-      plugins: [terser()]
-    }],
-    external: ['axios'],
-    plugins
-  },
-  {
     input: 'main.js',
     output: [{
       file: 'dist/esm/tqsdk.js',

@@ -35,7 +35,12 @@ class TQSDK extends EventEmitter {
     this._prefix = 'TQJS_'
 
     const self = this
-    this.dm = new DataManager()
+    this.dm = new DataManager({
+      klines: {},
+      quotes: {},
+      charts: {},
+      ticks: {}
+    })
     this.dm.on('data', function () {
       self.emit('rtn_data', null)
     })
@@ -110,7 +115,7 @@ class TQSDK extends EventEmitter {
   }
 
   getByPath (_path) {
-    return this.dm._getByPath(_path)
+    return this.dm.getByPath(_path)
   }
 
   /** ***************** 行情接口 get_quotes_by_input ********************/
@@ -168,7 +173,7 @@ class TQSDK extends EventEmitter {
   /** ***************** 行情接口 get_quote ********************/
   getQuote (symbol) {
     if (symbol === '') return {}
-    const symbolObj = this.dm.setDefault(['quotes', symbol], QUOTE)
+    const symbolObj = this.dm.setDefault(['quotes', symbol], new QUOTE())
     if (!symbolObj.class && this.quotesInfo[symbol]) {
       // quotesInfo 中的 last_price
       // eslint-disable-next-line camelcase
@@ -249,8 +254,8 @@ class TQSDK extends EventEmitter {
         return input ? this.get_quotes_by_input(input) : []
       }
       if (name === 'quote') return this.getQuote(symbol)
-      if (name === 'klines') return this.dm.getKlines(symbol, duration)
-      if (name === 'ticks') return this.dm.getTicks(symbol)
+      if (name === 'klines') return this.getKlines(symbol, duration)
+      if (name === 'ticks') return this.getTicks(symbol)
       if (name === 'charts') return this.dm.getByPath(['charts'])
       if (name === 'chart') return this.dm.getByPath(['charts', chart_id])
     }
@@ -258,7 +263,7 @@ class TQSDK extends EventEmitter {
 
   getKlines (symbol, dur) {
     if (symbol === '') return null
-    const ks = this.dm.getByPath(['klines', symbol, dur])
+    let ks = this.dm.getByPath(['klines', symbol, dur])
     if (!ks || !ks.data || ks.last_id === -1) {
       this.dm.mergeData({
         klines: {
@@ -269,8 +274,9 @@ class TQSDK extends EventEmitter {
           }
         }
       }, false, false)
+      ks = this.dm.getByPath(['klines', symbol, dur])
     }
-    return this.getByPath(['klines', symbol, dur])
+    return ks
   }
 
   getTicks (symbol) {
@@ -436,7 +442,7 @@ class TQSDK extends EventEmitter {
     if (!TQSDK.store) return null
     // 历史结算单 读取优先级： dm -> 缓存(写入dm) -> 服务器(写入dm、缓存)
     // 缓存策略 1 dm有历史结算单
-    let content = this.dm._getByPath(['trade', payload.user_id, 'his_settlements', payload.trading_day])
+    let content = this.dm.getByPath(['trade', payload.user_id, 'his_settlements', payload.trading_day])
     if (content !== undefined) return
     // 缓存策略 2 缓存中读取历史结算单
     const self = this
@@ -462,7 +468,7 @@ class TQSDK extends EventEmitter {
       }
     }).catch(function (err) {
       // 当出错时，此处代码运行
-      console.log(err)
+      console.error(err)
     })
   }
 

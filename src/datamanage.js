@@ -18,7 +18,7 @@ class DataManager extends EventEmitter {
       this._epoch += 1
       this._diffs = sourceArr
     }
-    for (const item of this._diffs) {
+    for (const item of sourceArr) {
       // 过滤掉空对象
       if (item === null || IsEmptyObject(item)) continue
       DataManager.MergeObject(this._data, item, this._epoch, deleteNullObj)
@@ -69,7 +69,7 @@ DataManager.SetDefault = (root, pathArray, defaultValue) => {
       node[_key] = (i === pathArray.length - 1) ? defaultValue : {}
     }
     if (i === pathArray.length - 1) {
-      return node
+      return node[_key]
     } else {
       node = node[_key]
     }
