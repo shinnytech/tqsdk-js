@@ -5,7 +5,7 @@
   "description": "",
   "main": "dist/esm/tqsdk.js",
   "scripts": {
-    "build": "rollup --config --silent",
+    "build": "rollup --config",
     "dev": "rollup -c",
     "dev_watch": "rollup --config rollup.config.dev.js -w",
     "prepublish": "rm -f lib/*.js && rollup --config",
