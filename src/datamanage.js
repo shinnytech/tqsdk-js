@@ -100,7 +100,15 @@ DataManager.MergeObject = (target, source, _epoch = 0, deleteNullObj = true) => 
     } else if (value === null && deleteNullObj) {
       delete target[property] // 服务器 要求 删除对象
     } else if (Array.isArray(value)) {
-      target[property] = value // 如果是数组类型就直接替换
+      target[property] = value // 如果是数组类型就直接替换，并且记录 _epoch
+      if (!value._epoch) {
+        Object.defineProperty(value, '_epoch', {
+          configurable: false,
+          enumerable: false,
+          writable: true
+        })
+      }
+      value._epoch = _epoch
     } else if (type === 'object') {
       // @note: 这里做了一个特例, 使得 K 线序列数据被保存为一个 array, 而非 object
       target[property] = target[property] || (property === 'data' ? [] : {})

@@ -493,7 +493,6 @@ TQSDK.prototype.set_chart = TQSDK.prototype.setChart
 TQSDK.prototype.get_user = TQSDK.prototype.getUser
 TQSDK.prototype.is_logined = TQSDK.prototype.isLogined
 TQSDK.prototype.is_changed = TQSDK.prototype.isChanging
-
 TQSDK.prototype.insert_order = TQSDK.prototype.insertOrder
 TQSDK.prototype.auto_insert_order = TQSDK.prototype.autoInsertOrder
 TQSDK.prototype.cancel_order = TQSDK.prototype.cancelOrder

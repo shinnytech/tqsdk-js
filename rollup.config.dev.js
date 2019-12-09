@@ -3,7 +3,6 @@ import resolve from 'rollup-plugin-node-resolve'
 import commonjs from 'rollup-plugin-commonjs'
 import { eslint } from 'rollup-plugin-eslint'
 import babel from 'rollup-plugin-babel' // 支持使用最新版本的 es 语法, 不包括语言新功能 polyfill，要使用 core-js
-import { terser } from 'rollup-plugin-terser' // 代码混淆
 const plugins = [
   json(),
   eslint({
