@@ -8,7 +8,6 @@
         <img width="100" src="./img/logo.png" alt="kuaiqi logo">
     </a>
 </p>
-
 <p align="center">
   <a href="http://standardjs.com">
     <img src="https://img.shields.io/badge/code%20style-standard-brightgreen.svg" alt="js-standard-style">
@@ -23,15 +22,6 @@
     <img src="https://img.shields.io/npm/l/tqsdk.svg" alt="License">
   </a>
 </p>
-
-
-重构版本
-
-2 使用 rollup 打包
-3 初始化对象和初始化建立连接分开
-4 输出 websocket 和 datamananger 对象
-5 增加 test 脚本
-6 优化构建流程，使用 github 提供的 actions
 
 
 ## 1. 安装

@@ -3,6 +3,7 @@
 node_modules/
 .vscode/
 doc/
+coverage/
 
 nohup.out
 buglist.md
