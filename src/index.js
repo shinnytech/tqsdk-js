@@ -35,7 +35,7 @@ class TQSDK extends EventEmitter {
     super()
     this._insUrl = symbolsServerUrl
     this._mdUrl = wsQuoteUrl
-    this._trUrl = wsTradeUrl
+    this._tdUrl = wsTradeUrl
     this.clientSystemInfo = clientSystemInfo
     this.clientAppIds = clientAppId
 
