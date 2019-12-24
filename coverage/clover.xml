@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1576397380003" clover="3.2.0">
-  <project timestamp="1576397380003" name="All files">
+<coverage generated="1577160457992" clover="3.2.0">
+  <project timestamp="1577160457992" name="All files">
     <metrics statements="207" coveredstatements="102" conditionals="116" coveredconditionals="64" methods="25" coveredmethods="16" elements="348" coveredelements="182" complexity="0" loc="207" ncloc="207" packages="1" files="3" classes="3"/>
     <file name="datamanage.js" path="/Users/yanqiong/Documents/Github/tqsdk-js/src/datamanage.js">
       <metrics statements="72" coveredstatements="60" conditionals="76" coveredconditionals="54" methods="8" coveredmethods="8"/>
