@@ -965,6 +965,44 @@ function (_TqWebsocket2) {
   return TqQuoteWebsocket;
 }(TqWebsocket);
 
+var TqRecvOnlyWebsocket =
+/*#__PURE__*/
+function (_TqWebsocket3) {
+  _inherits(TqRecvOnlyWebsocket, _TqWebsocket3);
+
+  function TqRecvOnlyWebsocket(url, dm) {
+    var _this5;
+
+    var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+    _classCallCheck(this, TqRecvOnlyWebsocket);
+
+    _this5 = _possibleConstructorReturn(this, _getPrototypeOf(TqRecvOnlyWebsocket).call(this, url, options));
+    _this5.dm = dm;
+
+    _this5.init();
+
+    return _this5;
+  }
+
+  _createClass(TqRecvOnlyWebsocket, [{
+    key: "init",
+    value: function init() {
+      var self = this;
+      this.on('message', function (payload) {
+        if (payload.aid === 'rtn_data') {
+          self.dm.mergeData(payload.data);
+        }
+      });
+      this.on('reconnect', function (e) {
+        console.log(e);
+      });
+    }
+  }]);
+
+  return TqRecvOnlyWebsocket;
+}(TqWebsocket);
+
 /* eslint-disable camelcase */
 var QUOTE =
 /*#__PURE__*/
@@ -1315,30 +1353,34 @@ function (_EventEmitter) {
         _ref$wsQuoteUrl = _ref.wsQuoteUrl,
         wsQuoteUrl = _ref$wsQuoteUrl === void 0 ? 'wss://openmd.shinnytech.com/t/md/front/mobile' : _ref$wsQuoteUrl,
         _ref$wsTradeUrl = _ref.wsTradeUrl,
-        wsTradeUrl = _ref$wsTradeUrl === void 0 ? 'wss://openmd.shinnytech.com/trade/shinny' : _ref$wsTradeUrl,
+        wsTradeUrl = _ref$wsTradeUrl === void 0 ? 'wss://openmd.shinnytech.com/trade/user0' : _ref$wsTradeUrl,
         _ref$clientSystemInfo = _ref.clientSystemInfo,
         clientSystemInfo = _ref$clientSystemInfo === void 0 ? '' : _ref$clientSystemInfo,
         _ref$clientAppId = _ref.clientAppId,
-        clientAppId = _ref$clientAppId === void 0 ? '' : _ref$clientAppId;
+        clientAppId = _ref$clientAppId === void 0 ? '' : _ref$clientAppId,
+        _ref$autoInit = _ref.autoInit,
+        autoInit = _ref$autoInit === void 0 ? true : _ref$autoInit,
+        _ref$data = _ref.data,
+        data = _ref$data === void 0 ? {
+      klines: {},
+      quotes: {},
+      charts: {},
+      ticks: {}
+    } : _ref$data;
 
     _classCallCheck(this, TQSDK);
 
     _this = _possibleConstructorReturn(this, _getPrototypeOf(TQSDK).call(this));
-    _this._symbol_services_url = symbolsServerUrl;
-    _this._ws_quote_url = wsQuoteUrl;
-    _this._ws_trade_url = wsTradeUrl;
+    _this._insUrl = symbolsServerUrl;
+    _this._mdUrl = wsQuoteUrl;
+    _this._trUrl = wsTradeUrl;
     _this.clientSystemInfo = clientSystemInfo;
     _this.clientAppIds = clientAppId;
     _this._prefix = 'TQJS_';
 
     var self = _assertThisInitialized(_this);
 
-    _this.dm = new DataManager({
-      klines: {},
-      quotes: {},
-      charts: {},
-      ticks: {}
-    });
+    _this.dm = new DataManager(data);
 
     _this.dm.on('data', function () {
       self.emit('rtn_data', null);
@@ -1348,35 +1390,63 @@ function (_EventEmitter) {
     _this.trade_accounts = {}; // 添加账户
 
     _this.isReady = false;
-    _this.quotesWs = new TqQuoteWebsocket(wsQuoteUrl, _this.dm);
+    _this.quotesWs = null;
     _this.quotesInfo = {};
-    _this.defaultTradeWs = new TqTradeWebsocket(wsTradeUrl, _this.dm);
 
-    _this.defaultTradeWs.on('rtn_brokers', function (brokers) {
-      self.brokers = brokers;
-      self.emit('rtn_brokers', brokers);
-    });
+    if (autoInit) {
+      _this.init(); // 自动执行初始化
 
-    axios.get(_this._symbol_services_url, {
-      headers: {
-        Accept: 'application/json; charset=utf-8'
-      }
-    }).then(function (response) {
-      self.quotesInfo = response.data; // 建立行情连接
+    }
 
-      self.isReady = true;
-      self.emit('ready');
-      self.emit('rtn_data', null);
-    })["catch"](function (error) {
-      self.emit('error', error);
-      console.error('Error: ' + error.message);
-      return error;
-    });
     return _this;
-  } // user_id 作为唯一 key
-
+  }
 
   _createClass(TQSDK, [{
+    key: "init",
+    value: function init() {
+      this.initMdWebsocket();
+      this.initTdWebsocket();
+      var self = this;
+      axios.get(this._insUrl, {
+        headers: {
+          Accept: 'application/json; charset=utf-8'
+        }
+      }).then(function (response) {
+        self.quotesInfo = response.data; // 建立行情连接
+
+        self.isReady = true;
+        self.emit('ready');
+        self.emit('rtn_data', null);
+      })["catch"](function (error) {
+        self.emit('error', error);
+        console.error('Error: ' + error.message);
+        return error;
+      });
+    }
+  }, {
+    key: "initMdWebsocket",
+    value: function initMdWebsocket() {
+      this.quotesWs = new TqQuoteWebsocket(this._mdUrl, this.dm);
+    }
+  }, {
+    key: "initTdWebsocket",
+    value: function initTdWebsocket() {
+      var self = this;
+      this.defaultTradeWs = new TqTradeWebsocket(this._tdUrl, this.dm);
+      this.defaultTradeWs.on('rtn_brokers', function (brokers) {
+        self.brokers = brokers;
+        self.emit('rtn_brokers', brokers);
+      });
+    }
+  }, {
+    key: "addWebSocket",
+    value: function addWebSocket() {
+      var url = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+      // eslint-disable-next-line no-unused-vars
+      var ws = new TqRecvOnlyWebsocket(url, this.dm);
+    } // user_id 作为唯一 key
+
+  }, {
     key: "addAccount",
     value: function addAccount(bid, userId, password) {
       if (bid && userId && password) {

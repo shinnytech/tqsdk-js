@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import axios from 'axios'
-import { TqQuoteWebsocket, TqTradeWebsocket } from './tqwebsocket'
+import { TqQuoteWebsocket, TqTradeWebsocket, TqRecvOnlyWebsocket } from './tqwebsocket'
 import DataManager from './datamanage'
 import EventEmitter from 'eventemitter3'
 import { RandomStr, ParseSettlementContent } from './utils'
@@ -21,44 +21,47 @@ class TQSDK extends EventEmitter {
   constructor ({
     symbolsServerUrl = 'https://openmd.shinnytech.com/t/md/symbols/latest.json',
     wsQuoteUrl = 'wss://openmd.shinnytech.com/t/md/front/mobile',
-    wsTradeUrl = 'wss://openmd.shinnytech.com/trade/shinny',
+    wsTradeUrl = 'wss://openmd.shinnytech.com/trade/user0',
     clientSystemInfo = '',
-    clientAppId = ''
+    clientAppId = '',
+    autoInit = true,
+    data = {
+      klines: {},
+      quotes: {},
+      charts: {},
+      ticks: {}
+    }
   } = {}) {
     super()
-    this._symbol_services_url = symbolsServerUrl
-    this._ws_quote_url = wsQuoteUrl
-    this._ws_trade_url = wsTradeUrl
+    this._insUrl = symbolsServerUrl
+    this._mdUrl = wsQuoteUrl
+    this._trUrl = wsTradeUrl
     this.clientSystemInfo = clientSystemInfo
     this.clientAppIds = clientAppId
 
     this._prefix = 'TQJS_'
 
     const self = this
-    this.dm = new DataManager({
-      klines: {},
-      quotes: {},
-      charts: {},
-      ticks: {}
-    })
+    this.dm = new DataManager(data)
     this.dm.on('data', function () {
       self.emit('rtn_data', null)
     })
 
     this.brokers = null
     this.trade_accounts = {} // 添加账户
-
     this.isReady = false
-    this.quotesWs = new TqQuoteWebsocket(wsQuoteUrl, this.dm)
+    this.quotesWs = null
     this.quotesInfo = {}
+    if (autoInit) {
+      this.init() // 自动执行初始化
+    }
+  }
 
-    this.defaultTradeWs = new TqTradeWebsocket(wsTradeUrl, this.dm)
-    this.defaultTradeWs.on('rtn_brokers', function (brokers) {
-      self.brokers = brokers
-      self.emit('rtn_brokers', brokers)
-    })
-
-    axios.get(this._symbol_services_url, {
+  init () {
+    this.initMdWebsocket()
+    this.initTdWebsocket()
+    const self = this
+    axios.get(this._insUrl, {
       headers: { Accept: 'application/json; charset=utf-8' }
     }).then(response => {
       self.quotesInfo = response.data
@@ -71,6 +74,24 @@ class TQSDK extends EventEmitter {
       console.error('Error: ' + error.message)
       return error
     })
+  }
+
+  initMdWebsocket () {
+    this.quotesWs = new TqQuoteWebsocket(this._mdUrl, this.dm)
+  }
+
+  initTdWebsocket () {
+    const self = this
+    this.defaultTradeWs = new TqTradeWebsocket(this._tdUrl, this.dm)
+    this.defaultTradeWs.on('rtn_brokers', function (brokers) {
+      self.brokers = brokers
+      self.emit('rtn_brokers', brokers)
+    })
+  }
+
+  addWebSocket (url = '') {
+    // eslint-disable-next-line no-unused-vars
+    const ws = new TqRecvOnlyWebsocket(url, this.dm)
   }
 
   // user_id 作为唯一 key

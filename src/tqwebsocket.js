@@ -253,8 +253,29 @@ class TqQuoteWebsocket extends TqWebsocket {
   }
 }
 
+class TqRecvOnlyWebsocket extends TqWebsocket {
+  constructor (url, dm, options = {}) {
+    super(url, options)
+    this.dm = dm
+    this.init()
+  }
+
+  init () {
+    const self = this
+    this.on('message', function (payload) {
+      if (payload.aid === 'rtn_data') {
+        self.dm.mergeData(payload.data)
+      }
+    })
+    this.on('reconnect', function (e) {
+      console.log(e)
+    })
+  }
+}
+
 export {
   TqWebsocket,
   TqTradeWebsocket,
-  TqQuoteWebsocket
+  TqQuoteWebsocket,
+  TqRecvOnlyWebsocket
 }
