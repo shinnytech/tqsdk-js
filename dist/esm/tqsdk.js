@@ -1373,7 +1373,7 @@ function (_EventEmitter) {
     _this = _possibleConstructorReturn(this, _getPrototypeOf(TQSDK).call(this));
     _this._insUrl = symbolsServerUrl;
     _this._mdUrl = wsQuoteUrl;
-    _this._trUrl = wsTradeUrl;
+    _this._tdUrl = wsTradeUrl;
     _this.clientSystemInfo = clientSystemInfo;
     _this.clientAppIds = clientAppId;
     _this._prefix = 'TQJS_';
