@@ -1442,8 +1442,8 @@ function (_EventEmitter) {
     key: "addWebSocket",
     value: function addWebSocket() {
       var url = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
-      // eslint-disable-next-line no-unused-vars
-      var ws = new TqRecvOnlyWebsocket(url, this.dm);
+      if (url) return new TqRecvOnlyWebsocket(url, this.dm);
+      return null;
     } // user_id 作为唯一 key
 
   }, {
