@@ -2012,7 +2012,7 @@ function (_EventEmitter) {
         _ref$wsQuoteUrl = _ref.wsQuoteUrl,
         wsQuoteUrl = _ref$wsQuoteUrl === void 0 ? 'wss://openmd.shinnytech.com/t/md/front/mobile' : _ref$wsQuoteUrl,
         _ref$wsTradeUrl = _ref.wsTradeUrl,
-        wsTradeUrl = _ref$wsTradeUrl === void 0 ? 'wss://openmd.shinnytech.com/trade/user0' : _ref$wsTradeUrl,
+        wsTradeUrl = _ref$wsTradeUrl === void 0 ? 'wss://opentd.shinnytech.com/trade/user0' : _ref$wsTradeUrl,
         _ref$clientSystemInfo = _ref.clientSystemInfo,
         clientSystemInfo = _ref$clientSystemInfo === void 0 ? '' : _ref$clientSystemInfo,
         _ref$clientAppId = _ref.clientAppId,
@@ -2024,7 +2024,8 @@ function (_EventEmitter) {
       klines: {},
       quotes: {},
       charts: {},
-      ticks: {}
+      ticks: {},
+      trade: {}
     } : _ref$data;
 
     _classCallCheck(this, TQSDK);
@@ -2102,6 +2103,7 @@ function (_EventEmitter) {
           Accept: 'application/json; charset=utf-8'
         }
       }).then(function (response) {
+        self.brokers_list = response.data;
         self.brokers = Object.keys(response.data);
         self.emit('rtn_brokers', self.brokers);
         console.log(self.brokers);
@@ -2123,14 +2125,14 @@ function (_EventEmitter) {
     key: "addAccount",
     value: function addAccount(bid, userId, password) {
       if (bid && userId && password) {
-        if (!this.brokers[bid]) {
+        if (this.brokers.indexOf(bid) === -1) {
           console.error('不支持该期货公司');
           return;
         }
 
         if (!this.trade_accounts[userId]) {
-          console.log(this.brokers[bid].url);
-          var ws = new TqTradeWebsocket(this.brokers[bid].url, this.dm);
+          console.log(this.brokers_list[bid].url);
+          var ws = new TqTradeWebsocket(this.brokers_list[bid].url, this.dm);
           var self = this;
           ws.on('notify', function (n) {
             self.emit('notify', Object.assign(n, {

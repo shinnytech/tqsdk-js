@@ -21,7 +21,7 @@ class TQSDK extends EventEmitter {
   constructor ({
     symbolsServerUrl = 'https://openmd.shinnytech.com/t/md/symbols/latest.json',
     wsQuoteUrl = 'wss://openmd.shinnytech.com/t/md/front/mobile',
-    wsTradeUrl = 'wss://openmd.shinnytech.com/trade/user0',
+    wsTradeUrl = 'wss://opentd.shinnytech.com/trade/user0',
     clientSystemInfo = '',
     clientAppId = '',
     autoInit = true,
@@ -29,7 +29,8 @@ class TQSDK extends EventEmitter {
       klines: {},
       quotes: {},
       charts: {},
-      ticks: {}
+      ticks: {},
+      trade: {}
     }
   } = {}) {
     super()
@@ -81,17 +82,12 @@ class TQSDK extends EventEmitter {
   }
 
   initTdWebsocket () {
-    //     if broker_id not in broker_list:
-    //     raise Exception("不支持该期货公司-%s，请联系期货公司。" % (broker_id))
-    // if "TQ" not in broker_list[broker_id]["category"]:
-    //     raise Exception("不支持该期货公司-%s，请联系期货公司。" % (broker_id))
-    // self._td_url = broker_list[broker_id]["url"]
-
     const self = this
     // 支持分散部署的交易中继网关
     axios.get('https://files.shinnytech.com/broker-list.json', {
       headers: { Accept: 'application/json; charset=utf-8' }
     }).then(response => {
+      self.brokers_list = response.data
       self.brokers = Object.keys(response.data)
       self.emit('rtn_brokers', self.brokers)
       console.log(self.brokers)
@@ -110,13 +106,12 @@ class TQSDK extends EventEmitter {
   // user_id 作为唯一 key
   addAccount (bid, userId, password) {
     if (bid && userId && password) {
-      if (!this.brokers[bid]) {
+      if (this.brokers.indexOf(bid) === -1) {
         console.error('不支持该期货公司')
         return
       }
       if (!this.trade_accounts[userId]) {
-        console.log(this.brokers[bid].url)
-        const ws = new TqTradeWebsocket(this.brokers[bid].url, this.dm)
+        const ws = new TqTradeWebsocket(this.brokers_list[bid].url, this.dm)
         const self = this
         ws.on('notify', function (n) {
           self.emit('notify', Object.assign(n, {
