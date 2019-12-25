@@ -6,7 +6,7 @@
 
   axios = axios && axios.hasOwnProperty('default') ? axios['default'] : axios;
 
-  var version = "1.1.0";
+  var version = "1.1.1";
   var db_version = "3";
 
   function _typeof(obj) {
@@ -1444,11 +1444,25 @@
     }, {
       key: "initTdWebsocket",
       value: function initTdWebsocket() {
-        var self = this;
-        this.defaultTradeWs = new TqTradeWebsocket(this._tdUrl, this.dm);
-        this.defaultTradeWs.on('rtn_brokers', function (brokers) {
-          self.brokers = brokers;
-          self.emit('rtn_brokers', brokers);
+        //     if broker_id not in broker_list:
+        //     raise Exception("不支持该期货公司-%s，请联系期货公司。" % (broker_id))
+        // if "TQ" not in broker_list[broker_id]["category"]:
+        //     raise Exception("不支持该期货公司-%s，请联系期货公司。" % (broker_id))
+        // self._td_url = broker_list[broker_id]["url"]
+        var self = this; // 支持分散部署的交易中继网关
+
+        axios.get('https://files.shinnytech.com/broker-list.json', {
+          headers: {
+            Accept: 'application/json; charset=utf-8'
+          }
+        }).then(function (response) {
+          self.brokers = Object.keys(response.data);
+          self.emit('rtn_brokers', self.brokers);
+          console.log(self.brokers);
+        })["catch"](function (error) {
+          self.emit('error', error);
+          console.error('Error: ' + error.message);
+          return error;
         });
       }
     }, {
@@ -1463,8 +1477,14 @@
       key: "addAccount",
       value: function addAccount(bid, userId, password) {
         if (bid && userId && password) {
+          if (!this.brokers[bid]) {
+            console.error('不支持该期货公司');
+            return;
+          }
+
           if (!this.trade_accounts[userId]) {
-            var ws = this.defaultTradeWs.req_login === null ? this.defaultTradeWs : new TqTradeWebsocket(this._ws_trade_url, this.dm);
+            console.log(this.brokers[bid].url);
+            var ws = new TqTradeWebsocket(this.brokers[bid].url, this.dm);
             var self = this;
             ws.on('notify', function (n) {
               self.emit('notify', Object.assign(n, {

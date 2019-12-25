@@ -1,4 +1,4 @@
-// import "core-js/stable";
+import 'core-js/stable/set-immediate'
 // import "regenerator-runtime/runtime";
 import { version } from './package.json'
 import TQSDK from './src/index'

@@ -81,11 +81,24 @@ class TQSDK extends EventEmitter {
   }
 
   initTdWebsocket () {
+    //     if broker_id not in broker_list:
+    //     raise Exception("不支持该期货公司-%s，请联系期货公司。" % (broker_id))
+    // if "TQ" not in broker_list[broker_id]["category"]:
+    //     raise Exception("不支持该期货公司-%s，请联系期货公司。" % (broker_id))
+    // self._td_url = broker_list[broker_id]["url"]
+
     const self = this
-    this.defaultTradeWs = new TqTradeWebsocket(this._tdUrl, this.dm)
-    this.defaultTradeWs.on('rtn_brokers', function (brokers) {
-      self.brokers = brokers
-      self.emit('rtn_brokers', brokers)
+    // 支持分散部署的交易中继网关
+    axios.get('https://files.shinnytech.com/broker-list.json', {
+      headers: { Accept: 'application/json; charset=utf-8' }
+    }).then(response => {
+      self.brokers = Object.keys(response.data)
+      self.emit('rtn_brokers', self.brokers)
+      console.log(self.brokers)
+    }).catch(error => {
+      self.emit('error', error)
+      console.error('Error: ' + error.message)
+      return error
     })
   }
 
@@ -97,8 +110,13 @@ class TQSDK extends EventEmitter {
   // user_id 作为唯一 key
   addAccount (bid, userId, password) {
     if (bid && userId && password) {
+      if (!this.brokers[bid]) {
+        console.error('不支持该期货公司')
+        return
+      }
       if (!this.trade_accounts[userId]) {
-        const ws = this.defaultTradeWs.req_login === null ? this.defaultTradeWs : new TqTradeWebsocket(this._ws_trade_url, this.dm)
+        console.log(this.brokers[bid].url)
+        const ws = new TqTradeWebsocket(this.brokers[bid].url, this.dm)
         const self = this
         ws.on('notify', function (n) {
           self.emit('notify', Object.assign(n, {
