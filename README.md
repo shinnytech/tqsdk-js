@@ -8,12 +8,21 @@
         <img width="100" src="./img/logo.png" alt="kuaiqi logo">
     </a>
 </p>
-
 <p align="center">
-    <a href="https://www.npmjs.com/package/tqsdk"><img src="https://img.shields.io/npm/dw/tqsdk.svg" alt="Downloads"></a>
-   <a href="https://www.npmjs.com/package/tqsdk"><img src="https://img.shields.io/npm/v/tqsdk.svg" alt="Version"></a>
-  <a href="https://www.npmjs.com/package/tqsdk"><img src="https://img.shields.io/npm/l/tqsdk.svg" alt="License"></a>
+  <a href="http://standardjs.com">
+    <img src="https://img.shields.io/badge/code%20style-standard-brightgreen.svg" alt="js-standard-style">
+  </a>
+  <a href="https://www.npmjs.com/package/tqsdk">
+    <img src="https://img.shields.io/npm/dw/tqsdk.svg" alt="Downloads">
+  </a>
+  <a href="https://www.npmjs.com/package/tqsdk">
+    <img src="https://img.shields.io/npm/v/tqsdk.svg" alt="Version">
+  </a>
+  <a href="https://www.npmjs.com/package/tqsdk">
+    <img src="https://img.shields.io/npm/l/tqsdk.svg" alt="License">
+  </a>
 </p>
+
 
 ## 1. 安装
 

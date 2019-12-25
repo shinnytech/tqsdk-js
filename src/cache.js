@@ -1,15 +1,15 @@
-import * as project_package from '../package.json'
-const DB_NAME = 'his_settlements';
-let stores = {};
-let version = project_package.db_version
-let localForage = {}
+/* eslint-disable camelcase */
+import { db_version } from '../package.json'
+const DB_NAME = 'his_settlements'
+const stores = {}
+let localforage = {}
 
 if (location.protocol === 'data:') {
-  let _datas = {}
-  localForage.createInstance = function ({
-                                           name,
-                                           storeName
-                                         } = {}) {
+  const _datas = {}
+  localforage.createInstance = function ({
+    name,
+    storeName
+  } = {}) {
     _datas[storeName] = _datas[storeName] || {}
     stores[storeName] = {
       getItem: (k) => _datas[storeName][k] || '',
@@ -19,39 +19,39 @@ if (location.protocol === 'data:') {
     }
   }
 } else {
-  import("localforage").then(function(module){
-    localForage = module
-    let old_version = localStorage.getItem('cc_db_ver')
-    if (old_version != version) {
+  import('localforage').then(function (module) {
+    localforage = module
+    const old_version = localStorage.getItem('cc_db_ver')
+    if (old_version !== db_version) {
       // 数据库版本升级，整个数据库重置
-      let DBDeleteRequest = indexedDB.deleteDatabase(DB_NAME);
-      DBDeleteRequest.onerror = function(event) {
-        console.log("Error deleting database.");
-      };
-      DBDeleteRequest.onsuccess = function(event) {
-        localStorage.setItem('cc_db_ver', version)
-      };
+      const DBDeleteRequest = indexedDB.deleteDatabase(DB_NAME)
+      DBDeleteRequest.onerror = function (event) {
+        console.log('Error deleting database.')
+      }
+      DBDeleteRequest.onsuccess = function (event) {
+        localStorage.setItem('cc_db_ver', db_version)
+      }
     }
   })
 }
 
 export default {
-  getContent(user_id, trading_day){
-    if(stores[user_id] === undefined) {
-      stores[user_id] = localForage.createInstance({
+  getContent (userId, tradingDay) {
+    if (stores[userId] === undefined) {
+      stores[userId] = localforage.createInstance({
         name: DB_NAME,
-        storeName: user_id
+        storeName: userId
       })
     }
-    return stores[user_id].getItem(String(trading_day))
+    return stores[userId].getItem(String(tradingDay))
   },
-  setContent(user_id, trading_day, content){
-    if(stores[user_id] === undefined) {
-      stores[user_id] = localForage.createInstance({
+  setContent (userId, tradingDay, content) {
+    if (stores[userId] === undefined) {
+      stores[userId] = localforage.createInstance({
         name: DB_NAME,
-        storeName: user_id
+        storeName: userId
       })
     }
-    return stores[user_id].setItem(String(trading_day), content)
+    return stores[userId].setItem(String(tradingDay), content)
   }
 }

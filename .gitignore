@@ -2,7 +2,9 @@
 .idea/
 node_modules/
 .vscode/
+.report/
 doc/
+coverage/
 
 nohup.out
 buglist.md

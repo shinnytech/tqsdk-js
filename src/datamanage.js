@@ -1,212 +1,144 @@
+/* eslint-disable prefer-const */
 import EventEmitter from 'eventemitter3'
-import GenPrototype from './datastructure'
-import {UnifyArrayStyle, IsEmptyObject} from './utils'
-
-// TODO: 先去掉 Proxy 对象支持，因为 IE 全系不支持此对象
-
-// const MakeArrayProxy = (data_array, parent_target, item_func = undefined) => {
-//   return new Proxy(data_array, {
-//     get: function (target, prop, receiver) {
-//       if (!isNaN(prop)) {
-//         let i = Number(prop)
-//         return i < 0 ? NaN : (item_func ? item_func(target[i]) : target[i])
-//       } else if (['last_id', 'trading_day_start_id', 'trading_day_end_id'].includes(prop)) {
-//         return parent_target[prop]
-//       } else {
-//         return target[prop]
-//       }
-//     }
-//   })
-// }
-
-const MergeObject = (target, source, _epoch = 0, deleteNullObj = true) => {
-  for (let property in source) {
-    let value = source[property]
-    switch (typeof value) {
-      case 'object':
-        if (value === null) {
-          // 服务器 要求 删除对象
-          if (deleteNullObj && property) delete target[property]
-          continue
-        } else if (Array.isArray(value) || property === 'data') {
-          // @note: 这里做了一个特例, 使得 K 线序列数据被保存为一个 array, 而非 object
-          if (!(property in target)){
-            target[property] = new Array()
-          }
-        } else {
-          if (!(property in target)) target[property] = {}
-        }
-        if (property === 'quotes') {
-          // quotes 对象单独处理
-          for (let instrument_id in value) {
-            let instrument = value[instrument_id] // source[property]
-            if (instrument === null) {
-              // 服务器 要求 删除对象
-              if (deleteNullObj && instrument_id) delete target[property][instrument_id]
-              continue
-            } else if (!target[property][instrument_id]) {
-              target[property][instrument_id] = GenPrototype('quote')
-            }
-            MergeObject(target[property][instrument_id], instrument, _epoch, deleteNullObj)
-          }
-        } else {
-          MergeObject(target[property], value, _epoch, deleteNullObj)
-        }
-        break
-      case 'string':
-      case 'boolean':
-      case 'number':
-        target[property] = value === 'NaN' ? NaN : value
-        break
-      case 'undefined':
-        break
-    }
-  }
-  // _epoch 不应该被循环到的 key
-  if (!target['_epoch']) Object.defineProperty(target, '_epoch', {
-    configurable: false,
-    enumerable: false,
-    writable: true
-  })
-  target['_epoch'] = _epoch
-}
-
-
+import { QUOTE } from './datastructure'
+import { IsEmptyObject } from './utils'
 
 class DataManager extends EventEmitter {
-  constructor ({ } = {}) {
+  constructor (data = {}) {
     super()
     this._epoch = 0 // 数据版本控制
-    this._data = {
-      quotes: {},
-      klines: {},
-      ticks: {},
-      charts: {},
-      trade: {}
-    }
-  }
-
-  getKlines (symbol, dur_nano) {
-    if (symbol === '') return null
-    let ks = this._getByPath(['klines', symbol, dur_nano])
-    if (!ks || !ks.data || ks.last_id === -1) {
-      MergeObject(this._data, {
-        klines: {
-          [symbol]: {
-            [dur_nano]: {
-              last_id: -1, data: {}
-            }
-          }
-        }
-      }, this._epoch - 1, false)
-    }
-    return this._getByPath(['klines', symbol, dur_nano])
-
-    // ks = this._getByPath(['klines', symbol, dur_nano])
-    // if (!ks.proxy) {
-    //   ks.proxy = MakeArrayProxy(ks.data, ks)
-    //   let arr = ['open', 'close', 'high', 'low', 'volume', 'close_oi', 'open_oi', 'datetime']
-    //   arr.forEach(key => {
-    //     ks.data[key] = MakeArrayProxy(ks.data, ks, d => d ? d[key] : NaN)
-    //   })
-    // }
-    // return ks.proxy
-  }
-
-  getTicks (symbol) {
-    if (symbol === '') return null
-    let ts = this._getByPath(['ticks', symbol])
-    if (!ts || !ts.data) {
-      MergeObject(this._data, {
-        ticks: {
-          [symbol]: {
-            last_id: -1, data: {}
-          }
-        }
-      }, this._epoch - 1, false)
-    }
-    return this._getByPath(['ticks', symbol])
-
-    // ts = this._getByPath(['ticks', symbol])
-    // if (!ts.proxy) {
-    //   ts.proxy = MakeArrayProxy(ts.data, ts)
-    //   let arr = ['last_price', 'average', 'highest', 'lowest', 'ask_price1', 'ask_volume1', 'bid_price1',
-    //     'bid_volume1', 'volume', 'amount', 'open_interest', 'datetime']
-    //   arr.forEach(key => {
-    //     ts.data[key] = MakeArrayProxy(ts.data, ts, d => d ? d[key] : NaN)
-    //   })
-    // }
-    // return ts.proxy
-  }
-
-  setDefault (default_value, ...path) {
-    let node = typeof path[0] === 'object' ? path[0] : this._data
-    for (let i = 0; i < path.length; i++) {
-      if (typeof path[i] === 'string' || typeof path[i] === 'number') {
-        if (!(path[i] in node)) {
-          if (i + 1 === path.length) {
-            let default_value_obj = typeof default_value === 'string' ? GenPrototype(default_value) : default_value
-            node[path[i]] = default_value_obj
-          } else {
-            node[path[i]] = {}
-          }
-        }
-        node = node[path[i]]
-      }
-    }
-    return node
-  }
-
-  _getByPath (_path) {
-    let path = UnifyArrayStyle(_path)
-    let d = this._data
-    let i = 0
-    for (; i < path.length; i++) {
-      d = d[path[i]]
-      if (d === undefined){
-        return d
-      }
-    }
-    return d
+    this._data = data
+    this._diffs = []
   }
 
   mergeData (source, epochIncrease = true, deleteNullObj = true) {
-    if (epochIncrease) this._epoch += 1
-    let sourceArr = Array.isArray(source) ? source : [source]
-    for (let i in sourceArr) {
-      let item = sourceArr[i]
+    const sourceArr = Array.isArray(source) ? source : [source]
+    if (epochIncrease) {
+      // 如果 _epoch 需要增加，就是需要记下来 diffs
+      this._epoch += 1
+      this._diffs = sourceArr
+    }
+    for (const item of sourceArr) {
       // 过滤掉空对象
-      if (! (item === null || IsEmptyObject(item))){
-        MergeObject(this._data, item, this._epoch, deleteNullObj)
-      }
+      if (item === null || IsEmptyObject(item)) continue
+      DataManager.MergeObject(this._data, item, this._epoch, deleteNullObj)
     }
     if (epochIncrease && this._data._epoch === this._epoch) {
       this.emit('data', null)
     }
   }
 
-  isChanging (_path, source) {
-    let path = UnifyArrayStyle(_path)
+  /**
+   * 判断 某个路径下 或者 某个数据对象 最近有没有更新
+   * @param {Array | Object} pathArray | object
+   */
+  isChanging (pathArray) {
     // _data 中，只能找到对象类型中记录的 _epoch
-    let d = this._data
-    for (let i = 0; i < path.length; i++) {
-      d = d[path[i]]
-      if (d === undefined) return false
-    }
-    if (typeof d === 'object') {
-      return d._epoch && d._epoch === this._epoch ? true : false
-    }
-    if (source) {
-      // 在 source 中找，找到能找到的数据
-      let d = source
-      for (let i = 0; i < path.length; i++) {
-        d = d[path[i]]
+    if (Array.isArray(pathArray)) {
+      let d = this._data
+      for (let i = 0; i < pathArray.length; i++) {
+        d = d[pathArray[i]]
+        if (d._epoch && d._epoch === this._epoch) return true
         if (d === undefined) return false
       }
-      return true
+      return false
+    } else if (pathArray && pathArray._epoch) {
+      return pathArray._epoch === this._epoch
     }
     return false
   }
+
+  setDefault (pathArray, defaultValue = {}, root = this._data) {
+    return DataManager.SetDefault(root, pathArray, defaultValue)
+  }
+
+  getByPath (pathArray, root = this._data) {
+    return DataManager.GetByPath(root, pathArray)
+  }
+}
+
+DataManager.SetDefault = (root, pathArray, defaultValue) => {
+  let node = root
+  for (let i = 0; i < pathArray.length; i++) {
+    if (typeof pathArray[i] !== 'string' && typeof pathArray[i] !== 'number') {
+      console.error('SetDefault, pathArray 中的元素必須是 string or number, but pathArray = ', pathArray)
+      break
+    }
+    let _key = pathArray[i]
+    if (!(_key in node)) {
+      node[_key] = (i === pathArray.length - 1) ? defaultValue : {}
+    }
+    if (i === pathArray.length - 1) {
+      return node[_key]
+    } else {
+      node = node[_key]
+    }
+  }
+  return node
+}
+
+DataManager.GetByPath = (root, pathArray) => {
+  let d = root
+  for (let i = 0; i < pathArray.length; i++) {
+    d = d[pathArray[i]]
+    if (d === undefined || d === null) return d
+  }
+  return d
+}
+
+DataManager.MergeObject = (target, source, _epoch = 0, deleteNullObj = true) => {
+  for (const property in source) {
+    const value = source[property]
+    const type = typeof value
+    /**
+     * 1 'string', 'boolean', 'number'
+     * 2 'object' 包括了 null , Array, {} 服务器不会发送 Array
+     * 3 'undefined' 不处理
+     */
+    if (['string', 'boolean', 'number'].includes(type)) {
+      target[property] = value === 'NaN' ? NaN : value
+    } else if (value === null && deleteNullObj) {
+      delete target[property] // 服务器 要求 删除对象
+    } else if (Array.isArray(value)) {
+      target[property] = value // 如果是数组类型就直接替换，并且记录 _epoch
+      if (!value._epoch) {
+        Object.defineProperty(value, '_epoch', {
+          configurable: false,
+          enumerable: false,
+          writable: true
+        })
+      }
+      value._epoch = _epoch
+    } else if (type === 'object') {
+      // @note: 这里做了一个特例, 使得 K 线序列数据被保存为一个 array, 而非 object
+      target[property] = target[property] || (property === 'data' ? [] : {})
+      // quotes 对象单独处理
+      if (property === 'quotes') {
+        for (const symbol in value) {
+          const quote = value[symbol] // source[property]
+          if (quote === null) {
+            // 服务器 要求 删除对象
+            if (deleteNullObj && symbol) delete target[property][symbol]
+            continue
+          } else if (!target[property][symbol]) {
+            target[property][symbol] = new QUOTE()
+          }
+          DataManager.MergeObject(target[property][symbol], quote, _epoch, deleteNullObj)
+        }
+      } else {
+        DataManager.MergeObject(target[property], value, _epoch, deleteNullObj)
+      }
+    }
+  }
+  // _epoch 不应该被循环到的 key
+  if (!target._epoch) {
+    Object.defineProperty(target, '_epoch', {
+      configurable: false,
+      enumerable: false,
+      writable: true
+    })
+  }
+  target._epoch = _epoch
 }
 
 export default DataManager

@@ -4,20 +4,20 @@ const UnifyArrayStyle = (path, splitSymbol = '/') => {
 }
 
 const IsEmptyObject = (obj) => {
-  return Object.keys(obj).length === 0 ? true : false
+  return obj && obj.constructor === Object && Object.keys(obj).length === 0
 }
 
 const RandomStr = (len = 8) => {
-  let charts = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".split('')
+  const charts = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
   let s = ''
-  for (let i = 0; i < len; i++) s += charts[(Math.random() * 0x3e) | 0];
+  for (let i = 0; i < len; i++) s += charts[(Math.random() * 0x3e) | 0]
   return s
 }
 
 function _genList (str) {
   // string 根据 | 分割为数组
-  let list = []
-  let items = str.split('|')
+  const list = []
+  const items = str.split('|')
   for (let i = 0; i < items.length; i++) {
     list.push(items[i].trim()) // NOTE: 有些竖线之间内容为空
   }
@@ -26,35 +26,35 @@ function _genList (str) {
 
 function _genItem (keys, values) {
   // 根据 keys - values 返回 object
-  let item = {}
+  const item = {}
   for (let j = 0; j < keys.length; j++) {
     item[keys[j]] = values[j]
   }
   return item
 }
 
-function _genTableRow (state, state_detail, col_names, line) {
+function _genTableRow (state, stateDetail, colNames, line) {
   // 根据 参数 处理表格的一行
-  let result = {
+  const result = {
     state: state,
-    state_detail: state_detail,
+    state_detail: stateDetail,
     isRow: false,
     row: null
   }
-  switch (state_detail) {
+  switch (stateDetail) {
     case 'T': // title
       if (line.replace(/-/g, '') === '') {
         result.state_detail = 'C'
       } else {
-        col_names[state] = _genList(line)
+        colNames[state] = _genList(line)
       }
       break
-    case 'C':  // content
+    case 'C': // content
       if (line.replace(/-/g, '') === '') {
         result.state_detail = 'S'
       } else {
         result.isRow = true
-        result.row = _genItem(col_names[state], _genList(line))
+        result.row = _genItem(colNames[state], _genList(line))
       }
       break
     case 'S':
@@ -69,13 +69,13 @@ function _genTableRow (state, state_detail, col_names, line) {
 
 const ParseSettlementContent = (txt = '') => {
   if (txt === '') return txt
-  let lines = txt.split('\n')
+  const lines = txt.split('\n')
   let state = '' // A = Account Summary; T = Transaction Record; PD = Positions Detail; P = Positions
-  let state_detail = '' // T = title; C = content; S = summary
-  let col_names = {}
+  let stateDetail = '' // T = title; C = content; S = summary
+  const colNames = {}
 
   // 需要处理的表格
-  let tableStatesTitles = {
+  const tableStatesTitles = {
     positionClosed: '平仓明细 Position Closed',
     transactionRecords: '成交记录 Transaction Record',
     positions: '持仓汇总 Positions',
@@ -83,9 +83,9 @@ const ParseSettlementContent = (txt = '') => {
     delivery: '交割明细  Delivery'
   }
 
-  let states = []
-  let titles = []
-  let result = { account: {} }
+  const states = []
+  const titles = []
+  const result = { account: {} }
 
   Object.entries(tableStatesTitles).forEach(function (item) {
     states.push(item[0])
@@ -94,14 +94,14 @@ const ParseSettlementContent = (txt = '') => {
   })
 
   for (let i = 0; i < lines.length; i++) {
-    let line = lines[i].trim()
+    const line = lines[i].trim()
     if (line === '资金状况  币种：人民币  Account Summary  Currency：CNY') {
       state = 'A-S'
       i++
       continue
     } else if (titles.includes(line)) {
       state = states[titles.indexOf(line)]
-      state_detail = 'T'
+      stateDetail = 'T'
       i++
       continue
     }
@@ -111,11 +111,13 @@ const ParseSettlementContent = (txt = '') => {
         state = ''
         continue
       } else {
-        let ch_matches = line.match(/([\u4e00-\u9fa5][\u4e00-\u9fa5\s]+[\u4e00-\u9fa5])+/g) // 中文
-        let en_matches = line.match(/([A-Z][a-zA-Z\.\/\(\)\s]+)[:：]+/g) // 英文
-        let num_matches = line.match(/(-?[\d]+\.\d\d)/g) // 数字
-        for (let j = 0; j < en_matches.length; j++) {
-          result.account[en_matches[j].split(/[:：]/)[0]] = num_matches[j]
+        // eslint-disable-next-line no-unused-vars
+        const chMatches = line.match(/([\u4e00-\u9fa5][\u4e00-\u9fa5\s]+[\u4e00-\u9fa5])+/g) // 中文
+        // eslint-disable-next-line no-useless-escape
+        const enMatches = line.match(/([A-Z][a-zA-Z\.\/\(\)\s]+)[:：]+/g) // 英文
+        const numMatches = line.match(/(-?[\d]+\.\d\d)/g) // 数字
+        for (let j = 0; j < enMatches.length; j++) {
+          result.account[enMatches[j].split(/[:：]/)[0]] = numMatches[j]
         }
       }
     } else if (states.includes(state)) {
@@ -123,9 +125,9 @@ const ParseSettlementContent = (txt = '') => {
         state = ''
         continue
       } else {
-        let tableRow = _genTableRow(state, state_detail, col_names, line)
+        const tableRow = _genTableRow(state, stateDetail, colNames, line)
         state = tableRow.state
-        state_detail = tableRow.state_detail
+        stateDetail = tableRow.state_detail
         if (tableRow.isRow) {
           result[state].push(tableRow.row)
         }

@@ -1,8 +1,6 @@
-/* eslint-disable no-eval */
-
-import EventEmitter from 'eventemitter3';
-import store from './cache';
-import {ParseSettlementContent} from './utils'
+import EventEmitter from 'eventemitter3'
+import TQSDK from './index'
+import { ParseSettlementContent } from './utils'
 
 /**
  * let ws = new TqWebsocket(url, options)
@@ -10,7 +8,7 @@ import {ParseSettlementContent} from './utils'
  *   url [string | array]
  *   options [object]
  *       { reconnectInterval, -- 重连时间间隔
-  *        reconnectMaxTimes  -- 重连最大次数
+ *        reconnectMaxTimes  -- 重连最大次数
  *       }
  *
  * METHODS:
@@ -27,9 +25,8 @@ import {ParseSettlementContent} from './utils'
  *   ws.send( [obj | string] )
  *   ws.close()
  */
-
 class TqWebsocket extends EventEmitter {
-  constructor(url, options = {}) {
+  constructor (url, options = {}) {
     super()
     this.urlList = (url instanceof Array) ? url : [url]
 
@@ -55,8 +52,8 @@ class TqWebsocket extends EventEmitter {
   }
 
   // string or object
-  send(obj) {
-    let objToJson = JSON.stringify(obj)
+  send (obj) {
+    const objToJson = JSON.stringify(obj)
     if (this.isReady()) {
       this.ws.send(objToJson)
     } else {
@@ -64,11 +61,11 @@ class TqWebsocket extends EventEmitter {
     }
   }
 
-  isReady() {
+  isReady () {
     return this.ws.readyState === WebSocket.OPEN
   }
 
-  __init() {
+  __init () {
     this.ws = new WebSocket(this.urlList[this.reconnectUrlIndex])
 
     if (this.reconnectUrlIndex === this.urlList.length - 1) {
@@ -76,10 +73,11 @@ class TqWebsocket extends EventEmitter {
       this.reconnectTimes += 1
     }
 
-    let _this = this
+    const _this = this
 
     this.ws.onmessage = function (message) {
-      let data = eval('(' + message.data + ')')
+      // eslint-disable-next-line no-eval
+      const data = eval('(' + message.data + ')')
       _this.emit('message', data)
       setImmediate(function () {
         _this.ws.send('{"aid":"peek_message"}')
@@ -94,7 +92,7 @@ class TqWebsocket extends EventEmitter {
       // 自动重连
       if (_this.reconnect) {
         if (_this.reconnectMaxTimes <= _this.reconnectTimes) {
-          clearTimeout(_this.reconnectTask);
+          clearTimeout(_this.reconnectTask)
           _this.emit('death', {
             msg: '超过重连次数' + _this.reconnectMaxTimes
           })
@@ -134,16 +132,15 @@ class TqWebsocket extends EventEmitter {
     }
   }
 
-  close() {
+  close () {
     this.ws.onclose = function () {
-    };
+    }
     this.ws.close()
   }
 }
 
-
 class TqTradeWebsocket extends TqWebsocket {
-  constructor(url, dm, options = {}) {
+  constructor (url, dm, options = {}) {
     super(url, options)
     this.dm = dm
     // 记录重连时需要重发的数据
@@ -151,47 +148,47 @@ class TqTradeWebsocket extends TqWebsocket {
     this.init()
   }
 
-  init() {
-    let ws_this = this;
+  init () {
+    const self = this
 
     this.on('message', function (payload) {
       if (payload.aid === 'rtn_data') {
-        let notifies = ws_this._separateNotifies(payload.data)
+        const notifies = self._separateNotifies(payload.data)
         for (let i = 0; i < notifies.length; i++) {
-          ws_this.emit('notify', notifies[i])
+          self.emit('notify', notifies[i])
         }
-        ws_this.dm.mergeData(payload.data)
+        self.dm.mergeData(payload.data)
       } else if (payload.aid === 'rtn_brokers') {
-        ws_this.emit('rtn_brokers', payload.brokers)
+        self.emit('rtn_brokers', payload.brokers)
       } else if (payload.aid === 'qry_settlement_info') {
         // 历史结算单 读取优先级： dm -> 缓存(写入dm) -> 服务器(写入dm、缓存)
-        let content = ParseSettlementContent(payload.settlement_info)
+        const content = ParseSettlementContent(payload.settlement_info)
         // 1 写入 dm
-        ws_this.dm.mergeData({
-          'trade': {
-            [payload.user_name] : {
-              'his_settlements': {
+        self.dm.mergeData({
+          trade: {
+            [payload.user_name]: {
+              his_settlements: {
                 [payload.trading_day]: content
               }
             }
           }
         })
         // 2 存入缓存
-        store.setContent(payload.user_name, payload.trading_day, payload.settlement_info)
+        if (TQSDK.store) TQSDK.store.setContent(payload.user_name, payload.trading_day, payload.settlement_info)
       }
     })
 
     this.on('reconnect', function () {
-      if (ws_this.req_login) ws_this.send(ws_this.req_login)
+      if (self.req_login) self.send(self.req_login)
     })
   }
 
-  _separateNotifies(data) {
-    let notifies = []
+  _separateNotifies (data) {
+    const notifies = []
     for (let i = 0; i < data.length; i++) {
-      if (data[i]['notify']) {
-        let notify = data.splice(i--, 1)[0]['notify']
-        for (let k in notify) {
+      if (data[i].notify) {
+        const notify = data.splice(i--, 1)[0].notify
+        for (const k in notify) {
           notifies.push(notify[k])
         }
       }
@@ -199,7 +196,7 @@ class TqTradeWebsocket extends TqWebsocket {
     return notifies
   }
 
-  send(obj) {
+  send (obj) {
     if (obj.aid === 'req_login') {
       this.req_login = obj
     }
@@ -208,7 +205,7 @@ class TqTradeWebsocket extends TqWebsocket {
 }
 
 class TqQuoteWebsocket extends TqWebsocket {
-  constructor(url, dm, options = {}) {
+  constructor (url, dm, options = {}) {
     super(url, options)
     this.dm = dm
     // 记录重连时需要重发的数据
@@ -217,31 +214,31 @@ class TqQuoteWebsocket extends TqWebsocket {
     this.init()
   }
 
-  init() {
-    let ws_this = this;
+  init () {
+    const self = this
 
     this.on('message', function (payload) {
       if (payload.aid === 'rtn_data') {
-        ws_this.dm.mergeData(payload.data)
+        self.dm.mergeData(payload.data)
       }
     })
 
     this.on('reconnect', function (e) {
       console.log(e)
-      if (ws_this.subscribe_quote) {
-        ws_this.send(ws_this.subscribe_quote)
+      if (self.subscribe_quote) {
+        self.send(self.subscribe_quote)
       }
-      for (let chart_id in ws_this.charts) {
-        if (ws_this.charts[chart_id].view_width > 0) {
-          ws_this.send(ws_this.charts[chart_id])
+      for (const chartId in self.charts) {
+        if (self.charts[chartId].view_width > 0) {
+          self.send(self.charts[chartId])
         }
       }
     })
   }
 
-  send(obj) {
+  send (obj) {
     if (obj.aid === 'subscribe_quote') {
-      if (this.subscribe_quote === null || JSON.stringify(obj.ins_list) !== JSON.stringify(this.subscribe_quote.ins_list)){
+      if (this.subscribe_quote === null || JSON.stringify(obj.ins_list) !== JSON.stringify(this.subscribe_quote.ins_list)) {
         this.subscribe_quote = obj
         super.send(obj)
       }
@@ -256,7 +253,29 @@ class TqQuoteWebsocket extends TqWebsocket {
   }
 }
 
+class TqRecvOnlyWebsocket extends TqWebsocket {
+  constructor (url, dm, options = {}) {
+    super(url, options)
+    this.dm = dm
+    this.init()
+  }
+
+  init () {
+    const self = this
+    this.on('message', function (payload) {
+      if (payload.aid === 'rtn_data') {
+        self.dm.mergeData(payload.data)
+      }
+    })
+    this.on('reconnect', function (e) {
+      console.log(e)
+    })
+  }
+}
+
 export {
+  TqWebsocket,
   TqTradeWebsocket,
-  TqQuoteWebsocket
+  TqQuoteWebsocket,
+  TqRecvOnlyWebsocket
 }
