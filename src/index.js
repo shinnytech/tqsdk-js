@@ -88,7 +88,7 @@ class TQSDK extends EventEmitter {
       headers: { Accept: 'application/json; charset=utf-8' }
     }).then(response => {
       self.brokers_list = response.data
-      self.brokers = Object.keys(response.data)
+      self.brokers = Object.keys(response.data).filter(x => !x.endsWith(' '))
       self.emit('rtn_brokers', self.brokers)
       console.log(self.brokers)
     }).catch(error => {
