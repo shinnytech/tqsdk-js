@@ -6,7 +6,7 @@
 
   axios = axios && axios.hasOwnProperty('default') ? axios['default'] : axios;
 
-  var version = "1.1.1";
+  var version = "1.1.2";
   var db_version = "3";
 
   function _typeof(obj) {
@@ -1366,7 +1366,7 @@
           _ref$wsQuoteUrl = _ref.wsQuoteUrl,
           wsQuoteUrl = _ref$wsQuoteUrl === void 0 ? 'wss://openmd.shinnytech.com/t/md/front/mobile' : _ref$wsQuoteUrl,
           _ref$wsTradeUrl = _ref.wsTradeUrl,
-          wsTradeUrl = _ref$wsTradeUrl === void 0 ? 'wss://openmd.shinnytech.com/trade/user0' : _ref$wsTradeUrl,
+          wsTradeUrl = _ref$wsTradeUrl === void 0 ? 'wss://opentd.shinnytech.com/trade/user0' : _ref$wsTradeUrl,
           _ref$clientSystemInfo = _ref.clientSystemInfo,
           clientSystemInfo = _ref$clientSystemInfo === void 0 ? '' : _ref$clientSystemInfo,
           _ref$clientAppId = _ref.clientAppId,
@@ -1378,7 +1378,8 @@
         klines: {},
         quotes: {},
         charts: {},
-        ticks: {}
+        ticks: {},
+        trade: {}
       } : _ref$data;
 
       _classCallCheck(this, TQSDK);
@@ -1419,6 +1420,10 @@
       value: function init() {
         this.initMdWebsocket();
         this.initTdWebsocket();
+      }
+    }, {
+      key: "initMdWebsocket",
+      value: function initMdWebsocket() {
         var self = this;
         axios.get(this._insUrl, {
           headers: {
@@ -1435,20 +1440,11 @@
           console.error('Error: ' + error.message);
           return error;
         });
-      }
-    }, {
-      key: "initMdWebsocket",
-      value: function initMdWebsocket() {
         this.quotesWs = new TqQuoteWebsocket(this._mdUrl, this.dm);
       }
     }, {
       key: "initTdWebsocket",
       value: function initTdWebsocket() {
-        //     if broker_id not in broker_list:
-        //     raise Exception("不支持该期货公司-%s，请联系期货公司。" % (broker_id))
-        // if "TQ" not in broker_list[broker_id]["category"]:
-        //     raise Exception("不支持该期货公司-%s，请联系期货公司。" % (broker_id))
-        // self._td_url = broker_list[broker_id]["url"]
         var self = this; // 支持分散部署的交易中继网关
 
         axios.get('https://files.shinnytech.com/broker-list.json', {
@@ -1456,7 +1452,10 @@
             Accept: 'application/json; charset=utf-8'
           }
         }).then(function (response) {
-          self.brokers = Object.keys(response.data);
+          self.brokers_list = response.data;
+          self.brokers = Object.keys(response.data).filter(function (x) {
+            return !x.endsWith(' ');
+          });
           self.emit('rtn_brokers', self.brokers);
           console.log(self.brokers);
         })["catch"](function (error) {
@@ -1477,14 +1476,13 @@
       key: "addAccount",
       value: function addAccount(bid, userId, password) {
         if (bid && userId && password) {
-          if (!this.brokers[bid]) {
+          if (this.brokers.indexOf(bid) === -1) {
             console.error('不支持该期货公司');
             return;
           }
 
           if (!this.trade_accounts[userId]) {
-            console.log(this.brokers[bid].url);
-            var ws = new TqTradeWebsocket(this.brokers[bid].url, this.dm);
+            var ws = new TqTradeWebsocket(this.brokers_list[bid].url, this.dm);
             var self = this;
             ws.on('notify', function (n) {
               self.emit('notify', Object.assign(n, {

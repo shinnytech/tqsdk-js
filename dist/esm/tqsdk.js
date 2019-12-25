@@ -663,7 +663,7 @@ _export({
 
 var setImmediate$1 = path.setImmediate;
 
-var version = "1.1.1";
+var version = "1.1.2";
 
 function _typeof(obj) {
   if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
@@ -2066,6 +2066,10 @@ function (_EventEmitter) {
     value: function init() {
       this.initMdWebsocket();
       this.initTdWebsocket();
+    }
+  }, {
+    key: "initMdWebsocket",
+    value: function initMdWebsocket() {
       var self = this;
       axios.get(this._insUrl, {
         headers: {
@@ -2082,20 +2086,11 @@ function (_EventEmitter) {
         console.error('Error: ' + error.message);
         return error;
       });
-    }
-  }, {
-    key: "initMdWebsocket",
-    value: function initMdWebsocket() {
       this.quotesWs = new TqQuoteWebsocket(this._mdUrl, this.dm);
     }
   }, {
     key: "initTdWebsocket",
     value: function initTdWebsocket() {
-      //     if broker_id not in broker_list:
-      //     raise Exception("不支持该期货公司-%s，请联系期货公司。" % (broker_id))
-      // if "TQ" not in broker_list[broker_id]["category"]:
-      //     raise Exception("不支持该期货公司-%s，请联系期货公司。" % (broker_id))
-      // self._td_url = broker_list[broker_id]["url"]
       var self = this; // 支持分散部署的交易中继网关
 
       axios.get('https://files.shinnytech.com/broker-list.json', {
@@ -2104,7 +2099,9 @@ function (_EventEmitter) {
         }
       }).then(function (response) {
         self.brokers_list = response.data;
-        self.brokers = Object.keys(response.data);
+        self.brokers = Object.keys(response.data).filter(function (x) {
+          return !x.endsWith(' ');
+        });
         self.emit('rtn_brokers', self.brokers);
         console.log(self.brokers);
       })["catch"](function (error) {
@@ -2131,7 +2128,6 @@ function (_EventEmitter) {
         }
 
         if (!this.trade_accounts[userId]) {
-          console.log(this.brokers_list[bid].url);
           var ws = new TqTradeWebsocket(this.brokers_list[bid].url, this.dm);
           var self = this;
           ws.on('notify', function (n) {

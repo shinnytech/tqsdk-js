@@ -61,6 +61,9 @@ class TQSDK extends EventEmitter {
   init () {
     this.initMdWebsocket()
     this.initTdWebsocket()
+  }
+
+  initMdWebsocket () {
     const self = this
     axios.get(this._insUrl, {
       headers: { Accept: 'application/json; charset=utf-8' }
@@ -75,9 +78,6 @@ class TQSDK extends EventEmitter {
       console.error('Error: ' + error.message)
       return error
     })
-  }
-
-  initMdWebsocket () {
     this.quotesWs = new TqQuoteWebsocket(this._mdUrl, this.dm)
   }
 
