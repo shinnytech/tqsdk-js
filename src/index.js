@@ -144,6 +144,22 @@ class TQSDK extends EventEmitter {
     }
   }
 
+  refreshAccount (bid, userId) {
+    if (bid && userId) {
+      if (this.trade_accounts[userId]) {
+        this.trade_accounts[userId].ws.send({ aid: 'qry_account_info' })
+        this.trade_accounts[userId].ws.send({ aid: 'qry_account_register' })
+      }
+    }
+  }
+
+  refreshAccounts () {
+    for (const userId in this.trade_accounts) {
+      this.trade_accounts[userId].ws.send({ aid: 'qry_account_info' })
+      this.trade_accounts[userId].ws.send({ aid: 'qry_account_register' })
+    }
+  }
+
   updateData (data) {
     this.dm.mergeData(data, true, false)
   }
