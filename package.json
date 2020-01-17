@@ -18,6 +18,7 @@
     "type": "git",
     "url": "https://github.com/shinnytech/tqsdk-js"
   },
+  "publishConfig": { "registry": "https://npm.pkg.github.com/" },
   "keywords": [],
   "author": "ma_yanqiong@163.com",
   "license": "ISC",
