@@ -32,7 +32,7 @@
 Html 文件添加
 
 ```html
-<script src="lib/tqsdk.js"></script>
+<script src="dist/umd/tqsdk.min.js"></script>
 ```
 
 JavaScript 文件中可以直接使用：

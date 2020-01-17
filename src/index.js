@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import 'core-js/stable/set-immediate'
 import axios from 'axios'
 import { TqQuoteWebsocket, TqTradeWebsocket, TqRecvOnlyWebsocket } from './tqwebsocket'
 import DataManager from './datamanage'

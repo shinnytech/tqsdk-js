@@ -37,7 +37,7 @@ class TqWebsocket extends EventEmitter {
     this.reconnect = true
     this.reconnectTask = null
     this.reconnectInterval = options.reconnectInterval ? options.reconnectInterval : 3000
-    this.reconnectMaxTimes = options.reconnectMaxTimes ? options.reconnectMaxTimes : 5
+    this.reconnectMaxTimes = options.reconnectMaxTimes ? options.reconnectMaxTimes : 2
     this.reconnectTimes = 0
     this.reconnectUrlIndex = 0
 
