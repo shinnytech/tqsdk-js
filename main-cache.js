@@ -1,5 +1,5 @@
-// import "core-js/stable";
 // import "regenerator-runtime/runtime";
+import 'core-js/stable/set-immediate'
 import { version, db_version as dbVersion } from './package.json'
 import axios from 'axios'
 import TQSDK from './src/index'
