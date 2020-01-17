@@ -5,6 +5,8 @@ node_modules/
 .report/
 doc/
 coverage/
+dist/
+lib/
 
 nohup.out
 buglist.md
