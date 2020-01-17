@@ -16,27 +16,22 @@ const plugins = [
 ]
 export default [
   {
+    // umd with cache axios
     input: 'main-cache.js',
     output: [{
-      file: 'dist/umd/tqsdk.js',
+      file: 'dist/umd/tqsdk-browser.js',
       name: 'TQSDK',
-      format: 'umd', // Universal Module Definition, works as amd, cjs and iife all in one
-      globals: {
-        axios: 'axios'
-      }
+      format: 'umd' // Universal Module Definition, works as amd, cjs and iife all in one
     }, {
-      file: 'dist/umd/tqsdk.min.js',
+      file: 'dist/umd/tqsdk-browser.min.js',
       name: 'TQSDK',
       format: 'umd',
-      globals: {
-        axios: 'axios'
-      },
       plugins: [terser()]
     }],
-    external: ['axios'],
     plugins
   },
   {
+    // esm
     input: 'main.js',
     output: [{
       file: 'dist/esm/tqsdk.js',
@@ -48,4 +43,19 @@ export default [
     }],
     external: ['axios'],
     plugins
-  }]
+  },
+  {
+    // esm with cache
+    input: 'main-cache.js',
+    output: [{
+      file: 'dist/esm/tqsdk-cache.js',
+      name: 'TQSDK',
+      format: 'esm', // Keep the bundle as an ES module file, suitable for other bundlers and inclusion as a <script type=module> tag in modern browsers
+      globals: {
+        axios: 'axios'
+      }
+    }],
+    external: ['axios'],
+    plugins
+  }
+]

@@ -663,7 +663,7 @@ _export({
 
 var setImmediate$1 = path.setImmediate;
 
-var version = "1.1.7";
+var version = "1.1.9";
 
 function _typeof(obj) {
   if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
@@ -1347,7 +1347,7 @@ function (_EventEmitter) {
     _this2.reconnect = true;
     _this2.reconnectTask = null;
     _this2.reconnectInterval = options.reconnectInterval ? options.reconnectInterval : 3000;
-    _this2.reconnectMaxTimes = options.reconnectMaxTimes ? options.reconnectMaxTimes : 5;
+    _this2.reconnectMaxTimes = options.reconnectMaxTimes ? options.reconnectMaxTimes : 2;
     _this2.reconnectTimes = 0;
     _this2.reconnectUrlIndex = 0;
     _this2.STATUS = {
@@ -2101,7 +2101,7 @@ function (_EventEmitter) {
         self.brokers_list = response.data;
         self.brokers = Object.keys(response.data).filter(function (x) {
           return !x.endsWith(' ');
-        });
+        }).sort();
         self.emit('rtn_brokers', self.brokers);
         console.log(self.brokers);
       })["catch"](function (error) {
