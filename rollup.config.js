@@ -21,13 +21,20 @@ export default [
     output: [{
       file: 'dist/umd/tqsdk-browser.js',
       name: 'TQSDK',
-      format: 'umd' // Universal Module Definition, works as amd, cjs and iife all in one
+      format: 'umd', // Universal Module Definition, works as amd, cjs and iife all in one
+      globals: {
+        axios: 'axios'
+      }
     }, {
       file: 'dist/umd/tqsdk-browser.min.js',
       name: 'TQSDK',
       format: 'umd',
+      globals: {
+        axios: 'axios'
+      },
       plugins: [terser()]
     }],
+    external: ['axios'],
     plugins
   },
   {
