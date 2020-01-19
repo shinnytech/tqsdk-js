@@ -1,6 +1,6 @@
 {
   "name": "tqsdk",
-  "version": "1.1.11",
+  "version": "1.1.12",
   "db_version": "3",
   "description": "",
   "main": "dist/esm/tqsdk.js",
@@ -8,12 +8,12 @@
     "build": "rollup --config",
     "dev": "rollup -c",
     "dev_watch": "rollup --config rollup.config.dev.js -w",
-    "prepublish": "rm -f dist/*.js && rollup --config",
+    "prepublish": "rm -f dist/*/*.js && rollup --config",
     "local_wiki": "cd ../tqsdk-js.wiki && gollum",
     "test": "jest",
     "coverage": "open ./coverage/lcov-report/index.html",
     "lint": "eslint src/*",
-    "release": "rm -f dist/*.js && rollup --config && release-it"
+    "release": "rm -f dist/*/*.js && rollup --config && release-it"
   },
   "repository": {
     "type": "git",
