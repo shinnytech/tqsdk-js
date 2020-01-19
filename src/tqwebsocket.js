@@ -48,7 +48,7 @@ class TqWebsocket extends EventEmitter {
       CLOSED: 3
     }
 
-    this.__init()
+    this.__init(false)
   }
 
   // string or object
@@ -65,10 +65,10 @@ class TqWebsocket extends EventEmitter {
     return this.ws.readyState === WebSocket.OPEN
   }
 
-  __init () {
+  __init (isReconnection = true) {
     this.ws = new WebSocket(this.urlList[this.reconnectUrlIndex])
 
-    if (this.reconnectUrlIndex === this.urlList.length - 1) {
+    if (isReconnection && this.reconnectUrlIndex === this.urlList.length - 1) {
       // urlList 循环尝试重连一轮, times += 1
       this.reconnectTimes += 1
     }
@@ -101,7 +101,7 @@ class TqWebsocket extends EventEmitter {
             if (_this.ws.readyState === 3) {
               // 每次重连的时候设置 _this.reconnectUrlIndex
               _this.reconnectUrlIndex = (_this.reconnectUrlIndex + 1) < _this.urlList.length ? _this.reconnectUrlIndex + 1 : 0
-              _this.__init()
+              _this.__init(true)
               _this.emit('reconnect', {
                 msg: '发起重连第 ' + _this.reconnectTimes + ' 次'
               })
@@ -120,7 +120,7 @@ class TqWebsocket extends EventEmitter {
       _this.emit('open', {
         msg: '发起重连第 ' + _this.reconnectTimes + ' 次, 成功'
       })
-      _this.reconnectTimes = 0
+      // _this.reconnectTimes = 0
       _this.reconnectUrlIndex = 0
       if (this.reconnectTask) {
         clearTimeout(_this.reconnectTask)
