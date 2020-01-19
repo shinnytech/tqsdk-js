@@ -7,6 +7,6 @@
   },
   "github": {
     "release": true,
-    "assets": ["./dist/umd/tqsdk-browser.js", "./dist/umd/tqsdk-browser.min.js"]
+    "assets": ["./dist/umd/tqsdk.js", "./dist/umd/tqsdk.min.js"]
   }
 }

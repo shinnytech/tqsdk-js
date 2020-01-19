@@ -19,14 +19,14 @@ export default [
     // umd with cache axios
     input: 'main-cache.js',
     output: [{
-      file: 'dist/umd/tqsdk-browser.js',
+      file: 'dist/umd/tqsdk.js',
       name: 'TQSDK',
       format: 'umd', // Universal Module Definition, works as amd, cjs and iife all in one
       globals: {
         axios: 'axios'
       }
     }, {
-      file: 'dist/umd/tqsdk-browser.min.js',
+      file: 'dist/umd/tqsdk.min.js',
       name: 'TQSDK',
       format: 'umd',
       globals: {

@@ -13,7 +13,7 @@
     "test": "jest",
     "coverage": "open ./coverage/lcov-report/index.html",
     "lint": "eslint src/*",
-    "release": "release-it"
+    "release": "rm -f dist/*.js && rollup --config && release-it"
   },
   "repository": {
     "type": "git",
