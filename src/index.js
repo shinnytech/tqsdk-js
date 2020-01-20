@@ -39,7 +39,7 @@ class TQSDK extends EventEmitter {
     this._mdUrl = wsQuoteUrl
     this._tdUrl = wsTradeUrl
     this.clientSystemInfo = clientSystemInfo
-    this.clientAppIds = clientAppId
+    this.clientAppId = clientAppId
 
     this._prefix = 'TQJS_'
 
