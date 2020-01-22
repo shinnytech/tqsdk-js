@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-class QUOTE {
+class Quote {
   constructor () {
     this.instrument_id = '' // 'SHFE.au1906'
     this.datetime = '' // "2017-07-26 23:04:21.000001" (行情从交易所发出的时间(北京时间))
@@ -79,7 +79,7 @@ class QUOTE {
   }
 }
 
-class KLINE {
+class Kline {
   constructor () {
     this.datetime = 0 // 1501080715000000000 (K线起点时间(按北京时间)，自unix epoch(1970-01-01 00:00:00 GMT)以来的纳秒数)
     this.open = NaN // K线起始时刻的最新价
@@ -92,7 +92,7 @@ class KLINE {
   }
 }
 
-class TICK {
+class Tick {
   constructor () {
     this.datetime = 0 // 1501074872000000000 (tick从交易所发出的时间(按北京时间)，自unix epoch(1970-01-01 00:00:00 GMT)以来的纳秒数)
     this.last_price = NaN // 最新价
@@ -109,4 +109,4 @@ class TICK {
   }
 }
 
-export { QUOTE, KLINE, TICK }
+export { Quote, Kline, Tick }
