@@ -9,7 +9,7 @@
     "dev": "rollup -c",
     "dev_watch": "rollup --config rollup.config.dev.js -w",
     "prepublish": "rm -f dist/*/*.js && rollup --config",
-    "docs": "jsdoc2md --no-cache -c .jsdoc2md.json -f src/index.js --separators --plugin dmd-bitbucket -m dl -d 3 -p table -t readme.hbs > README.md",
+    "docs": "jsdoc2md --no-cache -c .jsdoc2md.json -f src/index.js --separators -m dl -d 3 -p table -t readme.hbs > README.md",
     "local_wiki": "cd ../tqsdk-js.wiki && gollum",
     "test": "jest",
     "coverage": "open ./coverage/lcov-report/index.html",
