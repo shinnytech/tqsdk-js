@@ -38,8 +38,8 @@ class DataManager extends EventEmitter {
       let d = this._data
       for (let i = 0; i < pathArray.length; i++) {
         d = d[pathArray[i]]
-        if (d._epoch && d._epoch === this._epoch) return true
         if (d === undefined) return false
+        if (d._epoch && d._epoch === this._epoch) return true
       }
       return false
     } else if (pathArray && pathArray._epoch) {

@@ -109,4 +109,13 @@ class Tick {
   }
 }
 
-export { Quote, Kline, Tick }
+class Chart {
+  constructor (state = {}) {
+    this.left_id = -1
+    this.right_id = -1
+    this.more_data = true
+    this.state = state
+  }
+}
+
+export { Quote, Kline, Tick, Chart }

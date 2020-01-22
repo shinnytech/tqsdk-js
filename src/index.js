@@ -10,7 +10,7 @@ import { TqQuoteWebsocket, TqTradeWebsocket, TqRecvOnlyWebsocket } from './tqweb
 import DataManager from './datamanage'
 import EventEmitter from 'eventemitter3'
 import { RandomStr, ParseSettlementContent } from './utils'
-import { Quote } from './datastructure'
+import { Quote, Chart } from './datastructure'
 
 // 支持多账户登录
 //    * @fires TQSDK#ready 收到合约基础数据（全局只出发一次）
@@ -118,6 +118,7 @@ class Tqsdk extends EventEmitter {
     this.brokers_list = null
     this.brokers = null
     this.trade_accounts = {} // 添加账户
+    this.subscribeQuotesSet = new Set() // 所有需要订阅的合约
     this.quotesWs = null
     this.quotesInfo = {}
     if (autoInit) {
@@ -207,70 +208,107 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取数据对象
    * @param {list} pathArray
+   * @param {object} dm 获取对象数据源，默认为当前实例的 datamanager
+   * @returns {object|null}
+   *
+   * @example
+   * // 获取某个合约下市时间
+   * // 推荐使用这种方式，先获取 quote 对象的引用
+   * let quote = tqdsk.getQuote('SHFE.au2006')
+   * let dt = quote.expire_datetime
+   *
+   * // 以上代码等价于
+   * let dt = tqsdk.getByPath(['quotes', 'SHFE.au2006', 'expire_datetime'])
    */
-  getByPath (pathArray) {
-    return this.dm.getByPath(pathArray)
+  getByPath (pathArray, dm = this.dm) {
+    return dm.getByPath(pathArray)
   }
 
   /**
    * 根据输入字符串查询合约列表
-   * @param {string} _input
+   * @param {string} input
+   * @param {string} filterOption 查询合约列表条件限制
+   * @param {boolean} filterOption.symbol=true 是否根据合约ID匹配
+   * @param {boolean} filterOption.pinyin=true 是否根据拼音匹配
+   * @param {boolean} filterOption.include_expired=false 匹配结果是否包含已下市合约
+   * @param {boolean} filterOption.future=true 匹配结果是否包含期货合约
+   * @param {boolean} filterOption.future_index=false 匹配结果是否包含期货指数
+   * @param {boolean} filterOption.future_cont=false 匹配结果是否包含期货主连
+   * @param {boolean} filterOption.option=false 匹配结果是否包含期权
+   * @param {boolean} filterOption.combine=false 匹配结果是否包含组合
+   * @returns {list} [symbol, ...]
+   *
+   * @example
+   * const tqsdk = new TQSDK()
+   * const quote = tqsdk.getQuote('SHFE.au2006')
+   * tqsdk.on('ready', function () {
+   *   console.log(tqsdk.getQuotesByInput('huangjin'))
+   *   console.log(tqsdk.getQuotesByInput('doupo', { future_index: true, future_cont: true }))
+   * })
    */
-  getQuotesByInput (_input) {
-    if (typeof _input !== 'string' && !_input.input) return []
+  getQuotesByInput (input, filterOption = {}) {
+    if (typeof input !== 'string') return []
     const option = {
-      input: (typeof _input === 'string') ? _input.toLowerCase() : _input.input.toLowerCase(),
-      instrument_id: _input.instrument_id ? _input.instrument_id : true, // 是否根据合约ID匹配
-      pinyin: _input.pinyin ? _input.pinyin : true, // 是否根据拼音匹配
-      include_expired: _input.include_expired ? _input.include_expired : false, // 匹配结果是否包含已下市合约
-      FUTURE: _input.future ? !!_input.future : true, // 匹配结果是否包含期货合约
-      FUTURE_INDEX: _input.future_index ? !!_input.future_index : false, // 匹配结果是否包含期货指数
-      FUTURE_CONT: _input.future_cont ? !!_input.future_cont : false, // 匹配结果是否包含期货主连
-      OPTION: _input.option ? !!_input.option : false, // 匹配结果是否包含期权
-      COMBINE: _input.combine ? !!_input.combine : false // 匹配结果是否包含组合
+      input: input.toLowerCase(),
+      symbol: typeof filterOption.symbol === 'boolean' ? filterOption.symbol : true, // 是否根据合约ID匹配
+      pinyin: typeof filterOption.pinyin === 'boolean' ? filterOption.pinyin : true, // 是否根据拼音匹配
+      include_expired: typeof filterOption.include_expired === 'boolean' ? filterOption.include_expired : false, // 匹配结果是否包含已下市合约
+      FUTURE: typeof filterOption.future === 'boolean' ? filterOption.future : true, // 匹配结果是否包含期货合约
+      FUTURE_INDEX: typeof filterOption.future_index === 'boolean' ? filterOption.future_index : false, // 匹配结果是否包含期货指数
+      FUTURE_CONT: typeof filterOption.future_cont === 'boolean' ? filterOption.future_cont : false, // 匹配结果是否包含期货主连
+      OPTION: typeof filterOption.option === 'boolean' ? filterOption.option : false, // 匹配结果是否包含期权
+      COMBINE: typeof filterOption.combine === 'boolean' ? filterOption.combine : false // 匹配结果是否包含组合
     }
-
-    const filterSymbol = function (filterOption, quote, by) {
-      if (filterOption[quote.class] && (filterOption.include_expired || (!filterOption.include_expired && !quote.expired))) {
-        if (by === 'instrument_id') {
-          if (quote.product_id.toLowerCase() === filterOption.input) {
-            return true
-          } else if (filterOption.input.length > 2 && quote.instrument_id.toLowerCase().indexOf(filterOption.input) > -1) {
-            return true
-          } else {
-            return false
-          }
-        } else if (by === 'pinyin' && quote.py.split(',').indexOf(filterOption.input) > -1) {
-          return true
-        } else {
-          return false
-        }
-      }
-      return false
-    }
-
     const result = []
-    if (option.instrument_id) {
-      for (const symbol in this.quotesInfo) {
-        if (filterSymbol(option, this.quotesInfo[symbol], 'instrument_id')) {
-          result.push(symbol)
-        }
-      }
-    }
-    if (option.pinyin) {
-      for (const symbol in this.quotesInfo) {
-        if (filterSymbol(option, this.quotesInfo[symbol], 'pinyin')) {
-          result.push(symbol)
-        }
+    for (const symbol in this.quotesInfo) {
+      if (this._filterSymbol(option, this.quotesInfo[symbol])) {
+        result.push(symbol)
       }
     }
     return result
   }
 
   /**
+   * @private
+   * @param {object} filterOption 筛选条件
+   * @param {object} quote 合约对象
+   * @returns {list}
+   */
+  _filterSymbol (filterOption, quote) {
+    if (filterOption[quote.class] && (filterOption.include_expired || (!filterOption.include_expired && !quote.expired))) {
+      if (filterOption.symbol) {
+        if (quote.underlying_product) {
+          const [ex_id, product_id] = quote.underlying_product.toLowerCase().split('.')
+          if (ex_id === filterOption.input || product_id === filterOption.input) {
+            return true
+          }
+        } else if (quote.product_id && quote.product_id.toLowerCase() === filterOption.input) {
+          return true
+        } else if (filterOption.input.length > 2 && quote.instrument_id.toLowerCase().indexOf(filterOption.input) > -1) {
+          return true
+        }
+      }
+      if (filterOption.pinyin) {
+        const pyArray = quote.py.split(',')
+        for (const py of pyArray) {
+          if (py.indexOf(filterOption.input) > -1) return true
+        }
+      }
+    }
+    return false
+  }
+
+  /**
    * 根据合约代码获取合约对象
    * @param {string} symbol 合约代码
    * @returns {object}
+   *
+   * @example
+   * const tqsdk = new TQSDK()
+   * const quote = tqsdk.getQuote('SHFE.au2006')
+   * tqsdk.on('rtn_data', function () {
+   *   console.log(quote.last_price, quote.pre_settlement)
+   * })
    */
   getQuote (symbol) {
     if (symbol === '') return {}
@@ -281,12 +319,31 @@ class Tqsdk extends EventEmitter {
       const last_price = symbolObj.last_price ? symbolObj.last_price : this.quotesInfo[symbol].last_price
       Object.assign(symbolObj, this.quotesInfo[symbol], { last_price })
     }
+    this.subscribeQuotesSet.add(symbol)
+    this.subscribeQuote()
     return symbolObj
   }
 
   /**
    * 请求 K 线图表
    * @param {object} payload
+   * @param {string} payload.chart_id 图表 id
+   * @param {string} payload.symbol 合约代码
+   * @param {number} payload.duration 图表周期，0 表示 tick, 1e9 表示 1s, UnixNano 时间
+   * @param {number} payload.view_width 图表柱子宽度
+   * @param {number} payload.left_kline_id 指定一个K线id，向右请求view_width个数据
+   * @param {number} payload.trading_day_start 指定交易日，返回对应的数据
+   * @param {number} payload.trading_day_count 请求交易日天数
+   * @param {number} payload.focus_datetime 使得指定日期的K线位于屏幕第M个柱子的位置
+   * @param {number} payload.focus_position 使得指定日期的K线位于屏幕第M个柱子的位置
+   * @returns {object} chart
+   *
+   * @example
+   * let tqsdk = new TQSDK()
+   * let chart = tqsdk.setChart({symbol: 'SHFE.au2006', duration: 60 * 1e9, view_width: 100})
+   * tqsdk.on('rtn_data', function(){
+   *   console.log('chart.right_id', chart && chart.right_id)
+   * })
    */
   setChart (payload) {
     const content = {}
@@ -306,66 +363,31 @@ class Tqsdk extends EventEmitter {
         content.focus_position = payload.focus_position ? payload.focus_position : 0
       }
     }
-    this.quotesWs.send(Object.assign({
+    const sendChart = Object.assign({
       aid: 'set_chart',
       chart_id: payload.chart_id ? payload.chart_id : (this._prefix + 'kline_chart'),
       ins_list: payload.ins_list ? payload.ins_list.join(',') : payload.symbol,
       duration: payload.duration
-    }, content))
+    }, content)
+    this.quotesWs.send(sendChart)
+    return this.dm.setDefault(['charts', sendChart.chart_id], new Chart(sendChart))
   }
 
   /**
-   * 根据传入对象查询数据
-   * @param {*} param0
+   * 获取 chart 对象
+   * @param {string} chart_id
+   * @returns {object} {}
    */
-  get ({
-    // 交易 ['users', 'user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
-    // 结算单 ['his_settlements', 'his_settlement'] @20190618新增
-    // 行情 ['quotes', 'quote', 'ticks', 'klines', 'charts', 'chart']
-    name = 'users',
-    user_id = '', // 以下 name 有效 ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
-    currency = 'CNY', // 以下 name 有效 ['account']
-    symbol = '', // 以下 name 有效 ['position'] ['quote', 'ticks', 'klines']
-    order_id = '', // 以下 name 有效 ['order']
-    trade_id = '', // 以下 name 有效 ['trade']
-    trading_day = '', // 以下 name 有效 ['his_settlement']
-    chart_id = '', // 以下 name 有效 ['chart']
-    input = '', // 以下 name 有效 ['quotes']
-    duration = 0 // 以下 name 有效 ['klines']
-  } = {}) {
-    if (name === 'users') {
-      return Object.keys(this.trade_accounts)
-    }
-    if (user_id) {
-      // get 交易相关数据
-      const user = this.get_user(user_id)
-      if (name === 'user') {
-        return user
-      }
-      if (['session', 'accounts', 'positions', 'orders', 'trades', 'his_settlements'].indexOf(name) > -1) {
-        return user && user[name] ? user[name] : null
-      } else if (user && user[name + 's']) {
-        const k = name === 'account' ? currency : name === 'position' ? symbol : name === 'order' ? order_id : name === 'trade' ? trade_id : name === 'his_settlement' ? trading_day : ''
-        return user[name + 's'][k]
-      }
-      return null
-    } else {
-      // get 行情相关数据
-      if (name === 'quotes') {
-        return input ? this.get_quotes_by_input(input) : []
-      }
-      if (name === 'quote') return this.getQuote(symbol)
-      if (name === 'klines') return this.getKlines(symbol, duration)
-      if (name === 'ticks') return this.getTicks(symbol)
-      if (name === 'charts') return this.dm.getByPath(['charts'])
-      if (name === 'chart') return this.dm.getByPath(['charts', chart_id])
-    }
+  getChart (chart_id) {
+    if (chart_id === '') return null
+    return this.dm.getByPath(['charts', chart_id])
   }
 
   /**
    * 获取 K 线序列
    * @param {string} symbol
    * @param {number} dur
+   * @returns {object} {data, last_id}
    */
   getKlines (symbol, dur) {
     if (symbol === '') return null
@@ -375,7 +397,10 @@ class Tqsdk extends EventEmitter {
         klines: {
           [symbol]: {
             [dur]: {
-              last_id: -1, data: {}
+              trading_day_end_id: -1,
+              trading_day_start_id: -1,
+              last_id: -1,
+              data: {}
             }
           }
         }
@@ -388,6 +413,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取 Ticks 序列
    * @param {string} symbol
+   * @returns {object} {data, last_id}
    */
   getTicks (symbol) {
     if (symbol === '') return null
@@ -405,47 +431,61 @@ class Tqsdk extends EventEmitter {
   }
 
   /**
-   * 判断账户是否登录 [x]
-   * @param {object} payload
-   * @param {string} payload.bid
-   * @param {string} payload.user_id
-   * @returns {boolean}
-   */
-  isLogined (payload) {
-    const account = this._getAccountRef(payload)
-    if (account && account.dm) {
-      const session = account.dm.getByPath(['trade', payload.user_id, 'session'])
-      const trade_more_data = account.dm.getByPath(['trade', account.user_id, 'trade_more_data'])
-      if (session && session.trading_day && trade_more_data === false) {
-        return true
-      }
-    }
-    return false
-  }
-
-  /**
    * 判断某个对象是否最近一次有变动
-   * @param {} target
-   * @param {*} source
+   * @param {object|list} target|pathArray 检查变动的对象或者路径数组
+   * @param {object} [source] 比较的数据对象
+   * @returns {boolean}
    *
    * @example
    * let tqsdk = new TQSDK()
-   * tqsdk.isChanging
+   * let quote = tqsdk.getQuote('DCE.m2006')
+   * let quote1 = tqsdk.getQuote('DCE.cs2006')
+   * tqsdk.on('rtn_data', function(){
+   *   if (tqsdk.isChanging(quote)) {
+   *     console.log('DCE.m2006 updated', quote.datetime, quote.last_price, quote.volume)
+   *   }
+   *   if (tqsdk.isChanging(['quotes', 'DCE.cs2006'])) {
+   *     console.log('DCE.cs2006 updated', quote1.datetime, quote1.last_price, quote1.volume)
+   *   }
+   * })
    */
   isChanging (target, source) {
     if (target && target._epoch) return target._epoch === this.dm._epoch
-    if (typeof target === 'string') return this.dm.isChanging(target, source)
+    if (Array.isArray(target)) return this.dm.isChanging(target, source)
     return false
   }
 
   /**
-   * 订阅合约
-   * @param {object} payload
+   * 订阅合约, 手动订阅合约
+   * @param {list|string} quotes=[]
+   *
+   * @example
+   * let tqsdk = new TQSDK()
+   * tqsdk.subscribeQuote('SHFE.au2006')
+   * tqsdk.subscribeQuote(['SHFE.au2006', 'DCE.m2008'])
    */
-  subscribeQuote (quotes) {
+  subscribeQuote (quotes = []) {
+    const subscribeQuotesSet = new Set()
+    // 所有持仓合约
+    for (const k in this.trade_accounts) {
+      const pos = this.getPositions(this.trade_accounts[k])
+      if (pos) {
+        for (const symbol in pos) {
+          subscribeQuotesSet.add(symbol)
+        }
+      }
+    }
+    // this.subscribeQuotesSet 记录 getQuote 的合约
+    for (const s in this.subscribeQuotesSet) {
+      subscribeQuotesSet.add(s)
+    }
+    quotes = typeof quotes === 'string' ? [quotes] : quotes
+    for (const s in quotes) {
+      subscribeQuotesSet.add(s)
+    }
     this.quotesWs.send({
       aid: 'subscribe_quote',
-      ins_list: Array.isArray(quotes) ? quotes.join(',') : quotes
+      ins_list: [].concat(...subscribeQuotesSet).join(',')
     })
   }
 
@@ -489,7 +529,8 @@ class Tqsdk extends EventEmitter {
             [payload.user_id]: {
               trades: {},
               positions: {},
-              orders: {}
+              orders: {},
+              his_settlements: {}
             }
           }
         })
@@ -544,6 +585,122 @@ class Tqsdk extends EventEmitter {
   }
 
   /**
+   * 登录期货账户
+   * @param {object} payload
+   * @param {string} payload.bid 期货公司
+   * @param {string} payload.user_id 账户名
+   * @param {string} payload.password 密码
+   */
+  login (payload) {
+    const loginContent = { aid: 'req_login' }
+    if (this.clientAppId) {
+      loginContent.client_app_id = this.clientAppId
+      loginContent.client_system_info = this.clientSystemInfo
+    }
+    const account = this._getAccountRef(payload)
+    if (account && account.ws) {
+      loginContent.bid = payload.bid
+      loginContent.user_name = payload.user_id
+      loginContent.password = payload.password || account.password
+      account.ws.send(loginContent)
+    }
+  }
+
+  /**
+   * 判断账户是否登录 [x]
+   * @param {object} payload
+   * @param {string} payload.bid
+   * @param {string} payload.user_id
+   * @returns {boolean}
+   */
+  isLogined (payload) {
+    const account = this._getAccountRef(payload)
+    if (account && account.dm) {
+      const session = account.dm.getByPath(['trade', payload.user_id, 'session'])
+      const trade_more_data = account.dm.getByPath(['trade', account.user_id, 'trade_more_data'])
+      if (session && session.trading_day && trade_more_data === false) {
+        return true
+      }
+    }
+    return false
+  }
+
+  /**
+   * 刷新账户信息，用于账户资金没有同步正确
+   * @param {object} payload
+   * @param {string} payload.bid 期货公司
+   * @param {string} payload.user_id 账户名
+   */
+  refreshAccount (payload) {
+    const account = this._getAccountRef(payload)
+    if (account && account.ws) {
+      account.ws.send({ aid: 'qry_account_info' })
+      account.ws.send({ aid: 'qry_account_register' })
+    }
+  }
+
+  /**
+   * 刷新全部账户信息，用于账户资金没有同步正确
+   */
+  refreshAccounts () {
+    for (const key in this.trade_accounts) {
+      this.trade_accounts[key].ws.send({ aid: 'qry_account_info' })
+      this.trade_accounts[key].ws.send({ aid: 'qry_account_register' })
+    }
+  }
+
+  /**
+   * 获取全部账户信息
+   * @returns {list}
+   *
+   * @example
+   * const tqsdk = new TQSDK()
+   * const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
+   * const account1 = { bid: '快期模拟', user_id: 'test1234', password: '123456' }
+   * tqsdk.on('rtn_brokers', function(brokers){
+   *   tqsdk.addAccount(account) // 仅添加期货账户信息并建立链接，不会登录账户
+   *   tqsdk.addAccount(account1)
+   *   tqsdk.login(account) // 发送登录期货账户的请求
+   *   tqsdk.login(account1) // 发送登录期货账户的请求
+   *   // ........
+   *   const accounts = tqsdk.getAllAccounts()
+   *   console.log(accounts)
+   * })
+   */
+  getAllAccounts (payload) {
+    const result = []
+    Object.values(this.trade_accounts).forEach(function (v) {
+      result.push({ bid: v.bid, user_id: v.user_id, password: v.password })
+    })
+    return result
+  }
+
+  /**
+   * 获取账户资金信息
+   * @param {object} payload
+   * @param {string} payload.bid
+   * @param {string} payload.user_id
+   * @returns {object|null}
+   *
+   * @example
+   * const tqsdk = new TQSDK()
+   * const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
+   * tqsdk.on('rtn_brokers', function(brokers){
+   *   tqsdk.addAccount(account) // 仅添加期货账户信息并建立链接，不会登录账户
+   *   tqsdk.login(account) // 发送登录期货账户的请求
+   * })
+   * tqsdk.on('rtn_data', function(){
+   *   if (tqsdk.isLogined(account)) {
+   *     let account = tqsdk.getAccount(account)
+   *     console.log(account.balance, account.risk_ratio)
+   *   }
+   * })
+   */
+  getAccount (payload) {
+    return this._getAccountInfoByPaths(payload, ['accounts', 'CNY'])
+  }
+
+  /**
    * 获取期货账户对象唯一 key 值
    * @private
    * @param {object} payload
@@ -569,30 +726,6 @@ class Tqsdk extends EventEmitter {
   _getAccountRef (payload) {
     const key = payload.bid + ',' + payload.user_id
     return this.trade_accounts[key] || {}
-  }
-
-  /**
-   * 刷新账户信息
-   * @param {object} payload
-   * @param {string} payload.bid 期货公司
-   * @param {string} payload.user_id 账户名
-   */
-  refreshAccount (payload) {
-    const account = this._getAccountRef(payload)
-    if (account && account.ws) {
-      account.ws.send({ aid: 'qry_account_info' })
-      account.ws.send({ aid: 'qry_account_register' })
-    }
-  }
-
-  /**
-   * 刷新全部账户信息
-   */
-  refreshAccounts () {
-    for (const key in this.trade_accounts) {
-      this.trade_accounts[key].ws.send({ aid: 'qry_account_info' })
-      this.trade_accounts[key].ws.send({ aid: 'qry_account_register' })
-    }
   }
 
   /**
@@ -752,31 +885,6 @@ class Tqsdk extends EventEmitter {
   }
 
   /**
-   * 获取账户资金信息
-   * @param {object} payload
-   * @param {string} payload.bid
-   * @param {string} payload.user_id
-   * @returns {object|null}
-   *
-   * @example
-   * const tqsdk = new TQSDK()
-   * const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
-   * tqsdk.on('rtn_brokers', function(brokers){
-   *   tqsdk.addAccount(account) // 仅添加期货账户信息并建立链接，不会登录账户
-   *   tqsdk.login(account) // 发送登录期货账户的请求
-   * })
-   * tqsdk.on('rtn_data', function(){
-   *   if (tqsdk.isLogined(account)) {
-   *     let account = tqsdk.getAccount(account)
-   *     console.log(account.balance, account.risk_ratio)
-   *   }
-   * })
-   */
-  getAccount (payload) {
-    return this._getAccountInfoByPaths(payload, ['accounts', 'CNY'])
-  }
-
-  /**
    * 获取账户某个合约的持仓信息
    * @param {object} payload
    * @param {string} payload.bid
@@ -933,6 +1041,29 @@ class Tqsdk extends EventEmitter {
   }
 
   /**
+   * 获取账户的历史结算单
+   * @param {object} payload
+   * @param {string} payload.bid 期货公司
+   * @param {string} payload.user_id 账户名
+   * @returns {object|null}
+   */
+  getHisSettlements (payload) {
+    return this._getAccountInfoByPaths(payload, ['his_settlements'])
+  }
+
+  /**
+   * 获取账户某一日历史结算单
+   * @param {object} payload
+   * @param {string} payload.bid 期货公司
+   * @param {string} payload.user_id 账户名
+   * @param {string} payload.trading_day 查询日期
+   * @returns {object|null}
+   */
+  getHisSettlement (payload) {
+    return this._getAccountInfoByPaths(payload, ['his_settlements', payload.trading_day])
+  }
+
+  /**
    * 获取账户 指定路径下的对象
    * @private
    * @param {object} payload
@@ -946,28 +1077,6 @@ class Tqsdk extends EventEmitter {
       return account.dm.getByPath(['trade', account.user_id].concat(pathArray))
     }
     return null
-  }
-
-  /**
-   * 登录期货账户
-   * @param {object} payload
-   * @param {string} payload.bid 期货公司
-   * @param {string} payload.user_id 账户名
-   * @param {string} payload.password 密码
-   */
-  login (payload) {
-    const loginContent = { aid: 'req_login' }
-    if (this.clientAppId) {
-      loginContent.client_app_id = this.clientAppId
-      loginContent.client_system_info = this.clientSystemInfo
-    }
-    const account = this._getAccountRef(payload)
-    if (account && account.ws) {
-      loginContent.bid = payload.bid
-      loginContent.user_name = payload.user_id
-      loginContent.password = payload.password || account.password
-      account.ws.send(loginContent)
-    }
   }
 
   /**
@@ -1083,7 +1192,7 @@ Tqsdk.prototype.get_by_path = Tqsdk.prototype.getByPath
 Tqsdk.prototype.get_quotes_by_input = Tqsdk.prototype.getQuotesByInput
 Tqsdk.prototype.get_quote = Tqsdk.prototype.getQuote
 Tqsdk.prototype.set_chart = Tqsdk.prototype.setChart
-Tqsdk.prototype.get_user = Tqsdk.prototype.getUser
+Tqsdk.prototype.get_user = Tqsdk.prototype.getAccount
 Tqsdk.prototype.is_logined = Tqsdk.prototype.isLogined
 Tqsdk.prototype.is_changed = Tqsdk.prototype.isChanging
 Tqsdk.prototype.insert_order = Tqsdk.prototype.insertOrder
