@@ -23,6 +23,15 @@
   </a>
 </p>
 
+`TQSDK-JS` 支持以下功能，详情参见 [API Reference](#api_reference)：
+
+* [x] 查询合约行情。
+* [x] 查询合约 K线图，Tick图，盘口报价。
+* [x] 登录期货交易账户。
+* [x] 查看账户资金、持仓记录、委托单记录。
+* [x] 多账户查询。
+* [x] 支持穿透视监管。
+* [x] 查询历史结算单。
 
 ## 1. 安装
 
@@ -54,8 +63,7 @@ js 中引用
 
 ```js
 import TQSDK from 'tqsdk'
-
-let tqsdk = new TQSDK({})
+let tqsdk = new TQSDK()
 ```
 
 ## 2. 使用
@@ -65,6 +73,13 @@ let tqsdk = new TQSDK({})
 ```js
 // 建议全局只初始化一次，后面只使用实例 tqsdk
 const tqsdk = new TQSDK()
+
+// or 使用指定参数初始化
+const tqsdk = new TQSDK({
+  symbolsServerUrl: 'https://openmd.shinnytech.com/t/md/symbols/latest.json',
+  wsQuoteUrl: 'wss://openmd.shinnytech.com/t/md/front/mobile',
+  autoInit: true
+})
 ```
 
 ### 2.2 on 事件监听 
@@ -89,162 +104,700 @@ tqsdk.off(eventName, cb)
 
  :warning: 监听 `rtn_data` 事件，可以实时对行情数据变化作出响应。但是需要在相应组件 destory 的时候取消监听对应事件。
 
-### 2.3 其他接口
+## 3. API Reference
 
-`TQSDK` 支持以下功能，详情参见 [API](#api)：
+#### TQSDK~Tqsdk
+**Kind**: inner class of TQSDK  
+**Emits**: ready, rtn_data, rtn_brokers, notify, error  
 
-* [x] 查询合约行情。
-* [x] 查询合约 K线图，Tick图，盘口报价。
-* [x] 登录期货交易账户。
-* [x] 查看账户资金、持仓记录、委托单记录。
-* [x] 多账户查询。
-* [x] 支持穿透视监管。
-* [ ] 查询历史结算单。
+* [~Tqsdk](#markdown-header-tqsdktqsdk)
+    * [new Tqsdk([opts], [wsOption])](#markdown-header-new-tqsdkopts-wsoption)
+    * [.initMdWebsocket()](#markdown-header-tqsdkinitmdwebsocket)
+    * [.initTdWebsocket()](#markdown-header-tqsdkinittdwebsocket)
+    * [.addWebSocket(url)](#markdown-header-tqsdkaddwebsocketurl)
+    * [.getByPath(pathArray)](#markdown-header-tqsdkgetbypathpatharray)
+    * [.getQuotesByInput(_input)](#markdown-header-tqsdkgetquotesbyinput_input)
+    * [.getQuote(symbol)](#markdown-header-tqsdkgetquotesymbol-object) ⇒ object
+    * [.setChart(payload)](#markdown-header-tqsdksetchartpayload)
+    * [.get(param0)](#markdown-header-tqsdkgetparam0)
+    * [.getKlines(symbol, dur)](#markdown-header-tqsdkgetklinessymbol-dur)
+    * [.getTicks(symbol)](#markdown-header-tqsdkgettickssymbol)
+    * [.isLogined(payload)](#markdown-header-tqsdkisloginedpayload-boolean) ⇒ boolean
+    * [.isChanging(target, source)](#markdown-header-tqsdkischangingtarget-source)
+    * [.subscribeQuote(payload)](#markdown-header-tqsdksubscribequotepayload)
+    * [.addAccount(payload)](#markdown-header-tqsdkaddaccountpayload-object) ⇒ object
+    * [.removeAccount(payload)](#markdown-header-tqsdkremoveaccountpayload)
+    * [.refreshAccount(payload)](#markdown-header-tqsdkrefreshaccountpayload)
+    * [.refreshAccounts()](#markdown-header-tqsdkrefreshaccounts)
+    * [.insertOrder(payload)](#markdown-header-tqsdkinsertorderpayload-object) ⇒ object
+    * [.autoInsertOrder(payload)](#markdown-header-tqsdkautoinsertorderpayload-list) ⇒ list
+    * [.cancelOrder(payload)](#markdown-header-tqsdkcancelorderpayload)
+    * [.getAccount(payload)](#markdown-header-tqsdkgetaccountpayload-objectnull) ⇒ object ⎮ null
+    * [.getPosition(payload)](#markdown-header-tqsdkgetpositionpayload-objectnull) ⇒ object ⎮ null
+    * [.getPositions(payload)](#markdown-header-tqsdkgetpositionspayload-objectnull) ⇒ object ⎮ null
+    * [.getOrder(payload)](#markdown-header-tqsdkgetorderpayload-objectnull) ⇒ object ⎮ null
+    * [.getOrders(payload)](#markdown-header-tqsdkgetorderspayload-objectnull) ⇒ object ⎮ null
+    * [.getOrdersBySymbol(payload)](#markdown-header-tqsdkgetordersbysymbolpayload-objectnull) ⇒ object ⎮ null
+    * [.getTrade(payload)](#markdown-header-tqsdkgettradepayload-objectnull) ⇒ object ⎮ null
+    * [.getTrades(payload)](#markdown-header-tqsdkgettradespayload-objectnull) ⇒ object ⎮ null
+    * [.getTradesByOrder(payload)](#markdown-header-tqsdkgettradesbyorderpayload-objectnull) ⇒ object ⎮ null
+    * [.getTradesBySymbol(payload)](#markdown-header-tqsdkgettradesbysymbolpayload-objectnull) ⇒ object ⎮ null
+    * [.login(payload)](#markdown-header-tqsdkloginpayload)
+    * [.confirmSettlement(payload)](#markdown-header-tqsdkconfirmsettlementpayload)
+    * [.transfer(payload)](#markdown-header-tqsdktransferpayload)
+    * [.hisSettlement(payload)](#markdown-header-tqsdkhissettlementpayload)
 
-## 3. API
 
-+ subscribe_quote 订阅合约
+* * *
 
-```
-function subscribe_quote (payload: string | array)
-```
+##### new Tqsdk([opts], [wsOption])
 
-example: 
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [opts] | object | `{}` | 描述 TQSDK 构造参数 |
+| [opts.symbolsServerUrl] | string | `"https://openmd.shinnytech.com/t/md/symbols/latest.json"` | 合约服务地址 |
+| [opts.wsQuoteUrl] | string | `"wss://openmd.shinnytech.com/t/md/front/mobile"` | 行情连接地址 |
+| [opts.autoInit] | boolean | `true` | TQSDK 初始化后立即开始行情连接 |
+| [opts.data] | object | `{}` | 存储数据对象 |
+| [wsOption] | object | `{}` | 描述 TQSDK 构造参数 |
+| [wsOption.reconnectInterval] | number | `3000` | websocket 自动重连时间间隔 |
+| [wsOption.reconnectMaxTimes] | number | `2` | websocket 自动重连最大次数 |
+| [wsOption.WebSocket] | object | `WebSocket` | 浏览器 WebSocket 对象，在 nodejs 运行时，需要传入 WebSocket |
 
+**Example**  
 ```js
-tqsdk.subscribe_quote('cu1901')
+// 浏览器
+const tqsdk = new TQSDK()
+tqsdk.on('ready', function () {
+  console.log(tqsdk.getQuote('SHFE.au2006'))
+})
+tqsdk.on('rtn_brokers', function (brokers) {
+  console.log(brokers)
+})
+```
+**Example**  
+```js
+// nodejs
+const TQSDK = require('./dist/umd/tqsdk-nocache')
+const WebSocket = require('ws')
+const tqsdk = new TQSDK({}, {WebSocket})
+tqsdk.on('ready', function () {
+  console.log(tqsdk.getQuote('SHFE.au2006'))
+})
+tqsdk.on('rtn_brokers', function (brokers) {
+  console.log(brokers)
+})
+```
+**Example**  
+```js
+// 1 autoInit 为 true，构造函数会执行 tqsdk.initMdWebsocket(), tqsdk.initTdWebsocket(), 代码中不需要再运行
+// 推荐使用这种初始化方式
+const tqsdk = new TQSDK({autoInit: true}) // 等价于 const tqsdk = new TQSDK()
+tqsdk.on('ready', function(){
+  console.log(tqsdk.getQuote('DCE.m2009'))
+})
 
-tqsdk.subscribe_quote(['cu1901', 'au1906'])
- 
+// 2 autoInit 为 false，构造函数不会去执行 tqsdk.initMdWebsocket(), tqsdk.initTdWebsocket()
+// 在代码中需要的地方再执行
+const tqsdk = new TQSDK({autoInit: false})
+tqsdk.initMdWebsocket()
+// 如果不运行 tqsdk.initMdWebsocket()， 则不会有 ready 事件发生
+tqsdk.on('ready', function(){
+  console.log(tqsdk.getQuote('DCE.m2009'))
+})
 ```
 
-+ login 登录
+* * *
 
-```
-function login(payload: object) : null {}
+##### tqsdk.initMdWebsocket()
+初始化行情链接
 
-payload = {
-    bid: string,
-    user_id: string,
-    password: string
-}
-```
-
-+ add_account 添加期货账户信息
-
-```
-function add_account(bid: string, user_id: string, password: string) : null
-```
-    
-+ remove_account 删除期货账户信息
-
-```
-function remove_account(bid: string, user_id: string, password?: string) : null
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+**Emits**: ready  
+**Example**  
+```js
+const tqsdk = new TQSDK({autoInit: false})
+tqsdk.initMdWebsocket()
+tqsdk.on('ready', function(){
+  console.log(tqsdk.getQuote('DCE.m2009'))
+})
 ```
 
-+ get_quote 获取合约详情
+* * *
 
-```
-function get_quote(symbol: string) : object
-```
+##### tqsdk.initTdWebsocket()
+初始化交易链接
 
-+ get 获取数据
-
-```
-function get(payload: object) : object
-
-{
-    // 交易 ['users', 'user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
-    // 行情 ['quotes', 'quote', 'ticks', 'klines', 'charts', 'chart']
-    name = 'users',
-    user_id = '', // 以下 name 有效 ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
-    currency = 'CNY', // 以下 name 有效 ['account']
-    symbol = '', // 以下 name 有效 ['position'] ['quote', 'ticks', 'klines']
-    order_id = '', // 以下 name 有效 ['order']
-    trade_id = '', // 以下 name 有效 ['trade']
-    chart_id = '', // 以下 name 有效 ['chart']
-    input = '', // 以下 name 有效 ['quotes']
-    duration = 0,  // 以下 name 有效 ['klines']
-}
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+**Emits**: rtn_brokers  
+**Example**  
+```js
+const tqsdk = new TQSDK({autoInit: false})
+tqsdk.initMdWebsocket()
+tqsdk.initTdWebsocket()
+tqsdk.on('rtn_brokers', function(brokers){
+  console.log(brokers)
+})
 ```
 
-|name|payload|
-|---|---|
-|'users' | `{name}` |
-|'user' | `{name, user_id}` |
-|'session' | `{name, user_id}` |
-|'accounts' | `{name, user_id}` |
-|'account' | `{name, user_id, currency}` |
-|'positions' | `{name, user_id}` |
-|'orders' | `{name, user_id}` |
-|'trades' | `{name, user_id}` |
-|'position' | `{name, user_id, symbol}` |
-|'order' | `{name, user_id, order_id}` |
-|'trade' | `{name, user_id, trade_id}` |
-|'quotes' | `{name, input}` |
-|'quote' | `{name, symbol}` |
-|'klines' | `{name, symbol, duration}` |
-|'ticks' | `{name, symbol}` |
+* * *
 
-+ get_by_path 根据路径获取数据
+##### tqsdk.addWebSocket(url)
+添加 websocket 数据源
 
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type |
+| --- | --- |
+| url | string | 
+
+
+* * *
+
+##### tqsdk.getByPath(pathArray)
+获取数据对象
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type |
+| --- | --- |
+| pathArray | list | 
+
+
+* * *
+
+##### tqsdk.getQuotesByInput(_input)
+根据输入字符串查询合约列表
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type |
+| --- | --- |
+| _input | string | 
+
+
+* * *
+
+##### tqsdk.getQuote(symbol) ⇒ object
+根据合约代码获取合约对象
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| symbol | string | 合约代码 |
+
+
+* * *
+
+##### tqsdk.setChart(payload)
+请求 K 线图表
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type |
+| --- | --- |
+| payload | object | 
+
+
+* * *
+
+##### tqsdk.get(param0)
+根据传入对象查询数据
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type |
+| --- | --- |
+| param0 | * | 
+
+
+* * *
+
+##### tqsdk.getKlines(symbol, dur)
+获取 K 线序列
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type |
+| --- | --- |
+| symbol | string | 
+| dur | number | 
+
+
+* * *
+
+##### tqsdk.getTicks(symbol)
+获取 Ticks 序列
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type |
+| --- | --- |
+| symbol | string | 
+
+
+* * *
+
+##### tqsdk.isLogined(payload) ⇒ boolean
+判断账户是否登录 [x]
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type |
+| --- | --- |
+| payload | object | 
+| payload.bid | string | 
+| payload.user_id | string | 
+
+
+* * *
+
+##### tqsdk.isChanging(target, source)
+判断某个对象是否最近一次有变动
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type |
+| --- | --- |
+| target |  | 
+| source | * | 
+
+**Example**  
+```js
+let tqsdk = new TQSDK()
+tqsdk.isChanging
 ```
-function get_by_path (path: string | array) : object
+
+* * *
+
+##### tqsdk.subscribeQuote(payload)
+订阅合约
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type |
+| --- | --- |
+| payload | object | 
+
+
+* * *
+
+##### tqsdk.addAccount(payload) ⇒ object
+添加期货账户
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+**Returns**: object - account {bid, user_id, password, ws, dm}  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+| payload.password | string | 密码 |
+
+**Example**  
+```js
+const tqsdk = new TQSDK()
+const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
+tqsdk.on('rtn_brokers', function(brokers){
+  tqsdk.addAccount(account) // 仅添加期货账户信息并建立链接，不会登录账户
+  tqsdk.login(account) // 发送登录期货账户的请求
+})
+tqsdk.on('rtn_data', function(){
+  console.log(tqsdk.isLogined(account))
+})
 ```
 
-+ set_chart 订阅图表
+* * *
 
+##### tqsdk.removeAccount(payload)
+删除期货账户
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+
+
+* * *
+
+##### tqsdk.refreshAccount(payload)
+刷新账户信息
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+
+
+* * *
+
+##### tqsdk.refreshAccounts()
+刷新全部账户信息
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+* * *
+
+##### tqsdk.insertOrder(payload) ⇒ object
+下单
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+**Returns**: object - order={order_id, status, ...}  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| payload | object |  |  |
+| payload.bid | string |  | 期货公司 |
+| payload.user_id | string |  | 账户名 |
+| payload.exchange_id | string |  | 交易所 |
+| payload.instrument_id | string |  | 合约名称 |
+| payload.direction | string |  | 方向 [`BUY` | `SELL`] |
+| payload.offset | string |  | 开平 [`OPEN` | `CLOSE` | `CLOSETODAY`] |
+| payload.price_type | string | `"LIMIT"` | 限价 [`LIMIT` | `ANY`] |
+| payload.limit_price | number |  | 价格 |
+| payload.volume | number |  | 手数 |
+
+**Example**  
+```js
+let tqsdk = new TQSDK()
+const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
+tqsdk.on('rtn_brokers', function(brokers){
+  tqsdk.addAccount(account) // 仅添加期货账户信息并建立链接，不会登录账户
+  tqsdk.login(account) // 发送登录期货账户的请求
+})
+tqsdk.on('rtn_data', function(){
+  if (!tqsdk.isLogined(account)) return
+  let order = tqsdk.insertOrder(Object.assign({
+      exchange_id: 'SHFE',
+      instrument_id: 'au2006',
+      direction: 'BUY',
+      offset: 'OPEN',
+      price_type: 'LIMIT',
+      limit_price: 359.62,
+      volume: 2
+  }, account))
+  console.log(order.orderId, order.status, order.volume_left)
+})
 ```
-function set_chart (payload: object) : null
+
+* * *
+
+##### tqsdk.autoInsertOrder(payload) ⇒ list
+下单，但是平仓单会自动先平今再平昨，不需要用户区分 CLOSE | CLOSETODAY
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+**Returns**: list - list=[{order_id, status, ...}, ...] 返回委托单数组，可能拆分为多个单  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| payload | object |  |  |
+| payload.bid | string |  | 期货公司 |
+| payload.user_id | string |  | 账户名 |
+| payload.exchange_id | string |  | 交易所 |
+| payload.instrument_id | string |  | 合约名称 |
+| payload.direction | string |  | 方向 [`BUY` | `SELL`] |
+| payload.offset | string |  | 开平 [`OPEN` | `CLOSE`] |
+| payload.price_type | string | `"LIMIT"` | 限价 [`LIMIT` | `ANY`] |
+| payload.limit_price | number |  | 价格 |
+| payload.volume | number |  | 手数 |
+
+
+* * *
+
+##### tqsdk.cancelOrder(payload)
+撤销委托单
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+| payload.order_id | string | 委托单 id |
+
+
+* * *
+
+##### tqsdk.getAccount(payload) ⇒ object ⎮ null
+获取账户资金信息
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type |
+| --- | --- |
+| payload | object | 
+| payload.bid | string | 
+| payload.user_id | string | 
+
+**Example**  
+```js
+const tqsdk = new TQSDK()
+const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
+tqsdk.on('rtn_brokers', function(brokers){
+  tqsdk.addAccount(account) // 仅添加期货账户信息并建立链接，不会登录账户
+  tqsdk.login(account) // 发送登录期货账户的请求
+})
+tqsdk.on('rtn_data', function(){
+  if (tqsdk.isLogined(account)) {
+    let account = tqsdk.getAccount(account)
+    console.log(account.balance, account.risk_ratio)
+  }
+})
 ```
 
-+ get_quotes_by_input 根据输入返回合约集合
+* * *
 
-```
-function get_quotes_by_input (_input: string) : object
-```
+##### tqsdk.getPosition(payload) ⇒ object ⎮ null
+获取账户某个合约的持仓信息
 
-+ get_trading_day 获取当前交易日
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
 
-```
-function get_trading_day () : string
-```
-+ is_changed 数据最近是否更新
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string |  |
+| payload.user_id | string |  |
+| payload.symbol | string | 合约名称 |
 
-```
-function is_changed(target: string | object, source?: object)
-```
-
-+ is_logined 是否登录成功
-
-```
-function is_logined(payload) : boolean
-payload = {
-    bid: string,
-    user_id: string
-}
-```
-
-+ transfer 银期转帐
-
-+ his_settlement 查询历史结算单
-
-```
-function his_settlement(payload) : null
-payload = {
-    bid: string,
-    user_id: string,
-    trading_day: number
-}
+**Example**  
+```js
+const tqsdk = new TQSDK()
+const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
+tqsdk.on('rtn_brokers', function(brokers){
+  tqsdk.addAccount(account) // 仅添加期货账户信息并建立链接，不会登录账户
+  tqsdk.login(account) // 发送登录期货账户的请求
+})
+tqsdk.on('rtn_data', function(){
+  if (tqsdk.isLogined(account)) {
+    let pos = tqsdk.getPosition(Object.assign({ symbol: 'SHFE.au2006' }, account))
+    console.log(pos)
+  }
+})
 ```
 
-+ insert_order 下单 <sup style="color:red;">deprecated</sup>
+* * *
 
-+ auto_insert_order 自动平昨平今 <sup style="color:red;">deprecated</sup>
+##### tqsdk.getPositions(payload) ⇒ object ⎮ null
+获取账户全部持仓信息
 
-+ cancel_order 撤单 <sup style="color:red;">deprecated</sup>
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
 
-+ confirm_settlement 确认结算单 <sup style="color:red;">deprecated</sup>
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+
+**Example**  
+```js
+const tqsdk = new TQSDK()
+const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
+tqsdk.on('rtn_brokers', function(brokers){
+  tqsdk.addAccount(account) // 仅添加期货账户信息并建立链接，不会登录账户
+  tqsdk.login(account) // 发送登录期货账户的请求
+})
+tqsdk.on('rtn_data', function(){
+  if (tqsdk.isLogined(account)) {
+    let pos = tqsdk.getPositions(account)
+    console.log(pos)
+  }
+})
+```
+
+* * *
+
+##### tqsdk.getOrder(payload) ⇒ object ⎮ null
+获取账户某个合约的委托单信息
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string |  |
+| payload.user_id | string |  |
+| payload.order_id | string | 委托单 id |
+
+
+* * *
+
+##### tqsdk.getOrders(payload) ⇒ object ⎮ null
+获取账户全部委托单信息
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+
+
+* * *
+
+##### tqsdk.getOrdersBySymbol(payload) ⇒ object ⎮ null
+获取账户下某个合约对应的全部委托单信息
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+| payload.symbol | string | 合约名称 |
+
+
+* * *
+
+##### tqsdk.getTrade(payload) ⇒ object ⎮ null
+获取账户某个合约的成交记录
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string |  |
+| payload.user_id | string |  |
+| payload.trade_id | string | 成交记录 id |
+
+
+* * *
+
+##### tqsdk.getTrades(payload) ⇒ object ⎮ null
+获取账户全部成交记录
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+
+
+* * *
+
+##### tqsdk.getTradesByOrder(payload) ⇒ object ⎮ null
+获取账户下某个委托单对应的全部成交记录
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+| payload.order_id | string | 委托单 id |
+
+
+* * *
+
+##### tqsdk.getTradesBySymbol(payload) ⇒ object ⎮ null
+获取账户下某个合约对应的全部成交记录
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+| payload.symbol | string | 合约名称 |
+
+
+* * *
+
+##### tqsdk.login(payload)
+登录期货账户
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+| payload.password | string | 密码 |
+
+
+* * *
+
+##### tqsdk.confirmSettlement(payload)
+确认结算单
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+
+**Example**  
+```js
+const tqsdk = new TQSDK()
+const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
+tqsdk.on('rtn_brokers', function(brokers){
+  tqsdk.addAccount(account) // 仅添加期货账户信息并建立链接，不会登录账户
+  tqsdk.login(account) // 发送登录期货账户的请求
+})
+tqsdk.on('rtn_data', function(){
+  if (tqsdk.isLogined(account)) {
+    tqsdk.confirmSettlement(account) // 每个交易日都需要在确认结算单后才可以下单
+    // tqsdk.insertOrder({....})
+  }
+})
+```
+
+* * *
+
+##### tqsdk.transfer(payload)
+银期转账
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| payload | object |  |  |
+| payload.bid | string |  | 期货公司 |
+| payload.user_id | string |  | 账户名 |
+| payload.bank_id | string |  | 银行ID |
+| payload.bank_password | string |  | 银行账户密码 |
+| payload.future_account | string |  | 期货账户 |
+| payload.future_password | string |  | 期货账户密码 |
+| payload.currency | string | `"CNY"` | 币种代码 |
+| payload.amount | string |  | 转账金额 >0 表示转入期货账户, <0 表示转出期货账户 |
+
+
+* * *
+
+##### tqsdk.hisSettlement(payload)
+查询历史结算单
+
+**Kind**: instance method of [Tqsdk](#markdown-header-new-tqsdkopts-wsoption)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | object |  |
+| payload.bid | string | 期货公司 |
+| payload.user_id | string | 账户名 |
+| payload.trading_day | string | 交易日 |
+
+
+* * *
+
+
 
 ## Vue Plugin
 
@@ -317,3 +870,5 @@ Vue.prototype.$tqsdk = tqsdk
 
 export default tqsdk;
 ```
+
+&copy; 2017-2020 [Shinnytech](https://www.shinnytech.com/). Documented by [jsdoc-to-markdown](https://github.com/jsdoc2md/jsdoc-to-markdown).

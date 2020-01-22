@@ -77,11 +77,14 @@ DataManager.SetDefault = (root, pathArray, defaultValue) => {
   return node
 }
 
+/**
+ * @returns {object | null}
+ */
 DataManager.GetByPath = (root, pathArray) => {
   let d = root
   for (let i = 0; i < pathArray.length; i++) {
     d = d[pathArray[i]]
-    if (d === undefined || d === null) return d
+    if (d === undefined || d === null) return null
   }
   return d
 }

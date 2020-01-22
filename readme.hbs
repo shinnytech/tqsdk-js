@@ -1,0 +1,192 @@
+
+# TQSDK - JS 
+
+天勤 [DIFF 协议 (https://www.shinnytech.com/diff/)](https://www.shinnytech.com/diff/) 的封装（JavaScript 语言版本）。
+
+<p align="center">
+    <a href="https://www.shinnytech.com/diff" target="_blank" rel="noopener noreferrer">
+        <img width="100" src="./img/logo.png" alt="kuaiqi logo">
+    </a>
+</p>
+<p align="center">
+  <a href="http://standardjs.com">
+    <img src="https://img.shields.io/badge/code%20style-standard-brightgreen.svg" alt="js-standard-style">
+  </a>
+  <a href="https://www.npmjs.com/package/tqsdk">
+    <img src="https://img.shields.io/npm/dw/tqsdk.svg" alt="Downloads">
+  </a>
+  <a href="https://www.npmjs.com/package/tqsdk">
+    <img src="https://img.shields.io/npm/v/tqsdk.svg" alt="Version">
+  </a>
+  <a href="https://www.npmjs.com/package/tqsdk">
+    <img src="https://img.shields.io/npm/l/tqsdk.svg" alt="License">
+  </a>
+</p>
+
+`TQSDK-JS` 支持以下功能，详情参见 [API Reference](#api_reference)：
+
+* [x] 查询合约行情。
+* [x] 查询合约 K线图，Tick图，盘口报价。
+* [x] 登录期货交易账户。
+* [x] 查看账户资金、持仓记录、委托单记录。
+* [x] 多账户查询。
+* [x] 支持穿透视监管。
+* [x] 查询历史结算单。
+
+## 1. 安装
+
+
+### 方案一
+
+Html 文件添加
+
+```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.1/axios.min.js"></script>
+<script src="dist/umd/tqsdk.min.js"></script>
+```
+
+JavaScript 文件中可以直接使用：
+
+```js
+var tqsdk = new TQSDK();
+```
+
+### 方案二
+
+采用 es6 开发，项目根目录下运行
+
+```bash
+npm install tqsdk
+```
+
+js 中引用
+
+```js
+import TQSDK from 'tqsdk'
+let tqsdk = new TQSDK()
+```
+
+## 2. 使用
+
+### 2.1 初始化
+
+```js
+// 建议全局只初始化一次，后面只使用实例 tqsdk
+const tqsdk = new TQSDK()
+
+// or 使用指定参数初始化
+const tqsdk = new TQSDK({
+  symbolsServerUrl: 'https://openmd.shinnytech.com/t/md/symbols/latest.json',
+  wsQuoteUrl: 'wss://openmd.shinnytech.com/t/md/front/mobile',
+  autoInit: true
+})
+```
+
+### 2.2 on 事件监听 
+
+```js
+// 添加事件监听
+tqsdk.on(eventName, cb)
+
+// 取消事件监听
+tqsdk.off(eventName, cb)
+```
+
+支持的事件：
+
+|eventName|cb 回调函数参数|事件触发说明|
+|---|---|---|
+|ready | | 收到合约基础数据|
+|rtn_brokers | [] 期货公司列表 | 收到期货公司列表|
+|notify | {} 单个通知对象 | 收到通知对象|
+|rtn_data | | 数据更新（每一次数据更新触发）|
+|error | error | 发生错误(目前只有一种：合约服务下载失败)|
+
+ :warning: 监听 `rtn_data` 事件，可以实时对行情数据变化作出响应。但是需要在相应组件 destory 的时候取消监听对应事件。
+
+## 3. API Reference
+
+{{!-- {{>body}} --}}
+{{!-- {{>member-index~}} --}}
+{{!-- {{>separator~}} --}}
+{{!-- {{>members~}} --}}
+{{!-- {{>main-index~}}
+{{>all-docs~}} --}}
+{{#module name="TQSDK"}}
+{{>members~}}
+{{/module}}
+
+
+## Vue Plugin
+
+TQSDK - JS 封装为 Vue 插件，可以在组件中监听事件，不需要在单独取消监听。
+
+
+```js
+import Vue from 'vue'
+import TQSDK from 'tqsdk'
+
+let tqsdk = new TQSDK()
+
+const NOOP = () => {}
+let tqVmEventMap = {}
+let tqsdkRE = /^tqsdk:/
+
+function mixinEvents(Vue) {
+  let on = Vue.prototype.$on
+  let emit = Vue.prototype.$emit
+
+  Vue.prototype.$on = function proxyOn(eventName, fn = NOOP) {
+    const vm = this
+    if (Array.isArray(eventName)) {
+      eventName.forEach((item) => vm.$on(item, fn));
+    } else if (tqsdkRE.test(eventName)) {
+      if (!tqVmEventMap[vm._uid]) tqVmEventMap[vm._uid] = {}
+      let tq_eventName = eventName.match(/^tqsdk:(.*)/)[1]
+      if (!tqVmEventMap[vm._uid][tq_eventName]) tqVmEventMap[vm._uid][tq_eventName] = []
+      tqVmEventMap[vm._uid][tq_eventName].push(fn)
+      tqsdk.on(tq_eventName, fn.bind(vm))
+    } else {
+      on.call(vm, eventName, fn)
+    }
+    return vm
+  }
+}
+
+function applyMixin(Vue) {
+  Vue.mixin({
+    beforeDestroy() {
+      const vm = this
+      const tqevents = tqVmEventMap[vm._uid] || {};
+      for (let eventName in tqevents) {
+        let eventsArr = tqevents[eventName]
+        eventsArr.forEach((fn) => {
+          tqsdk.removeEventListener(eventName, fn)
+        })
+      }
+      delete tqVmEventMap[vm._uid];
+    }
+  })
+}
+
+function plugin(Vue) {
+  if (VERSION < 2) {
+    console.error('[vue-event-proxy] only support Vue 2.0+');
+    return;
+  }
+  // Exit if the plugin has already been installed.
+  if (plugin.installed) return
+  plugin.installed = true
+  mixinEvents(Vue)
+  applyMixin(Vue)
+}
+
+Vue.use(plugin)
+
+Vue.$tqsdk = tqsdk
+Vue.prototype.$tqsdk = tqsdk
+
+export default tqsdk;
+```
+
+&copy; 2017-2020 [Shinnytech](https://www.shinnytech.com/). Documented by [jsdoc-to-markdown](https://github.com/jsdoc2md/jsdoc-to-markdown).
