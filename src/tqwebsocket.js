@@ -38,6 +38,7 @@ class TqWebsocket extends EventEmitter {
     this.reconnectTask = null
     this.reconnectInterval = options.reconnectInterval ? options.reconnectInterval : 3000
     this.reconnectMaxTimes = options.reconnectMaxTimes ? options.reconnectMaxTimes : 2
+    this.WebSocket = options.WebSocket ? options.WebSocket : WebSocket
     this.reconnectTimes = 0
     this.reconnectUrlIndex = 0
 
@@ -62,11 +63,11 @@ class TqWebsocket extends EventEmitter {
   }
 
   isReady () {
-    return this.ws.readyState === WebSocket.OPEN
+    return this.ws.readyState === this.WebSocket.OPEN
   }
 
   __init (isReconnection = true) {
-    this.ws = new WebSocket(this.urlList[this.reconnectUrlIndex])
+    this.ws = new this.WebSocket(this.urlList[this.reconnectUrlIndex])
 
     if (isReconnection && this.reconnectUrlIndex === this.urlList.length - 1) {
       // urlList 循环尝试重连一轮, times += 1
