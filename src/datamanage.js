@@ -1,6 +1,6 @@
 /* eslint-disable prefer-const */
 import EventEmitter from 'eventemitter3'
-import { QUOTE } from './datastructure'
+import { Quote } from './datastructure'
 import { IsEmptyObject } from './utils'
 
 class DataManager extends EventEmitter {
@@ -121,7 +121,7 @@ DataManager.MergeObject = (target, source, _epoch = 0, deleteNullObj = true) => 
             if (deleteNullObj && symbol) delete target[property][symbol]
             continue
           } else if (!target[property][symbol]) {
-            target[property][symbol] = new QUOTE()
+            target[property][symbol] = new Quote()
           }
           DataManager.MergeObject(target[property][symbol], quote, _epoch, deleteNullObj)
         }
