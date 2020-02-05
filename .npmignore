@@ -2,7 +2,10 @@
 /node_modules/
 /.idea/
 /test/
-
+/coverage/
+/.github/
+/__test__/
+readme.hbs
 nohup.out
 webpack.config.js
 babel.config.js
