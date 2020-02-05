@@ -35,7 +35,7 @@ tqsdk.on('rtn_data', function () {
 
   // console.log('ins_list:', tqsdk.dm._data.ins_list)
   // console.log(quote.py, quote.class, quote.last_price, quote.ask_price1, quote.pre_settlement)
-  /// ////// 交易相关的测试
+  /// ////// 交易相关
   console.log('test123 isLogined:', tqsdk.isLogined(account))
   // console.log('test1234 isLogined:', tqsdk.isLogined({ bid: '快期模拟', user_id: 'test1234' }))
   if (!tqsdk.isLogined(account)) return

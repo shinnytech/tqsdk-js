@@ -106,48 +106,6 @@ tqsdk.off(eventName, cb)
 
 ## 3. API Reference
 
-
-* [TQSDK](#module_TQSDK)
-    * [~Tqsdk](#module_TQSDK..Tqsdk)
-        * [new Tqsdk([opts], [wsOption])](#new_module_TQSDK..Tqsdk_new)
-        * [.initMdWebsocket()](#module_TQSDK..Tqsdk+initMdWebsocket)
-        * [.initTdWebsocket()](#module_TQSDK..Tqsdk+initTdWebsocket)
-        * [.addWebSocket(url)](#module_TQSDK..Tqsdk+addWebSocket)
-        * [.getByPath(pathArray, dm)](#module_TQSDK..Tqsdk+getByPath) ⇒ <code>object</code> \| <code>null</code>
-        * [.getQuotesByInput(input, filterOption)](#module_TQSDK..Tqsdk+getQuotesByInput) ⇒ <code>list</code>
-        * [.getQuote(symbol)](#module_TQSDK..Tqsdk+getQuote) ⇒ <code>object</code>
-        * [.setChart(payload)](#module_TQSDK..Tqsdk+setChart) ⇒ <code>object</code>
-        * [.getChart(chart_id)](#module_TQSDK..Tqsdk+getChart) ⇒ <code>object</code>
-        * [.getKlines(symbol, dur)](#module_TQSDK..Tqsdk+getKlines) ⇒ <code>object</code>
-        * [.getTicks(symbol)](#module_TQSDK..Tqsdk+getTicks) ⇒ <code>object</code>
-        * [.isChanging(target|pathArray, [source])](#module_TQSDK..Tqsdk+isChanging) ⇒ <code>boolean</code>
-        * [.subscribeQuote(quotes)](#module_TQSDK..Tqsdk+subscribeQuote)
-        * [.addAccount(payload)](#module_TQSDK..Tqsdk+addAccount) ⇒ <code>object</code>
-        * [.removeAccount(payload)](#module_TQSDK..Tqsdk+removeAccount)
-        * [.login(payload)](#module_TQSDK..Tqsdk+login)
-        * [.isLogined(payload)](#module_TQSDK..Tqsdk+isLogined) ⇒ <code>boolean</code>
-        * [.refreshAccount(payload)](#module_TQSDK..Tqsdk+refreshAccount)
-        * [.refreshAccounts()](#module_TQSDK..Tqsdk+refreshAccounts)
-        * [.getAllAccounts()](#module_TQSDK..Tqsdk+getAllAccounts) ⇒ <code>list</code>
-        * [.getAccount(payload)](#module_TQSDK..Tqsdk+getAccount) ⇒ <code>object</code> \| <code>null</code>
-        * [.insertOrder(payload)](#module_TQSDK..Tqsdk+insertOrder) ⇒ <code>object</code>
-        * [.autoInsertOrder(payload)](#module_TQSDK..Tqsdk+autoInsertOrder) ⇒ <code>list</code>
-        * [.cancelOrder(payload)](#module_TQSDK..Tqsdk+cancelOrder)
-        * [.getPosition(payload)](#module_TQSDK..Tqsdk+getPosition) ⇒ <code>object</code> \| <code>null</code>
-        * [.getPositions(payload)](#module_TQSDK..Tqsdk+getPositions) ⇒ <code>object</code> \| <code>null</code>
-        * [.getOrder(payload)](#module_TQSDK..Tqsdk+getOrder) ⇒ <code>object</code> \| <code>null</code>
-        * [.getOrders(payload)](#module_TQSDK..Tqsdk+getOrders) ⇒ <code>object</code> \| <code>null</code>
-        * [.getOrdersBySymbol(payload)](#module_TQSDK..Tqsdk+getOrdersBySymbol) ⇒ <code>object</code> \| <code>null</code>
-        * [.getTrade(payload)](#module_TQSDK..Tqsdk+getTrade) ⇒ <code>object</code> \| <code>null</code>
-        * [.getTrades(payload)](#module_TQSDK..Tqsdk+getTrades) ⇒ <code>object</code> \| <code>null</code>
-        * [.getTradesByOrder(payload)](#module_TQSDK..Tqsdk+getTradesByOrder) ⇒ <code>object</code> \| <code>null</code>
-        * [.getTradesBySymbol(payload)](#module_TQSDK..Tqsdk+getTradesBySymbol) ⇒ <code>object</code> \| <code>null</code>
-        * [.getHisSettlements(payload)](#module_TQSDK..Tqsdk+getHisSettlements) ⇒ <code>object</code> \| <code>null</code>
-        * [.getHisSettlement(payload)](#module_TQSDK..Tqsdk+getHisSettlement) ⇒ <code>object</code> \| <code>null</code>
-        * [.confirmSettlement(payload)](#module_TQSDK..Tqsdk+confirmSettlement)
-        * [.transfer(payload)](#module_TQSDK..Tqsdk+transfer)
-        * [.hisSettlement(payload)](#module_TQSDK..Tqsdk+hisSettlement)
-
 <a id="module_TQSDK..Tqsdk"></a>
 
 #### TQSDK~Tqsdk
@@ -158,7 +116,7 @@ tqsdk.off(eventName, cb)
     * [new Tqsdk([opts], [wsOption])](#new_module_TQSDK..Tqsdk_new)
     * [.initMdWebsocket()](#module_TQSDK..Tqsdk+initMdWebsocket)
     * [.initTdWebsocket()](#module_TQSDK..Tqsdk+initTdWebsocket)
-    * [.addWebSocket(url)](#module_TQSDK..Tqsdk+addWebSocket)
+    * [.get(payload)](#module_TQSDK..Tqsdk+get) ⇒ <code>object</code> \| <code>null</code>
     * [.getByPath(pathArray, dm)](#module_TQSDK..Tqsdk+getByPath) ⇒ <code>object</code> \| <code>null</code>
     * [.getQuotesByInput(input, filterOption)](#module_TQSDK..Tqsdk+getQuotesByInput) ⇒ <code>list</code>
     * [.getQuote(symbol)](#module_TQSDK..Tqsdk+getQuote) ⇒ <code>object</code>
@@ -166,7 +124,7 @@ tqsdk.off(eventName, cb)
     * [.getChart(chart_id)](#module_TQSDK..Tqsdk+getChart) ⇒ <code>object</code>
     * [.getKlines(symbol, dur)](#module_TQSDK..Tqsdk+getKlines) ⇒ <code>object</code>
     * [.getTicks(symbol)](#module_TQSDK..Tqsdk+getTicks) ⇒ <code>object</code>
-    * [.isChanging(target|pathArray, [source])](#module_TQSDK..Tqsdk+isChanging) ⇒ <code>boolean</code>
+    * [.isChanging(target|pathArray)](#module_TQSDK..Tqsdk+isChanging) ⇒ <code>boolean</code>
     * [.subscribeQuote(quotes)](#module_TQSDK..Tqsdk+subscribeQuote)
     * [.addAccount(payload)](#module_TQSDK..Tqsdk+addAccount) ⇒ <code>object</code>
     * [.removeAccount(payload)](#module_TQSDK..Tqsdk+removeAccount)
@@ -295,16 +253,27 @@ tqsdk.on('rtn_brokers', function(brokers){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+addWebSocket"></a>
+<a id="module_TQSDK..Tqsdk+get"></a>
 
-##### tqsdk.addWebSocket(url)
-添加 websocket 数据源
+##### tqsdk.get(payload) ⇒ <code>object</code> \| <code>null</code>
+获取数据
 
 **Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
 
-| Param | Type |
-| --- | --- |
-| url | <code>string</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| payload | <code>object</code> |  |
+| payload.name | <code>object</code> |  |
+| [payload.bid] | <code>object</code> | 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade'] |
+| [payload.user_id] | <code>object</code> | 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade'] |
+| [payload.currency] | <code>object</code> | 当 name='account' |
+| [payload.symbol] | <code>object</code> | 当 name in ['position', 'quote', 'ticks', 'klines'] |
+| [payload.order_id] | <code>object</code> | 当 name='order' |
+| [payload.trade_id] | <code>object</code> | 当 name='trade' |
+| [payload.trading_day] | <code>object</code> | 当 name='his_settlement' |
+| [payload.chart_id] | <code>object</code> | 当 name='chart' |
+| [payload.input] | <code>object</code> | 当 name='quotes' |
+| [payload.duration] | <code>object</code> | 当 name='klines' |
 
 
 * * *
@@ -469,7 +438,7 @@ tqsdk.on('rtn_data', function(){
 
 <a id="module_TQSDK..Tqsdk+isChanging"></a>
 
-##### tqsdk.isChanging(target|pathArray, [source]) ⇒ <code>boolean</code>
+##### tqsdk.isChanging(target|pathArray) ⇒ <code>boolean</code>
 判断某个对象是否最近一次有变动
 
 **Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
@@ -477,7 +446,6 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | target|pathArray | <code>object</code> \| <code>list</code> | 检查变动的对象或者路径数组 |
-| [source] | <code>object</code> | 比较的数据对象 |
 
 **Example**  
 ```js
@@ -576,6 +544,17 @@ tqsdk.on('rtn_data', function(){
 | payload.user_id | <code>string</code> | 账户名 |
 | payload.password | <code>string</code> | 密码 |
 
+**Example**  
+```js
+const tqsdk = new TQSDK()
+const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
+tqsdk.on('rtn_brokers', function(brokers){
+  tqsdk.login(account) // 发送登录期货账户的请求
+})
+tqsdk.on('rtn_data', function(){
+  console.log(tqsdk.isLogined(account))
+})
+```
 
 * * *
 
@@ -589,7 +568,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type |
 | --- | --- |
 | payload | <code>object</code> | 
-| payload.bid | <code>string</code> | 
+| [payload.bid] | <code>string</code> | 
 | payload.user_id | <code>string</code> | 
 
 
@@ -605,7 +584,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 
 
@@ -632,8 +611,6 @@ const tqsdk = new TQSDK()
 const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
 const account1 = { bid: '快期模拟', user_id: 'test1234', password: '123456' }
 tqsdk.on('rtn_brokers', function(brokers){
-  tqsdk.addAccount(account) // 仅添加期货账户信息并建立链接，不会登录账户
-  tqsdk.addAccount(account1)
   tqsdk.login(account) // 发送登录期货账户的请求
   tqsdk.login(account1) // 发送登录期货账户的请求
   // ........
@@ -654,7 +631,7 @@ tqsdk.on('rtn_brokers', function(brokers){
 | Param | Type |
 | --- | --- |
 | payload | <code>object</code> | 
-| payload.bid | <code>string</code> | 
+| [payload.bid] | <code>string</code> | 
 | payload.user_id | <code>string</code> | 
 
 **Example**  
@@ -686,7 +663,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
 | payload | <code>object</code> |  |  |
-| payload.bid | <code>string</code> |  | 期货公司 |
+| [payload.bid] | <code>string</code> |  | 期货公司 |
 | payload.user_id | <code>string</code> |  | 账户名 |
 | payload.exchange_id | <code>string</code> |  | 交易所 |
 | payload.instrument_id | <code>string</code> |  | 合约名称 |
@@ -732,7 +709,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
 | payload | <code>object</code> |  |  |
-| payload.bid | <code>string</code> |  | 期货公司 |
+| [payload.bid] | <code>string</code> |  | 期货公司 |
 | payload.user_id | <code>string</code> |  | 账户名 |
 | payload.exchange_id | <code>string</code> |  | 交易所 |
 | payload.instrument_id | <code>string</code> |  | 合约名称 |
@@ -755,7 +732,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 | payload.order_id | <code>string</code> | 委托单 id |
 
@@ -772,7 +749,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> |  |
+| [payload.bid] | <code>string</code> |  |
 | payload.user_id | <code>string</code> |  |
 | payload.symbol | <code>string</code> | 合约名称 |
 
@@ -804,7 +781,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 
 **Example**  
@@ -835,7 +812,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> |  |
+| [payload.bid] | <code>string</code> |  |
 | payload.user_id | <code>string</code> |  |
 | payload.order_id | <code>string</code> | 委托单 id |
 
@@ -852,7 +829,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 
 
@@ -868,7 +845,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 | payload.symbol | <code>string</code> | 合约名称 |
 
@@ -885,7 +862,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> |  |
+| [payload.bid] | <code>string</code> |  |
 | payload.user_id | <code>string</code> |  |
 | payload.trade_id | <code>string</code> | 成交记录 id |
 
@@ -902,7 +879,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 
 
@@ -918,7 +895,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 | payload.order_id | <code>string</code> | 委托单 id |
 
@@ -935,7 +912,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 | payload.symbol | <code>string</code> | 合约名称 |
 
@@ -952,7 +929,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 
 

@@ -61,46 +61,10 @@ describe('test Datamanager', () => {
     tqData.setDefault(['klines', 'SHFE.cu1902', 60000000000], { data: [], last_id: 2345 })
     expect(tqData.getByPath(['klines', 'SHFE.cu1902', 60000000000, 'last_id'])).toBe(2345)
     tqData.mergeData({
-      'klines': {
-        'SHFE.cu1902': { 60000000000: null} 
+      klines: {
+        'SHFE.cu1902': { 60000000000: null }
       }
     })
-    expect(tqData.getByPath(['klines', 'SHFE.cu1902', 60000000000])).toBeUndefined()
-  })
-
-  describe('test Datamanager static function', () => {
-    let data = {}
-    beforeEach(() => {
-      data = {}
-    })
-    test('MergeObject()', () => {
-      DataManager.MergeObject(data, dataPack)
-      expect(data.quotes['SHFE.cu1901'].name).toBe('cu1901')
-      expect(data.quotes['SHFE.cu1901'].last_price).toBe(1000)
-      expect(Object.keys(data.quotes).length).toBe(2)
-      DataManager.MergeObject(data, dataPack2)
-      expect(data.quotes['SHFE.cu1901'].name).toBe('cu1901')
-      expect(data.quotes['SHFE.cu1901'].last_price).toBe(1001)
-      expect(Object.keys(data.quotes).length).toBe(3)
-    })
-
-    test('SetDefault()', () => {
-      DataManager.MergeObject(data, dataPack)
-      DataManager.SetDefault(data, ['quotes', 'SHFE.cu1901'], { name: 'xxxx' })
-      expect(DataManager.GetByPath(data, ['quotes', 'SHFE.cu1901', 'name'])).toBe('cu1901')
-      expect(DataManager.GetByPath(data, ['quotes', 'SHFE.cu1901', 'last_price'])).not.toBeNaN()
-      DataManager.SetDefault(data, ['quotes', 'SHFE.cu1910'], { name: 'xxxx' })
-      expect(DataManager.GetByPath(data, ['quotes', 'SHFE.cu1910', 'name'])).toBe('xxxx')
-    })
-
-    test('getByPath()', () => {
-      DataManager.MergeObject(data, dataPack)
-      expect(DataManager.GetByPath(data, ['quotes', 'SHFE.cu1901', 'name'])).toBe('cu1901')
-      expect(DataManager.GetByPath(data, ['quotes', 'SHFE.xxxxxx', 'name'])).toBeUndefined()
-      DataManager.MergeObject(data, dataPack2)
-      expect(DataManager.GetByPath(data, ['quotes', 'SHFE.cu1903', 'name'])).toBe('cu1903')
-      expect(DataManager.GetByPath(data, ['quotes', 'SHFE.cu1903', 'name2'])).toBeUndefined()
-      expect(DataManager.GetByPath(data, ['quotes', 'SHFE.xxxxxx', 'name'])).toBeUndefined()
-    })
+    expect(tqData.getByPath(['klines', 'SHFE.cu1902', 60000000000])).toBeNull()
   })
 })

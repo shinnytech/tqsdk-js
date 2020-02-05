@@ -9,7 +9,7 @@ import axios from 'axios'
 import { TqQuoteWebsocket, TqTradeWebsocket, TqRecvOnlyWebsocket } from './tqwebsocket'
 import DataManager from './datamanage'
 import EventEmitter from 'eventemitter3'
-import { RandomStr, ParseSettlementContent } from './utils'
+import { RandomStr, ParseSettlementContent, IsEmptyObject } from './utils'
 import { Quote, Chart } from './datastructure'
 
 // 支持多账户登录
@@ -198,11 +198,73 @@ class Tqsdk extends EventEmitter {
 
   /**
    * 添加 websocket 数据源
+   * @private
    * @param {string} url
    */
   addWebSocket (url = '') {
     if (url) return new TqRecvOnlyWebsocket(url, this.dm, this.wsOption)
     return null
+  }
+
+  /**
+   * 获取数据
+   * @param {object} payload
+   * @param {object} payload.name
+   * @param {object} [payload.bid] 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
+   * @param {object} [payload.user_id] 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
+   * @param {object} [payload.currency] 当 name='account'
+   * @param {object} [payload.symbol] 当 name in ['position', 'quote', 'ticks', 'klines']
+   * @param {object} [payload.order_id] 当 name='order'
+   * @param {object} [payload.trade_id] 当 name='trade'
+   * @param {object} [payload.trading_day] 当 name='his_settlement'
+   * @param {object} [payload.chart_id] 当 name='chart'
+   * @param {object} [payload.input] 当 name='quotes'
+   * @param {object} [payload.duration] 当 name='klines'
+   * @returns {object|null}
+   */
+  get ({
+    // 交易 ['users', 'user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
+    // 结算单 ['his_settlements', 'his_settlement'] @20190618新增
+    // 行情 ['quotes', 'quote', 'ticks', 'klines', 'charts', 'chart']
+    name = 'users',
+    bid = '',
+    user_id = '', // 以下 name 有效 ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
+    currency = 'CNY', // 以下 name 有效 ['account']
+    symbol = '', // 以下 name 有效 ['position'] ['quote', 'ticks', 'klines']
+    order_id = '', // 以下 name 有效 ['order']
+    trade_id = '', // 以下 name 有效 ['trade']
+    trading_day = '', // 以下 name 有效 ['his_settlement']
+    chart_id = '', // 以下 name 有效 ['chart']
+    input = '', // 以下 name 有效 ['quotes']
+    duration = 0 // 以下 name 有效 ['klines']
+  } = {}) {
+    if (name === 'users') {
+      return Object.keys(this.trade_accounts)
+    }
+    if (user_id) {
+      // get 交易相关数据
+      const user = this._getAccountInfoByPaths({ bid, user_id }, [])
+      if (name === 'user') {
+        return user
+      }
+      if (['session', 'accounts', 'positions', 'orders', 'trades', 'his_settlements'].indexOf(name) > -1) {
+        return user && user[name] ? user[name] : null
+      } else if (user && user[name + 's']) {
+        const k = name === 'account' ? currency : name === 'position' ? symbol : name === 'order' ? order_id : name === 'trade' ? trade_id : name === 'his_settlement' ? trading_day : ''
+        return user[name + 's'][k]
+      }
+      return null
+    } else {
+      // get 行情相关数据
+      if (name === 'quotes') {
+        return input ? this.get_quotes_by_input(input) : []
+      }
+      if (name === 'quote') return this.getQuote(symbol)
+      if (name === 'klines') return this.getKlines(symbol, duration)
+      if (name === 'ticks') return this.getTicks(symbol)
+      if (name === 'charts') return this.dm.getByPath(['charts'])
+      if (name === 'chart') return this.dm.getByPath(['charts', chart_id])
+    }
   }
 
   /**
@@ -433,7 +495,6 @@ class Tqsdk extends EventEmitter {
   /**
    * 判断某个对象是否最近一次有变动
    * @param {object|list} target|pathArray 检查变动的对象或者路径数组
-   * @param {object} [source] 比较的数据对象
    * @returns {boolean}
    *
    * @example
@@ -449,9 +510,9 @@ class Tqsdk extends EventEmitter {
    *   }
    * })
    */
-  isChanging (target, source) {
-    if (target && target._epoch) return target._epoch === this.dm._epoch
-    if (Array.isArray(target)) return this.dm.isChanging(target, source)
+  isChanging (target) {
+    if (target && target._epoch && target._root && target._root._epoch) return target._epoch === target._root._epoch
+    if (Array.isArray(target)) return this.dm.isChanging(target)
     return false
   }
 
@@ -476,11 +537,11 @@ class Tqsdk extends EventEmitter {
       }
     }
     // this.subscribeQuotesSet 记录 getQuote 的合约
-    for (const s in this.subscribeQuotesSet) {
+    for (const s of this.subscribeQuotesSet) {
       subscribeQuotesSet.add(s)
     }
     quotes = typeof quotes === 'string' ? [quotes] : quotes
-    for (const s in quotes) {
+    for (const s of quotes) {
       subscribeQuotesSet.add(s)
     }
     this.quotesWs.send({
@@ -527,6 +588,9 @@ class Tqsdk extends EventEmitter {
         const dm = new DataManager({
           trade: {
             [payload.user_id]: {
+              accounts: {
+                CNY: {}
+              },
               trades: {},
               positions: {},
               orders: {},
@@ -573,7 +637,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 删除期货账户
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    */
   removeAccount (payload) {
@@ -590,14 +654,27 @@ class Tqsdk extends EventEmitter {
    * @param {string} payload.bid 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.password 密码
+   *
+   * @example
+   * const tqsdk = new TQSDK()
+   * const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
+   * tqsdk.on('rtn_brokers', function(brokers){
+   *   tqsdk.login(account) // 发送登录期货账户的请求
+   * })
+   * tqsdk.on('rtn_data', function(){
+   *   console.log(tqsdk.isLogined(account))
+   * })
    */
   login (payload) {
+    let account = this._getAccountRef(payload)
+    if (IsEmptyObject(account)) {
+      account = this.addAccount(payload)
+    }
     const loginContent = { aid: 'req_login' }
     if (this.clientAppId) {
       loginContent.client_app_id = this.clientAppId
       loginContent.client_system_info = this.clientSystemInfo
     }
-    const account = this._getAccountRef(payload)
     if (account && account.ws) {
       loginContent.bid = payload.bid
       loginContent.user_name = payload.user_id
@@ -609,7 +686,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 判断账户是否登录 [x]
    * @param {object} payload
-   * @param {string} payload.bid
+   * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @returns {boolean}
    */
@@ -628,7 +705,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 刷新账户信息，用于账户资金没有同步正确
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    */
   refreshAccount (payload) {
@@ -658,8 +735,6 @@ class Tqsdk extends EventEmitter {
    * const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
    * const account1 = { bid: '快期模拟', user_id: 'test1234', password: '123456' }
    * tqsdk.on('rtn_brokers', function(brokers){
-   *   tqsdk.addAccount(account) // 仅添加期货账户信息并建立链接，不会登录账户
-   *   tqsdk.addAccount(account1)
    *   tqsdk.login(account) // 发送登录期货账户的请求
    *   tqsdk.login(account1) // 发送登录期货账户的请求
    *   // ........
@@ -678,7 +753,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取账户资金信息
    * @param {object} payload
-   * @param {string} payload.bid
+   * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @returns {object|null}
    *
@@ -704,13 +779,25 @@ class Tqsdk extends EventEmitter {
    * 获取期货账户对象唯一 key 值
    * @private
    * @param {object} payload
-   * @param {string} payload.bid
+   * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @returns {string} payload.bid + ',' + payload.user_id or ''
    */
   _getAccountKey (payload) {
-    if (payload && payload.bid && payload.user_id) {
-      return payload.bid + ',' + payload.user_id
+    if (payload && payload.user_id) {
+      if (payload.bid) {
+        return payload.bid + ',' + payload.user_id
+      } else {
+        // 如果用户只传了 user_id ，并且 user_id 唯一
+        let bid = ''
+        for (const key in this.trade_accounts) {
+          if (payload.user_id === this.trade_accounts[key].user_id) {
+            if (bid) return '' // 已经有过相同的 user_id
+            bid = this.trade_accounts[key].bid
+          }
+        }
+        return bid + ',' + payload.user_id
+      }
     }
     return ''
   }
@@ -719,19 +806,19 @@ class Tqsdk extends EventEmitter {
    * 获取期货账户对象
    * @private
    * @param {object} payload
-   * @param {string} payload.bid
+   * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @returns {object} account = {bid, user_id, password, ws, dm}
    */
   _getAccountRef (payload) {
-    const key = payload.bid + ',' + payload.user_id
+    const key = this._getAccountKey(payload)
     return this.trade_accounts[key] || {}
   }
 
   /**
    * 下单
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.exchange_id 交易所
    * @param {string} payload.instrument_id 合约名称
@@ -804,7 +891,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 下单，但是平仓单会自动先平今再平昨，不需要用户区分 CLOSE | CLOSETODAY
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.exchange_id 交易所
    * @param {string} payload.instrument_id 合约名称
@@ -869,7 +956,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 撤销委托单
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.order_id 委托单 id
    */
@@ -887,7 +974,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取账户某个合约的持仓信息
    * @param {object} payload
-   * @param {string} payload.bid
+   * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @param {string} payload.symbol 合约名称
    * @returns {object|null}
@@ -913,7 +1000,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取账户全部持仓信息
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @returns {object|null}
    *
@@ -938,7 +1025,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取账户某个合约的委托单信息
    * @param {object} payload
-   * @param {string} payload.bid
+   * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @param {string} payload.order_id 委托单 id
    * @returns {object|null}
@@ -950,7 +1037,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取账户全部委托单信息
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @returns {object|null}
    */
@@ -961,7 +1048,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取账户下某个合约对应的全部委托单信息
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.symbol 合约名称
    * @returns {object|null}
@@ -981,7 +1068,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取账户某个合约的成交记录
    * @param {object} payload
-   * @param {string} payload.bid
+   * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @param {string} payload.trade_id 成交记录 id
    * @returns {object|null}
@@ -993,7 +1080,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取账户全部成交记录
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @returns {object|null}
    */
@@ -1004,7 +1091,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取账户下某个委托单对应的全部成交记录
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.order_id 委托单 id
    * @returns {object|null}
@@ -1023,7 +1110,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取账户下某个合约对应的全部成交记录
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.symbol 合约名称
    * @returns {object|null}
@@ -1043,7 +1130,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取账户的历史结算单
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @returns {object|null}
    */
@@ -1054,7 +1141,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取账户某一日历史结算单
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.trading_day 查询日期
    * @returns {object|null}
@@ -1067,11 +1154,11 @@ class Tqsdk extends EventEmitter {
    * 获取账户 指定路径下的对象
    * @private
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
-   * @param {list} pathArray
+   * @param {list} [pathArray]
    */
-  _getAccountInfoByPaths (payload, pathArray) {
+  _getAccountInfoByPaths (payload, pathArray = []) {
     const account = this._getAccountRef(payload)
     if (account && account.dm) {
       return account.dm.getByPath(['trade', account.user_id].concat(pathArray))
@@ -1082,7 +1169,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 确认结算单， 每个交易日需要确认一次
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    *
    * @example
@@ -1111,7 +1198,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 银期转账
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.bank_id 银行ID
    * @param {string} payload.bank_password 银行账户密码
@@ -1138,7 +1225,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 查询历史结算单
    * @param {object} payload
-   * @param {string} payload.bid 期货公司
+   * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.trading_day 交易日
    */

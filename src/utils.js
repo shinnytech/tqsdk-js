@@ -95,7 +95,7 @@ const ParseSettlementContent = (txt = '') => {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim()
-    if (line === '资金状况  币种：人民币  Account Summary  Currency：CNY') {
+    if (line.indexOf('资金状况') > -1) {
       state = 'A-S'
       i++
       continue
