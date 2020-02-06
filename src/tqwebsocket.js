@@ -134,8 +134,7 @@ class TqWebsocket extends EventEmitter {
   }
 
   close () {
-    this.ws.onclose = function () {
-    }
+    this.ws.onclose = () => {}
     this.ws.close()
   }
 }
