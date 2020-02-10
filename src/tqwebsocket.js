@@ -121,8 +121,6 @@ class TqWebsocket extends EventEmitter {
       _this.emit('open', {
         msg: '发起重连第 ' + _this.reconnectTimes + ' 次, 成功'
       })
-      // _this.reconnectTimes = 0
-      _this.reconnectUrlIndex = 0
       if (this.reconnectTask) {
         clearTimeout(_this.reconnectTask)
       }

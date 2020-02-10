@@ -53,5 +53,5 @@ describe('TQSDK init', () => {
         done(error)
       }
     })
-  })
+  }, 20000)
 })
