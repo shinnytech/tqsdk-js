@@ -13,13 +13,16 @@ const RandomStr = (len = 8) => {
   for (let i = 0; i < len; i++) s += charts[(Math.random() * 0x3e) | 0]
   return s
 }
-
 function _genList (str) {
   // string 根据 | 分割为数组
   const list = []
   const items = str.split('|')
   for (let i = 0; i < items.length; i++) {
-    list.push(items[i].trim()) // NOTE: 有些竖线之间内容为空
+    const name = items[i].trim()
+    // 去掉第一个和最后一个空白
+    if (i === 0 && !name) continue
+    if (i === items.length - 1 && !name) continue
+    list.push(name) // NOTE: 有些竖线之间内容为空
   }
   return list
 }
@@ -33,86 +36,54 @@ function _genItem (keys, values) {
   return item
 }
 
-function _genTableRow (state, stateDetail, colNames, line) {
-  // 根据 参数 处理表格的一行
-  const result = {
-    state: state,
-    state_detail: stateDetail,
-    isRow: false,
-    row: null
-  }
-  switch (stateDetail) {
-    case 'T': // title
-      if (line.replace(/-/g, '') === '') {
-        result.state_detail = 'C'
-      } else {
-        colNames[state] = _genList(line)
-      }
-      break
-    case 'C': // content
-      if (line.replace(/-/g, '') === '') {
-        result.state_detail = 'S'
-      } else {
-        result.isRow = true
-        result.row = _genItem(colNames[state], _genList(line))
-      }
-      break
-    case 'S':
-      if (line.replace(/-/g, '') === '') {
-        result.state = ''
-        result.state_detail = ''
-      }
-      break
-  }
-  return result
-}
-
 const ParseSettlementContent = (txt = '') => {
   if (txt === '') return txt
   const lines = txt.split('\n')
-  let state = '' // A = Account Summary; T = Transaction Record; PD = Positions Detail; P = Positions
-  let stateDetail = '' // T = title; C = content; S = summary
-  const colNames = {}
-
+  let currentSection = '' // AS = Account Summary; T = Transaction Record; PD = Positions Detail
   // 需要处理的表格
-  const tableStatesTitles = {
-    positionClosed: '平仓明细 Position Closed',
-    transactionRecords: '成交记录 Transaction Record',
-    positions: '持仓汇总 Positions',
-    positionsDetail: '持仓明细 Positions Detail',
-    delivery: '交割明细  Delivery'
+  const tableStates = {
+    positionClosed: {
+      title: '平仓明细 Position Closed',
+      colNames: []
+    },
+    transactionRecords: {
+      title: '成交记录 Transaction Record',
+      colNames: []
+    }
   }
-
-  const states = []
-  const titles = []
-  const result = { account: {} }
-
-  Object.entries(tableStatesTitles).forEach(function (item) {
-    states.push(item[0])
-    titles.push(item[1])
-    result[item[0]] = []
-  })
+  const result = {
+    account: {},
+    positionClosed: [],
+    transactionRecords: []
+  }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim()
     if (line.indexOf('资金状况') > -1) {
-      state = 'A-S'
+      currentSection = 'account'
       i++
       continue
-    } else if (titles.includes(line)) {
-      state = states[titles.indexOf(line)]
-      stateDetail = 'T'
-      i++
+    } else if (line.indexOf('平仓明细') > -1 || line.indexOf('成交记录') > -1) {
+      currentSection = line.indexOf('平仓明细') > -1 ? 'positionClosed' : 'transactionRecords'
+      while (i++) {
+        const s = lines[i].trim()
+        if (s.replace(/-/g, '') === '') {
+          if (tableStates[currentSection].colNames.length === 0) continue
+          else break
+        } else {
+          tableStates[currentSection].colNames = _genList(s)
+        }
+      }
       continue
     }
 
-    if (state === 'A-S') {
+    if (currentSection === 'account') {
       if (line.length === 0 || line.replace('-', '') === '') {
-        state = ''
+        currentSection = '' // 当前table处理完
         continue
       } else {
         // eslint-disable-next-line no-unused-vars
-        const chMatches = line.match(/([\u4e00-\u9fa5][\u4e00-\u9fa5\s]+[\u4e00-\u9fa5])+/g) // 中文
+        // const chMatches = line.match(/([\u4e00-\u9fa5][\u4e00-\u9fa5\s]+[\u4e00-\u9fa5])+/g) // 中文
         // eslint-disable-next-line no-useless-escape
         const enMatches = line.match(/([A-Z][a-zA-Z\.\/\(\)\s]+)[:：]+/g) // 英文
         const numMatches = line.match(/(-?[\d]+\.\d\d)/g) // 数字
@@ -120,18 +91,28 @@ const ParseSettlementContent = (txt = '') => {
           result.account[enMatches[j].split(/[:：]/)[0]] = numMatches[j]
         }
       }
-    } else if (states.includes(state)) {
-      if (line.length === 0) {
-        state = ''
+    } else if (currentSection === 'positionClosed' || currentSection === 'transactionRecords') {
+      // 平仓明细 || 成交记录
+      if (line.length === 0 || line.replace(/-/g, '') === '') {
+        currentSection = '' // 当前table处理完
         continue
-      } else {
-        const tableRow = _genTableRow(state, stateDetail, colNames, line)
-        state = tableRow.state
-        stateDetail = tableRow.state_detail
-        if (tableRow.isRow) {
-          result[state].push(tableRow.row)
+      }
+      const colNames = tableStates[currentSection].colNames
+      const contents = _genList(line)
+      const data = _genItem(colNames, contents)
+
+      if (colNames.length !== contents.length && currentSection === 'transactionRecords') {
+        const indexLots = colNames.indexOf('Lots')
+        const indexFee = colNames.indexOf('Fee')
+        for (let i = 1; i < contents.length; i++) {
+          if (/^\d+$/.test(contents[i])) {
+            data.Lots = contents[i]
+            data.Fee = contents[i + (indexFee - indexLots)]
+            break
+          }
         }
       }
+      result[currentSection].push(data)
     }
   }
   return result
