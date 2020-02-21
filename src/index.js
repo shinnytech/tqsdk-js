@@ -243,7 +243,10 @@ class Tqsdk extends EventEmitter {
     }
     if (user_id) {
       // get 交易相关数据
-      const user = this._getAccountInfoByPaths({ bid, user_id }, [])
+      let user = this._getAccountInfoByPaths({ bid, user_id }, [])
+      if (user === null) {
+        user = this.dm.getByPath('trade', user_id)
+      }
       if (name === 'user') {
         return user
       }
