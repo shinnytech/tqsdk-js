@@ -1,6 +1,6 @@
 {
   "name": "tqsdk",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "db_version": "3",
   "description": "",
   "main": "dist/esm/tqsdk.js",
