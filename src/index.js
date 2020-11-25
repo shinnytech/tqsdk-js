@@ -377,8 +377,9 @@ class Tqsdk extends EventEmitter {
    */
   getQuote (symbol) {
     if (symbol === '') return {}
+    if (!this.quotesInfo[symbol]) return {}
     const symbolObj = this.dm.setDefault(['quotes', symbol], new Quote())
-    if (!symbolObj.class && this.quotesInfo[symbol]) {
+    if (!symbolObj.class) {
       // quotesInfo 中的 last_price
       // eslint-disable-next-line camelcase
       const last_price = symbolObj.last_price ? symbolObj.last_price : this.quotesInfo[symbol].last_price
@@ -529,24 +530,22 @@ class Tqsdk extends EventEmitter {
    * tqsdk.subscribeQuote(['SHFE.au2006', 'DCE.m2008'])
    */
   subscribeQuote (quotes = []) {
-    const subscribeQuotesSet = new Set()
+    const beginSize = this.subscribeQuotesSet.size
     // 所有持仓合约
     for (const k in this.trade_accounts) {
       const pos = this.getPositions(this.trade_accounts[k])
       if (pos) {
         for (const symbol in pos) {
-          subscribeQuotesSet.add(symbol)
+          this.subscribeQuotesSet.add(symbol)
         }
       }
     }
-    // this.subscribeQuotesSet 记录 getQuote 的合约
-    for (const s of this.subscribeQuotesSet) {
-      subscribeQuotesSet.add(s)
-    }
-    quotes = typeof quotes === 'string' ? [quotes] : quotes
+    quotes = typeof quotes === 'string' ? quotes.split(',') : quotes
     for (const s of quotes) {
-      subscribeQuotesSet.add(s)
+      this.subscribeQuotesSet.add(s)  // this.subscribeQuotesSet 记录 subscribeQuote 过的合约
     }
+    // this.subscribeQuotesSet 只增不减，所以只要判断 size 是否相等
+    if (beginSize === this.subscribeQuotesSet.size) return
     this.quotesWs.send({
       aid: 'subscribe_quote',
       ins_list: [].concat(...subscribeQuotesSet).join(',')
