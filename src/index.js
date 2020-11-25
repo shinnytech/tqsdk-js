@@ -542,13 +542,13 @@ class Tqsdk extends EventEmitter {
     }
     quotes = typeof quotes === 'string' ? quotes.split(',') : quotes
     for (const s of quotes) {
-      this.subscribeQuotesSet.add(s)  // this.subscribeQuotesSet 记录 subscribeQuote 过的合约
+      this.subscribeQuotesSet.add(s) // this.subscribeQuotesSet 记录 subscribeQuote 过的合约
     }
     // this.subscribeQuotesSet 只增不减，所以只要判断 size 是否相等
     if (beginSize === this.subscribeQuotesSet.size) return
     this.quotesWs.send({
       aid: 'subscribe_quote',
-      ins_list: [].concat(...subscribeQuotesSet).join(',')
+      ins_list: [].concat(...this.subscribeQuotesSet).join(',')
     })
   }
 

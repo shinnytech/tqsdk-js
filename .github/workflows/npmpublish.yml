@@ -1,11 +1,13 @@
 name: Node.js Package
 
 on:
+  push:
+    branches: [master]
   release:
     types: [created]
 
 jobs:
-  publish-npm:
+  build_publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -14,6 +16,15 @@ jobs:
           node-version: 12
           registry-url: https://registry.npmjs.org/
       - run: npm ci
-      - run: npm publish
+      - name: Extract Package Version
+        id: extract_version
+        run: |
+          node check-version.js
+      - name: publish
+        if: steps.extract_version.outputs.should_publish == 1
+        run: |
+          echo ${{ steps.extract_version.outputs.should_publish }}
+          npm run build
+          npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
