@@ -1,11 +1,12 @@
 {
   "name": "tqsdk",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "db_version": "3",
   "description": "",
   "main": "dist/esm/tqsdk.js",
+  "types": "dist/main.d.ts",
   "scripts": {
-    "build": "rollup --config",
+    "build": "rollup --config && tsc",
     "dev": "rollup -c",
     "dev_watch": "rollup --config rollup.config.dev.js -w",
     "prepublish": "rm -f dist/*/*.js && rollup --config",
@@ -51,6 +52,7 @@
     "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-terser": "^5.1.2",
+    "typescript": "^4.1.3",
     "ws": "^7.2.1"
   },
   "dependencies": {
