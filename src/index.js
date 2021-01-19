@@ -366,7 +366,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 根据合约代码获取合约对象
    * @param {string} symbol 合约代码
-   * @returns {object}
+   * @returns {Quote}
    *
    * @example
    * const tqsdk = new TQSDK()
