@@ -385,8 +385,8 @@ class Tqsdk extends EventEmitter {
       const last_price = symbolObj.last_price ? symbolObj.last_price : this.quotesInfo[symbol].last_price
       Object.assign(symbolObj, this.quotesInfo[symbol], { last_price })
     }
-    this.subscribeQuotesSet.add(symbol)
-    this.subscribeQuote()
+    // this.subscribeQuotesSet.add(symbol)
+    this.subscribeQuote(symbol)
     return symbolObj
   }
 
