@@ -106,7 +106,7 @@ tqsdk.off(eventName, cb)
 
 ## 3. API Reference
 
-<a id="module_TQSDK..Tqsdk"></a>
+<a name="module_TQSDK..Tqsdk"></a>
 
 #### TQSDK~Tqsdk
 **Kind**: inner class of [<code>TQSDK</code>](#module_TQSDK)  
@@ -119,7 +119,7 @@ tqsdk.off(eventName, cb)
     * [.get(payload)](#module_TQSDK..Tqsdk+get) ⇒ <code>object</code> \| <code>null</code>
     * [.getByPath(pathArray, dm)](#module_TQSDK..Tqsdk+getByPath) ⇒ <code>object</code> \| <code>null</code>
     * [.getQuotesByInput(input, filterOption)](#module_TQSDK..Tqsdk+getQuotesByInput) ⇒ <code>list</code>
-    * [.getQuote(symbol)](#module_TQSDK..Tqsdk+getQuote) ⇒ <code>object</code>
+    * [.getQuote(symbol)](#module_TQSDK..Tqsdk+getQuote) ⇒ <code>Quote</code>
     * [.setChart(payload)](#module_TQSDK..Tqsdk+setChart) ⇒ <code>object</code>
     * [.getChart(chart_id)](#module_TQSDK..Tqsdk+getChart) ⇒ <code>object</code>
     * [.getKlines(symbol, dur)](#module_TQSDK..Tqsdk+getKlines) ⇒ <code>object</code>
@@ -155,7 +155,7 @@ tqsdk.off(eventName, cb)
 
 * * *
 
-<a id="new_module_TQSDK..Tqsdk_new"></a>
+<a name="new_module_TQSDK..Tqsdk_new"></a>
 
 ##### new Tqsdk([opts], [wsOption])
 
@@ -165,6 +165,8 @@ tqsdk.off(eventName, cb)
 | [opts.symbolsServerUrl] | <code>string</code> | <code>&quot;https://openmd.shinnytech.com/t/md/symbols/latest.json&quot;</code> | 合约服务地址 |
 | [opts.wsQuoteUrl] | <code>string</code> | <code>&quot;wss://openmd.shinnytech.com/t/md/front/mobile&quot;</code> | 行情连接地址 |
 | [opts.autoInit] | <code>boolean</code> | <code>true</code> | TQSDK 初始化后立即开始行情连接 |
+| [opts.clientSystemInfo] | <code>string</code> | <code>&quot;\&quot;\&quot;&quot;</code> | 客户端信息 |
+| [opts.clientAppId] | <code>string</code> | <code>&quot;\&quot;\&quot;&quot;</code> | 客户端信息 |
 | [opts.data] | <code>object</code> | <code>{}</code> | 存储数据对象 |
 | [wsOption] | <code>object</code> | <code>{}</code> | 描述 TQSDK 构造参数 |
 | [wsOption.reconnectInterval] | <code>number</code> | <code>3000</code> | websocket 自动重连时间间隔 |
@@ -216,7 +218,7 @@ tqsdk.on('ready', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+initMdWebsocket"></a>
+<a name="module_TQSDK..Tqsdk+initMdWebsocket"></a>
 
 ##### tqsdk.initMdWebsocket()
 初始化行情链接
@@ -234,7 +236,7 @@ tqsdk.on('ready', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+initTdWebsocket"></a>
+<a name="module_TQSDK..Tqsdk+initTdWebsocket"></a>
 
 ##### tqsdk.initTdWebsocket()
 初始化交易链接
@@ -253,32 +255,32 @@ tqsdk.on('rtn_brokers', function(brokers){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+get"></a>
+<a name="module_TQSDK..Tqsdk+get"></a>
 
 ##### tqsdk.get(payload) ⇒ <code>object</code> \| <code>null</code>
 获取数据
 
 **Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| payload | <code>object</code> |  |
-| payload.name | <code>object</code> |  |
-| [payload.bid] | <code>object</code> | 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade'] |
-| [payload.user_id] | <code>object</code> | 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade'] |
-| [payload.currency] | <code>object</code> | 当 name='account' |
-| [payload.symbol] | <code>object</code> | 当 name in ['position', 'quote', 'ticks', 'klines'] |
-| [payload.order_id] | <code>object</code> | 当 name='order' |
-| [payload.trade_id] | <code>object</code> | 当 name='trade' |
-| [payload.trading_day] | <code>object</code> | 当 name='his_settlement' |
-| [payload.chart_id] | <code>object</code> | 当 name='chart' |
-| [payload.input] | <code>object</code> | 当 name='quotes' |
-| [payload.duration] | <code>object</code> | 当 name='klines' |
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| payload | <code>object</code> |  |  |
+| [payload.name] | <code>string</code> | <code>&quot;&#x27;users&#x27;&quot;</code> |  |
+| [payload.bid] | <code>string</code> |  | 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade'] |
+| [payload.user_id] | <code>string</code> |  | 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade'] |
+| [payload.currency] | <code>string</code> |  | 当 name='account' |
+| [payload.symbol] | <code>string</code> |  | 当 name in ['position', 'quote', 'ticks', 'klines'] |
+| [payload.order_id] | <code>string</code> |  | 当 name='order' |
+| [payload.trade_id] | <code>string</code> |  | 当 name='trade' |
+| [payload.trading_day] | <code>string</code> |  | 当 name='his_settlement' |
+| [payload.chart_id] | <code>string</code> |  | 当 name='chart' |
+| [payload.input] | <code>string</code> |  | 当 name='quotes' |
+| [payload.duration] | <code>string</code> |  | 当 name='klines' |
 
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getByPath"></a>
+<a name="module_TQSDK..Tqsdk+getByPath"></a>
 
 ##### tqsdk.getByPath(pathArray, dm) ⇒ <code>object</code> \| <code>null</code>
 获取数据对象
@@ -303,7 +305,7 @@ let dt = tqsdk.getByPath(['quotes', 'SHFE.au2006', 'expire_datetime'])
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getQuotesByInput"></a>
+<a name="module_TQSDK..Tqsdk+getQuotesByInput"></a>
 
 ##### tqsdk.getQuotesByInput(input, filterOption) ⇒ <code>list</code>
 根据输入字符串查询合约列表
@@ -314,15 +316,15 @@ let dt = tqsdk.getByPath(['quotes', 'SHFE.au2006', 'expire_datetime'])
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
 | input | <code>string</code> |  |  |
-| filterOption | <code>string</code> |  | 查询合约列表条件限制 |
-| filterOption.symbol | <code>boolean</code> | <code>true</code> | 是否根据合约ID匹配 |
-| filterOption.pinyin | <code>boolean</code> | <code>true</code> | 是否根据拼音匹配 |
-| filterOption.include_expired | <code>boolean</code> | <code>false</code> | 匹配结果是否包含已下市合约 |
-| filterOption.future | <code>boolean</code> | <code>true</code> | 匹配结果是否包含期货合约 |
-| filterOption.future_index | <code>boolean</code> | <code>false</code> | 匹配结果是否包含期货指数 |
-| filterOption.future_cont | <code>boolean</code> | <code>false</code> | 匹配结果是否包含期货主连 |
-| filterOption.option | <code>boolean</code> | <code>false</code> | 匹配结果是否包含期权 |
-| filterOption.combine | <code>boolean</code> | <code>false</code> | 匹配结果是否包含组合 |
+| filterOption | <code>object</code> |  | 查询合约列表条件限制 |
+| [filterOption.symbol] | <code>boolean</code> | <code>true</code> | 是否根据合约ID匹配 |
+| [filterOption.pinyin] | <code>boolean</code> | <code>true</code> | 是否根据拼音匹配 |
+| [filterOption.include_expired] | <code>boolean</code> | <code>false</code> | 匹配结果是否包含已下市合约 |
+| [filterOption.future] | <code>boolean</code> | <code>true</code> | 匹配结果是否包含期货合约 |
+| [filterOption.future_index] | <code>boolean</code> | <code>false</code> | 匹配结果是否包含期货指数 |
+| [filterOption.future_cont] | <code>boolean</code> | <code>false</code> | 匹配结果是否包含期货主连 |
+| [filterOption.option] | <code>boolean</code> | <code>false</code> | 匹配结果是否包含期权 |
+| [filterOption.combine] | <code>boolean</code> | <code>false</code> | 匹配结果是否包含组合 |
 
 **Example**  
 ```js
@@ -336,9 +338,9 @@ tqsdk.on('ready', function () {
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getQuote"></a>
+<a name="module_TQSDK..Tqsdk+getQuote"></a>
 
-##### tqsdk.getQuote(symbol) ⇒ <code>object</code>
+##### tqsdk.getQuote(symbol) ⇒ <code>Quote</code>
 根据合约代码获取合约对象
 
 **Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
@@ -358,7 +360,7 @@ tqsdk.on('rtn_data', function () {
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+setChart"></a>
+<a name="module_TQSDK..Tqsdk+setChart"></a>
 
 ##### tqsdk.setChart(payload) ⇒ <code>object</code>
 请求 K 线图表
@@ -372,12 +374,12 @@ tqsdk.on('rtn_data', function () {
 | payload.chart_id | <code>string</code> | 图表 id |
 | payload.symbol | <code>string</code> | 合约代码 |
 | payload.duration | <code>number</code> | 图表周期，0 表示 tick, 1e9 表示 1s, UnixNano 时间 |
-| payload.view_width | <code>number</code> | 图表柱子宽度 |
-| payload.left_kline_id | <code>number</code> | 指定一个K线id，向右请求view_width个数据 |
-| payload.trading_day_start | <code>number</code> | 指定交易日，返回对应的数据 |
-| payload.trading_day_count | <code>number</code> | 请求交易日天数 |
-| payload.focus_datetime | <code>number</code> | 使得指定日期的K线位于屏幕第M个柱子的位置 |
-| payload.focus_position | <code>number</code> | 使得指定日期的K线位于屏幕第M个柱子的位置 |
+| [payload.view_width] | <code>number</code> | 图表柱子宽度 |
+| [payload.left_kline_id] | <code>number</code> | 指定一个K线id，向右请求view_width个数据 |
+| [payload.trading_day_start] | <code>number</code> | 指定交易日，返回对应的数据 |
+| [payload.trading_day_count] | <code>number</code> | 请求交易日天数 |
+| [payload.focus_datetime] | <code>number</code> | 使得指定日期的K线位于屏幕第M个柱子的位置 |
+| [payload.focus_position] | <code>number</code> | 使得指定日期的K线位于屏幕第M个柱子的位置 |
 
 **Example**  
 ```js
@@ -390,7 +392,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getChart"></a>
+<a name="module_TQSDK..Tqsdk+getChart"></a>
 
 ##### tqsdk.getChart(chart_id) ⇒ <code>object</code>
 获取 chart 对象
@@ -405,7 +407,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getKlines"></a>
+<a name="module_TQSDK..Tqsdk+getKlines"></a>
 
 ##### tqsdk.getKlines(symbol, dur) ⇒ <code>object</code>
 获取 K 线序列
@@ -421,7 +423,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getTicks"></a>
+<a name="module_TQSDK..Tqsdk+getTicks"></a>
 
 ##### tqsdk.getTicks(symbol) ⇒ <code>object</code>
 获取 Ticks 序列
@@ -436,7 +438,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+isChanging"></a>
+<a name="module_TQSDK..Tqsdk+isChanging"></a>
 
 ##### tqsdk.isChanging(target|pathArray) ⇒ <code>boolean</code>
 判断某个对象是否最近一次有变动
@@ -464,7 +466,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+subscribeQuote"></a>
+<a name="module_TQSDK..Tqsdk+subscribeQuote"></a>
 
 ##### tqsdk.subscribeQuote(quotes)
 订阅合约, 手动订阅合约
@@ -484,7 +486,7 @@ tqsdk.subscribeQuote(['SHFE.au2006', 'DCE.m2008'])
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+addAccount"></a>
+<a name="module_TQSDK..Tqsdk+addAccount"></a>
 
 ##### tqsdk.addAccount(payload) ⇒ <code>object</code>
 添加期货账户
@@ -514,7 +516,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+removeAccount"></a>
+<a name="module_TQSDK..Tqsdk+removeAccount"></a>
 
 ##### tqsdk.removeAccount(payload)
 删除期货账户
@@ -524,13 +526,13 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+login"></a>
+<a name="module_TQSDK..Tqsdk+login"></a>
 
 ##### tqsdk.login(payload)
 登录期货账户
@@ -558,7 +560,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+isLogined"></a>
+<a name="module_TQSDK..Tqsdk+isLogined"></a>
 
 ##### tqsdk.isLogined(payload) ⇒ <code>boolean</code>
 判断账户是否登录 [x]
@@ -574,7 +576,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+refreshAccount"></a>
+<a name="module_TQSDK..Tqsdk+refreshAccount"></a>
 
 ##### tqsdk.refreshAccount(payload)
 刷新账户信息，用于账户资金没有同步正确
@@ -590,7 +592,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+refreshAccounts"></a>
+<a name="module_TQSDK..Tqsdk+refreshAccounts"></a>
 
 ##### tqsdk.refreshAccounts()
 刷新全部账户信息，用于账户资金没有同步正确
@@ -599,7 +601,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getAllAccounts"></a>
+<a name="module_TQSDK..Tqsdk+getAllAccounts"></a>
 
 ##### tqsdk.getAllAccounts() ⇒ <code>list</code>
 获取全部账户信息
@@ -621,7 +623,7 @@ tqsdk.on('rtn_brokers', function(brokers){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getAccount"></a>
+<a name="module_TQSDK..Tqsdk+getAccount"></a>
 
 ##### tqsdk.getAccount(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户资金信息
@@ -652,7 +654,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+insertOrder"></a>
+<a name="module_TQSDK..Tqsdk+insertOrder"></a>
 
 ##### tqsdk.insertOrder(payload) ⇒ <code>object</code>
 下单
@@ -698,7 +700,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+autoInsertOrder"></a>
+<a name="module_TQSDK..Tqsdk+autoInsertOrder"></a>
 
 ##### tqsdk.autoInsertOrder(payload) ⇒ <code>list</code>
 下单，但是平仓单会自动先平今再平昨，不需要用户区分 CLOSE | CLOSETODAY
@@ -722,7 +724,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+cancelOrder"></a>
+<a name="module_TQSDK..Tqsdk+cancelOrder"></a>
 
 ##### tqsdk.cancelOrder(payload)
 撤销委托单
@@ -739,7 +741,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getPosition"></a>
+<a name="module_TQSDK..Tqsdk+getPosition"></a>
 
 ##### tqsdk.getPosition(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户某个合约的持仓信息
@@ -771,7 +773,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getPositions"></a>
+<a name="module_TQSDK..Tqsdk+getPositions"></a>
 
 ##### tqsdk.getPositions(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户全部持仓信息
@@ -802,7 +804,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getOrder"></a>
+<a name="module_TQSDK..Tqsdk+getOrder"></a>
 
 ##### tqsdk.getOrder(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户某个合约的委托单信息
@@ -819,7 +821,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getOrders"></a>
+<a name="module_TQSDK..Tqsdk+getOrders"></a>
 
 ##### tqsdk.getOrders(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户全部委托单信息
@@ -835,7 +837,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getOrdersBySymbol"></a>
+<a name="module_TQSDK..Tqsdk+getOrdersBySymbol"></a>
 
 ##### tqsdk.getOrdersBySymbol(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户下某个合约对应的全部委托单信息
@@ -852,7 +854,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getTrade"></a>
+<a name="module_TQSDK..Tqsdk+getTrade"></a>
 
 ##### tqsdk.getTrade(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户某个合约的成交记录
@@ -869,7 +871,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getTrades"></a>
+<a name="module_TQSDK..Tqsdk+getTrades"></a>
 
 ##### tqsdk.getTrades(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户全部成交记录
@@ -885,7 +887,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getTradesByOrder"></a>
+<a name="module_TQSDK..Tqsdk+getTradesByOrder"></a>
 
 ##### tqsdk.getTradesByOrder(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户下某个委托单对应的全部成交记录
@@ -902,7 +904,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getTradesBySymbol"></a>
+<a name="module_TQSDK..Tqsdk+getTradesBySymbol"></a>
 
 ##### tqsdk.getTradesBySymbol(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户下某个合约对应的全部成交记录
@@ -919,7 +921,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getHisSettlements"></a>
+<a name="module_TQSDK..Tqsdk+getHisSettlements"></a>
 
 ##### tqsdk.getHisSettlements(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户的历史结算单
@@ -935,7 +937,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+getHisSettlement"></a>
+<a name="module_TQSDK..Tqsdk+getHisSettlement"></a>
 
 ##### tqsdk.getHisSettlement(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户某一日历史结算单
@@ -945,14 +947,14 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 | payload.trading_day | <code>string</code> | 查询日期 |
 
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+confirmSettlement"></a>
+<a name="module_TQSDK..Tqsdk+confirmSettlement"></a>
 
 ##### tqsdk.confirmSettlement(payload)
 确认结算单， 每个交易日需要确认一次
@@ -962,7 +964,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 
 **Example**  
@@ -983,7 +985,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+transfer"></a>
+<a name="module_TQSDK..Tqsdk+transfer"></a>
 
 ##### tqsdk.transfer(payload)
 银期转账
@@ -993,7 +995,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
 | payload | <code>object</code> |  |  |
-| payload.bid | <code>string</code> |  | 期货公司 |
+| [payload.bid] | <code>string</code> |  | 期货公司 |
 | payload.user_id | <code>string</code> |  | 账户名 |
 | payload.bank_id | <code>string</code> |  | 银行ID |
 | payload.bank_password | <code>string</code> |  | 银行账户密码 |
@@ -1005,7 +1007,7 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a id="module_TQSDK..Tqsdk+hisSettlement"></a>
+<a name="module_TQSDK..Tqsdk+hisSettlement"></a>
 
 ##### tqsdk.hisSettlement(payload)
 查询历史结算单
@@ -1015,7 +1017,7 @@ tqsdk.on('rtn_data', function(){
 | Param | Type | Description |
 | --- | --- | --- |
 | payload | <code>object</code> |  |
-| payload.bid | <code>string</code> | 期货公司 |
+| [payload.bid] | <code>string</code> | 期货公司 |
 | payload.user_id | <code>string</code> | 账户名 |
 | payload.trading_day | <code>string</code> | 交易日 |
 
