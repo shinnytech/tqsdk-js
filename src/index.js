@@ -29,14 +29,16 @@ import { Quote, Chart } from './datastructure'
 class Tqsdk extends EventEmitter {
   /**
    * @param {object} [opts={}] 描述 TQSDK 构造参数
-   * @param {string} [opts.symbolsServerUrl=https://openmd.shinnytech.com/t/md/symbols/latest.json] 合约服务地址
-   * @param {string} [opts.wsQuoteUrl=wss://openmd.shinnytech.com/t/md/front/mobile] 行情连接地址
-   * @param {boolean} [opts.autoInit=true] TQSDK 初始化后立即开始行情连接
-   * @param {object} [opts.data={}] 存储数据对象
+   * @param {string=} [opts.symbolsServerUrl=https://openmd.shinnytech.com/t/md/symbols/latest.json] 合约服务地址
+   * @param {string=} [opts.wsQuoteUrl=wss://openmd.shinnytech.com/t/md/front/mobile] 行情连接地址
+   * @param {boolean=} [opts.autoInit=true] TQSDK 初始化后立即开始行情连接
+   * @param {string=} [opts.clientSystemInfo=""] 客户端信息
+   * @param {string=} [opts.clientAppId=""] 客户端信息
+   * @param {object=} [opts.data={}] 存储数据对象
    * @param {object} [wsOption={}] 描述 TQSDK 构造参数
-   * @param {number} [wsOption.reconnectInterval=3000] websocket 自动重连时间间隔
-   * @param {number} [wsOption.reconnectMaxTimes=2] websocket 自动重连最大次数
-   * @param {object} [wsOption.WebSocket=WebSocket] 浏览器 WebSocket 对象，在 nodejs 运行时，需要传入 WebSocket
+   * @param {number=} [wsOption.reconnectInterval=3000] websocket 自动重连时间间隔
+   * @param {number=} [wsOption.reconnectMaxTimes=2] websocket 自动重连最大次数
+   * @param {object=} [wsOption.WebSocket=WebSocket] 浏览器 WebSocket 对象，在 nodejs 运行时，需要传入 WebSocket
    *
    * @fires TQSDK#ready
    * @fires TQSDK#rtn_data
@@ -209,17 +211,17 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取数据
    * @param {object} payload
-   * @param {object} payload.name
-   * @param {object} [payload.bid] 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
-   * @param {object} [payload.user_id] 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
-   * @param {object} [payload.currency] 当 name='account'
-   * @param {object} [payload.symbol] 当 name in ['position', 'quote', 'ticks', 'klines']
-   * @param {object} [payload.order_id] 当 name='order'
-   * @param {object} [payload.trade_id] 当 name='trade'
-   * @param {object} [payload.trading_day] 当 name='his_settlement'
-   * @param {object} [payload.chart_id] 当 name='chart'
-   * @param {object} [payload.input] 当 name='quotes'
-   * @param {object} [payload.duration] 当 name='klines'
+   * @param {string} [payload.name='users']
+   * @param {string=} [payload.bid] 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
+   * @param {string=} [payload.user_id] 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
+   * @param {string=} [payload.currency] 当 name='account'
+   * @param {string=} [payload.symbol] 当 name in ['position', 'quote', 'ticks', 'klines']
+   * @param {string=} [payload.order_id] 当 name='order'
+   * @param {string=} [payload.trade_id] 当 name='trade'
+   * @param {string=} [payload.trading_day] 当 name='his_settlement'
+   * @param {string=} [payload.chart_id] 当 name='chart'
+   * @param {string=} [payload.input] 当 name='quotes'
+   * @param {string=} [payload.duration] 当 name='klines'
    * @returns {object|null}
    */
   get ({
@@ -292,15 +294,15 @@ class Tqsdk extends EventEmitter {
   /**
    * 根据输入字符串查询合约列表
    * @param {string} input
-   * @param {string} filterOption 查询合约列表条件限制
-   * @param {boolean} filterOption.symbol=true 是否根据合约ID匹配
-   * @param {boolean} filterOption.pinyin=true 是否根据拼音匹配
-   * @param {boolean} filterOption.include_expired=false 匹配结果是否包含已下市合约
-   * @param {boolean} filterOption.future=true 匹配结果是否包含期货合约
-   * @param {boolean} filterOption.future_index=false 匹配结果是否包含期货指数
-   * @param {boolean} filterOption.future_cont=false 匹配结果是否包含期货主连
-   * @param {boolean} filterOption.option=false 匹配结果是否包含期权
-   * @param {boolean} filterOption.combine=false 匹配结果是否包含组合
+   * @param {object} filterOption 查询合约列表条件限制
+   * @param {boolean=} filterOption.symbol=true 是否根据合约ID匹配
+   * @param {boolean=} filterOption.pinyin=true 是否根据拼音匹配
+   * @param {boolean=} filterOption.include_expired=false 匹配结果是否包含已下市合约
+   * @param {boolean=} filterOption.future=true 匹配结果是否包含期货合约
+   * @param {boolean=} filterOption.future_index=false 匹配结果是否包含期货指数
+   * @param {boolean=} filterOption.future_cont=false 匹配结果是否包含期货主连
+   * @param {boolean=} filterOption.option=false 匹配结果是否包含期权
+   * @param {boolean=} filterOption.combine=false 匹配结果是否包含组合
    * @returns {list} [symbol, ...]
    *
    * @example
@@ -396,12 +398,12 @@ class Tqsdk extends EventEmitter {
    * @param {string} payload.chart_id 图表 id
    * @param {string} payload.symbol 合约代码
    * @param {number} payload.duration 图表周期，0 表示 tick, 1e9 表示 1s, UnixNano 时间
-   * @param {number} payload.view_width 图表柱子宽度
-   * @param {number} payload.left_kline_id 指定一个K线id，向右请求view_width个数据
-   * @param {number} payload.trading_day_start 指定交易日，返回对应的数据
-   * @param {number} payload.trading_day_count 请求交易日天数
-   * @param {number} payload.focus_datetime 使得指定日期的K线位于屏幕第M个柱子的位置
-   * @param {number} payload.focus_position 使得指定日期的K线位于屏幕第M个柱子的位置
+   * @param {number=} payload.view_width 图表柱子宽度
+   * @param {number=} payload.left_kline_id 指定一个K线id，向右请求view_width个数据
+   * @param {number=} payload.trading_day_start 指定交易日，返回对应的数据
+   * @param {number=} payload.trading_day_count 请求交易日天数
+   * @param {number=} payload.focus_datetime 使得指定日期的K线位于屏幕第M个柱子的位置
+   * @param {number=} payload.focus_position 使得指定日期的K线位于屏幕第M个柱子的位置
    * @returns {object} chart
    *
    * @example
