@@ -32,8 +32,8 @@ class Tqsdk extends EventEmitter {
    * @param {string=} [opts.symbolsServerUrl=https://openmd.shinnytech.com/t/md/symbols/latest.json] 合约服务地址
    * @param {string=} [opts.wsQuoteUrl=wss://openmd.shinnytech.com/t/md/front/mobile] 行情连接地址
    * @param {boolean=} [opts.autoInit=true] TQSDK 初始化后立即开始行情连接
-   * @param {string=} [opts.clientSystemInfo=""] 客户端信息
-   * @param {string=} [opts.clientAppId=""] 客户端信息
+   * @param {string=} [opts.clientSystemInfo=] 客户端信息
+   * @param {string=} [opts.clientAppId=] 客户端信息
    * @param {object=} [opts.data={}] 存储数据对象
    * @param {object} [wsOption={}] 描述 TQSDK 构造参数
    * @param {number=} [wsOption.reconnectInterval=3000] websocket 自动重连时间间隔
@@ -211,7 +211,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取数据
    * @param {object} payload
-   * @param {string} [payload.name='users']
+   * @param {string} [payload.name=users]
    * @param {string=} [payload.bid] 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
    * @param {string=} [payload.user_id] 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade']
    * @param {string=} [payload.currency] 当 name='account'

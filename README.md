@@ -165,8 +165,8 @@ tqsdk.off(eventName, cb)
 | [opts.symbolsServerUrl] | <code>string</code> | <code>&quot;https://openmd.shinnytech.com/t/md/symbols/latest.json&quot;</code> | 合约服务地址 |
 | [opts.wsQuoteUrl] | <code>string</code> | <code>&quot;wss://openmd.shinnytech.com/t/md/front/mobile&quot;</code> | 行情连接地址 |
 | [opts.autoInit] | <code>boolean</code> | <code>true</code> | TQSDK 初始化后立即开始行情连接 |
-| [opts.clientSystemInfo] | <code>string</code> | <code>&quot;\&quot;\&quot;&quot;</code> | 客户端信息 |
-| [opts.clientAppId] | <code>string</code> | <code>&quot;\&quot;\&quot;&quot;</code> | 客户端信息 |
+| [opts.clientSystemInfo=] | <code>string</code> |  | 客户端信息 |
+| [opts.clientAppId=] | <code>string</code> |  | 客户端信息 |
 | [opts.data] | <code>object</code> | <code>{}</code> | 存储数据对象 |
 | [wsOption] | <code>object</code> | <code>{}</code> | 描述 TQSDK 构造参数 |
 | [wsOption.reconnectInterval] | <code>number</code> | <code>3000</code> | websocket 自动重连时间间隔 |
@@ -265,7 +265,7 @@ tqsdk.on('rtn_brokers', function(brokers){
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
 | payload | <code>object</code> |  |  |
-| [payload.name] | <code>string</code> | <code>&quot;&#x27;users&#x27;&quot;</code> |  |
+| [payload.name] | <code>string</code> | <code>&quot;users&quot;</code> |  |
 | [payload.bid] | <code>string</code> |  | 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade'] |
 | [payload.user_id] | <code>string</code> |  | 当 name in ['user', 'session', 'accounts', 'account', 'positions', 'position', 'orders', 'order', 'trades', 'trade'] |
 | [payload.currency] | <code>string</code> |  | 当 name='account' |
