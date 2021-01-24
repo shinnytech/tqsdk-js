@@ -303,7 +303,7 @@ class Tqsdk extends EventEmitter {
    * @param {boolean=} filterOption.future_cont=false 匹配结果是否包含期货主连
    * @param {boolean=} filterOption.option=false 匹配结果是否包含期权
    * @param {boolean=} filterOption.combine=false 匹配结果是否包含组合
-   * @returns {list} [symbol, ...]
+   * @returns {Array} [symbol, ...]
    *
    * @example
    * const tqsdk = new TQSDK()

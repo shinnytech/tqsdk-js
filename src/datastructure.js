@@ -29,28 +29,28 @@ class Quote {
     this.margin = '-' // 每手保证金
     this.commission = '-' // 每手手续费
     // 合约服务附带参数
-    // class: '', // ['FUTURE' 'FUTURE_INDEX' 'FUTURE_CONT']
-    // ins_id: '',
-    // ins_name: '',
-    // exchange_id: '',
-    // sort_key: '',
-    // expired: false,
-    // py: '',
-    // product_id: '',
-    // product_short_name: '',
-    // underlying_product: '',
-    // underlying_symbol: '', // 标的合约
-    // delivery_year: 0,
-    // delivery_month: 0,
-    // expire_datetime: 0,
-    // trading_time: {},
-    // volume_multiple: 0, // 合约乘数
-    // price_tick: 0, // 合约价格单位
-    // price_decs: 0, // 合约价格小数位数
-    // max_market_order_volume: 1000, // 市价单最大下单手数
-    // min_market_order_volume: 1, // 市价单最小下单手数
-    // max_limit_order_volume: 1000, // 限价单最大下单手数
-    // min_limit_order_volume: 1, // 限价单最小下单手数
+    this.class = '' // ['FUTURE' 'FUTURE_INDEX' 'FUTURE_CONT']
+    this.ins_id = '-'
+    this.ins_name = '-'
+    this.exchange_id = ''
+    this.sort_key = ''
+    this.expired = false
+    this.py = ''
+    this.product_id = ''
+    this.product_short_name = ''
+    this.underlying_product = ''
+    this.underlying_symbol = ''// 标的合约
+    this.delivery_year = 0
+    this.delivery_month = 0
+    this.expire_datetime = 0
+    this.trading_time = {}
+    this.volume_multiple = 0 // 合约乘数
+    this.price_tick = 0 // 合约价格单位
+    this.price_decs = 0 // 合约价格小数位数
+    this.max_market_order_volume = 1000 // 市价单最大下单手数
+    this.min_market_order_volume = 1 // 市价单最小下单手数
+    this.max_limit_order_volume = 1000 // 限价单最大下单手数
+    this.min_limit_order_volume = 1 // 限价单最小下单手数
   }
 
   set last_price (p) {
