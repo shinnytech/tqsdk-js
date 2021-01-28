@@ -188,7 +188,7 @@ class Tqsdk extends EventEmitter {
       self.brokers = Object.keys(response.data).filter(x => !x.endsWith(' ')).sort()
       /**
        * @event TQSDK#rtn_brokers
-       * @type {list} 期货公司列表
+       * @type {Array} 期货公司列表
        */
       self.emit('rtn_brokers', self.brokers)
     }).catch(error => {
@@ -274,7 +274,7 @@ class Tqsdk extends EventEmitter {
 
   /**
    * 获取数据对象
-   * @param {list} pathArray
+   * @param {Array} pathArray
    * @param {object} dm 获取对象数据源，默认为当前实例的 datamanager
    * @returns {object|null}
    *
@@ -339,7 +339,7 @@ class Tqsdk extends EventEmitter {
    * @private
    * @param {object} filterOption 筛选条件
    * @param {object} quote 合约对象
-   * @returns {list}
+   * @returns {Array}
    */
   _filterSymbol (filterOption, quote) {
     if (filterOption[quote.class] && (filterOption.include_expired || (!filterOption.include_expired && !quote.expired))) {
@@ -500,7 +500,7 @@ class Tqsdk extends EventEmitter {
 
   /**
    * 判断某个对象是否最近一次有变动
-   * @param {object|list} target|pathArray 检查变动的对象或者路径数组
+   * @param {object|Array} target|pathArray 检查变动的对象或者路径数组
    * @returns {boolean}
    *
    * @example
@@ -524,7 +524,7 @@ class Tqsdk extends EventEmitter {
 
   /**
    * 订阅合约, 手动订阅合约
-   * @param {list|string} quotes=[]
+   * @param {Array|string} quotes=[]
    *
    * @example
    * let tqsdk = new TQSDK()
@@ -735,7 +735,7 @@ class Tqsdk extends EventEmitter {
 
   /**
    * 获取全部账户信息
-   * @returns {list}
+   * @returns {Array}
    *
    * @example
    * const tqsdk = new TQSDK()
@@ -907,7 +907,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} payload.price_type=LIMIT 限价 [`LIMIT` | `ANY`]
    * @param {number} payload.limit_price 价格
    * @param {number} payload.volume 手数
-   * @returns {list} list=[{order_id, status, ...}, ...] 返回委托单数组，可能拆分为多个单
+   * @returns {Array} Array=[{order_id, status, ...}, ...] 返回委托单数组，可能拆分为多个单
    */
   autoInsertOrder (payload) {
     if (!this.is_logined(payload)) return null
@@ -1163,7 +1163,7 @@ class Tqsdk extends EventEmitter {
    * @param {object} payload
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
-   * @param {list} [pathArray]
+   * @param {Array} [pathArray]
    */
   _getAccountInfoByPaths (payload, pathArray = []) {
     const account = this._getAccountRef(payload)
