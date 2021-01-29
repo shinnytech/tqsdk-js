@@ -749,7 +749,7 @@ class Tqsdk extends EventEmitter {
    *   console.log(accounts)
    * })
    */
-  getAllAccounts (payload) {
+  getAllAccounts () {
     const result = []
     Object.values(this.trade_accounts).forEach(function (v) {
       result.push({ bid: v.bid, user_id: v.user_id, password: v.password })
