@@ -759,7 +759,7 @@ class Tqsdk extends EventEmitter {
    * @param {object} payload
    * @param {string} [payload.bid]
    * @param {string} payload.user_id
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    *
    * @example
    * const tqsdk = new TQSDK()
@@ -981,7 +981,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @param {string} payload.symbol 合约名称
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    *
    * @example
    * const tqsdk = new TQSDK()
@@ -1006,7 +1006,7 @@ class Tqsdk extends EventEmitter {
    * @param {object} payload
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    *
    * @example
    * const tqsdk = new TQSDK()
@@ -1032,7 +1032,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @param {string} payload.order_id 委托单 id
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getOrder (payload) {
     return this._getAccountInfoByPaths(payload, ['orders', payload.order_id])
@@ -1043,7 +1043,7 @@ class Tqsdk extends EventEmitter {
    * @param {object} payload
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getOrders (payload) {
     return this._getAccountInfoByPaths(payload, ['orders'])
@@ -1055,7 +1055,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.symbol 合约名称
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getOrdersBySymbol (payload) {
     const orders = this._getAccountInfoByPaths(payload, ['orders'])
@@ -1075,7 +1075,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @param {string} payload.trade_id 成交记录 id
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getTrade (payload) {
     return this._getAccountInfoByPaths(payload, ['trades', payload.trade_id])
@@ -1086,7 +1086,7 @@ class Tqsdk extends EventEmitter {
    * @param {object} payload
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getTrades (payload) {
     return this._getAccountInfoByPaths(payload, ['trades'])
@@ -1098,7 +1098,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.order_id 委托单 id
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getTradesByOrder (payload) {
     const trades = this._getAccountInfoByPaths(payload, ['trades'])
@@ -1117,7 +1117,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.symbol 合约名称
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getTradesBySymbol (payload) {
     const trades = this._getAccountInfoByPaths(payload, ['trades'])
@@ -1136,7 +1136,7 @@ class Tqsdk extends EventEmitter {
    * @param {object} payload
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getHisSettlements (payload) {
     return this._getAccountInfoByPaths(payload, ['his_settlements'])
@@ -1148,7 +1148,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.trading_day 查询日期
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getHisSettlement (payload) {
     return this._getAccountInfoByPaths(payload, ['his_settlements', payload.trading_day])
