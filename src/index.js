@@ -447,7 +447,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取 chart 对象
    * @param {string} chart_id
-   * @returns {object} {}
+   * @returns {any} {}
    */
   getChart (chart_id) {
     if (chart_id === '') return null
@@ -458,7 +458,7 @@ class Tqsdk extends EventEmitter {
    * 获取 K 线序列
    * @param {string} symbol
    * @param {number} dur
-   * @returns {object} {data, last_id}
+   * @returns {any} {data, last_id}
    */
   getKlines (symbol, dur) {
     if (symbol === '') return null
