@@ -32,6 +32,7 @@ class Tqsdk extends EventEmitter {
    * @param {string=} [opts.symbolsServerUrl=https://openmd.shinnytech.com/t/md/symbols/latest.json] 合约服务地址
    * @param {string=} [opts.wsQuoteUrl=wss://openmd.shinnytech.com/t/md/front/mobile] 行情连接地址
    * @param {boolean=} [opts.autoInit=true] TQSDK 初始化后立即开始行情连接
+   * @param {string=} [opts.accessToken=eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJobi1MZ3ZwbWlFTTJHZHAtRmlScjV5MUF5MnZrQmpLSFFyQVlnQ0UwR1JjIn0.eyJqdGkiOiJlZjgyYjBjNS02MDYwLTRjZTYtYjZhMS1kYjkxYmMxYjcyOTQiLCJleHAiOjE2NDIwNjc5NTYsIm5iZiI6MCwiaWF0IjoxNjEwNTMxOTU2LCJpc3MiOiJodHRwOi8vYXV0aC5zaGlubnl0ZWNoLmNvbS9hdXRoL3JlYWxtcy9zaGlubnl0ZWNoIiwic3ViIjoiNGJiMmEwZGMtMjZkMS00M2Y1LTlkNjctOTlkYzVkZGE4Y2ZlIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoic2hpbm55X3dlYiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjU0NmY5OWM4LWJmNjctNDhlYy1iNjFmLTY3MGUyZWZhYmQ4ZSIsImFjciI6IjEiLCJzY29wZSI6ImF0dHJpYnV0ZXMiLCJncmFudHMiOnsiZmVhdHVyZXMiOlsiIl0sImFjY291bnRzIjpbIioiXX19.B1pQIiu3iS6F7eusKSzjLZaZKtV084l4JYPNjkmBnNp2hBCEPfGwK4u-H4KMFXhbK5l4acvRY-QS7t3UMLEDbn-UQYEfcOeQVnWYlVDfSWUbSCGxLCIaQYHCct7VcWhcLgg0_xNmJMNdnnLvq44J8S1o4PFNbXJosScspenZUZmuZi75KTdFiA8KU_83X2-gJ7UjFuJ03YoaxFMBJhG7wpEXB5P_yjrgvjUGkD9oy-IRC2YH65ys0XpdzH5U4NzePi7gG01mh3mQM1DuyyS7YVkcxRrjvVUkx6lHChSjEMGtWWoC0aTg323dPTPQ8u4wPL650KOV3eGELBICUUVM8Q] Token
    * @param {string=} [opts.clientSystemInfo=] 客户端信息
    * @param {string=} [opts.clientAppId=] 客户端信息
    * @param {object=} [opts.data={}] 存储数据对象
@@ -91,6 +92,7 @@ class Tqsdk extends EventEmitter {
     clientSystemInfo = '',
     clientAppId = '',
     autoInit = true,
+    accessToken = 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJobi1MZ3ZwbWlFTTJHZHAtRmlScjV5MUF5MnZrQmpLSFFyQVlnQ0UwR1JjIn0.eyJqdGkiOiJlZjgyYjBjNS02MDYwLTRjZTYtYjZhMS1kYjkxYmMxYjcyOTQiLCJleHAiOjE2NDIwNjc5NTYsIm5iZiI6MCwiaWF0IjoxNjEwNTMxOTU2LCJpc3MiOiJodHRwOi8vYXV0aC5zaGlubnl0ZWNoLmNvbS9hdXRoL3JlYWxtcy9zaGlubnl0ZWNoIiwic3ViIjoiNGJiMmEwZGMtMjZkMS00M2Y1LTlkNjctOTlkYzVkZGE4Y2ZlIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoic2hpbm55X3dlYiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjU0NmY5OWM4LWJmNjctNDhlYy1iNjFmLTY3MGUyZWZhYmQ4ZSIsImFjciI6IjEiLCJzY29wZSI6ImF0dHJpYnV0ZXMiLCJncmFudHMiOnsiZmVhdHVyZXMiOlsiIl0sImFjY291bnRzIjpbIioiXX19.B1pQIiu3iS6F7eusKSzjLZaZKtV084l4JYPNjkmBnNp2hBCEPfGwK4u-H4KMFXhbK5l4acvRY-QS7t3UMLEDbn-UQYEfcOeQVnWYlVDfSWUbSCGxLCIaQYHCct7VcWhcLgg0_xNmJMNdnnLvq44J8S1o4PFNbXJosScspenZUZmuZi75KTdFiA8KU_83X2-gJ7UjFuJ03YoaxFMBJhG7wpEXB5P_yjrgvjUGkD9oy-IRC2YH65ys0XpdzH5U4NzePi7gG01mh3mQM1DuyyS7YVkcxRrjvVUkx6lHChSjEMGtWWoC0aTg323dPTPQ8u4wPL650KOV3eGELBICUUVM8Q',
     data = {
       klines: {},
       quotes: {},
@@ -117,6 +119,7 @@ class Tqsdk extends EventEmitter {
       self.emit('rtn_data', null)
     })
 
+    this.accessToken = accessToken
     this.brokers_list = null
     this.brokers = null
     this.trade_accounts = {} // 添加账户
@@ -603,7 +606,7 @@ class Tqsdk extends EventEmitter {
           }
         })
         const urls = [
-          this.brokers_list[payload.bid].url + '?access_token=eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJobi1MZ3ZwbWlFTTJHZHAtRmlScjV5MUF5MnZrQmpLSFFyQVlnQ0UwR1JjIn0.eyJqdGkiOiJlZjgyYjBjNS02MDYwLTRjZTYtYjZhMS1kYjkxYmMxYjcyOTQiLCJleHAiOjE2NDIwNjc5NTYsIm5iZiI6MCwiaWF0IjoxNjEwNTMxOTU2LCJpc3MiOiJodHRwOi8vYXV0aC5zaGlubnl0ZWNoLmNvbS9hdXRoL3JlYWxtcy9zaGlubnl0ZWNoIiwic3ViIjoiNGJiMmEwZGMtMjZkMS00M2Y1LTlkNjctOTlkYzVkZGE4Y2ZlIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoic2hpbm55X3dlYiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjU0NmY5OWM4LWJmNjctNDhlYy1iNjFmLTY3MGUyZWZhYmQ4ZSIsImFjciI6IjEiLCJzY29wZSI6ImF0dHJpYnV0ZXMiLCJncmFudHMiOnsiZmVhdHVyZXMiOlsiIl0sImFjY291bnRzIjpbIioiXX19.B1pQIiu3iS6F7eusKSzjLZaZKtV084l4JYPNjkmBnNp2hBCEPfGwK4u-H4KMFXhbK5l4acvRY-QS7t3UMLEDbn-UQYEfcOeQVnWYlVDfSWUbSCGxLCIaQYHCct7VcWhcLgg0_xNmJMNdnnLvq44J8S1o4PFNbXJosScspenZUZmuZi75KTdFiA8KU_83X2-gJ7UjFuJ03YoaxFMBJhG7wpEXB5P_yjrgvjUGkD9oy-IRC2YH65ys0XpdzH5U4NzePi7gG01mh3mQM1DuyyS7YVkcxRrjvVUkx6lHChSjEMGtWWoC0aTg323dPTPQ8u4wPL650KOV3eGELBICUUVM8Q',
+          this.brokers_list[payload.bid].url + '?access_token=' + this.accessToken,
           this.brokers_list[payload.bid].url
         ]
         const ws = new TqTradeWebsocket(urls, dm, this.wsOption)
