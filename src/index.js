@@ -298,6 +298,8 @@ class Tqsdk extends EventEmitter {
    * 根据输入字符串查询合约列表
    * @param {string} input
    * @param {object} filterOption 查询合约列表条件限制
+   * @param {boolean=} filterOption.exchange_id=false 是否根据合约类型匹配
+   * @param {boolean=} filterOption.class=false 是否根据合约类型匹配
    * @param {boolean=} filterOption.symbol=true 是否根据合约ID匹配
    * @param {boolean=} filterOption.pinyin=true 是否根据拼音匹配
    * @param {boolean=} filterOption.include_expired=false 匹配结果是否包含已下市合约
@@ -320,6 +322,8 @@ class Tqsdk extends EventEmitter {
     if (typeof input !== 'string') return []
     const option = {
       input: input.toLowerCase(),
+      exchange_id: typeof filterOption.exchange_id === 'boolean' ? filterOption.exchange_id : false, // 是否根据合约交易所匹配
+      class: typeof filterOption.class === 'boolean' ? filterOption.class : false, // 是否根据合约类型匹配
       symbol: typeof filterOption.symbol === 'boolean' ? filterOption.symbol : true, // 是否根据合约ID匹配
       pinyin: typeof filterOption.pinyin === 'boolean' ? filterOption.pinyin : true, // 是否根据拼音匹配
       include_expired: typeof filterOption.include_expired === 'boolean' ? filterOption.include_expired : false, // 匹配结果是否包含已下市合约
@@ -346,6 +350,16 @@ class Tqsdk extends EventEmitter {
    */
   _filterSymbol (filterOption, quote) {
     if (filterOption[quote.class] && (filterOption.include_expired || (!filterOption.include_expired && !quote.expired))) {
+      if (filterOption.exchange_id) {
+        if (filterOption.input === quote.exchange_id.toLowerCase()) {
+          return true
+        }
+      }
+      if (filterOption.class) {
+        if (filterOption.input === quote.class.toLowerCase()) {
+          return true
+        }
+      }
       if (filterOption.symbol) {
         if (quote.underlying_product) {
           const [ex_id, product_id] = quote.underlying_product.toLowerCase().split('.')
