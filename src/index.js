@@ -298,7 +298,7 @@ class Tqsdk extends EventEmitter {
    * 根据输入字符串查询合约列表
    * @param {string} input
    * @param {object} filterOption 查询合约列表条件限制
-   * @param {boolean=} filterOption.exchange_id=false 是否根据合约类型匹配
+   * @param {boolean=} filterOption.exchange_id=false 是否根据交易所匹配
    * @param {boolean=} filterOption.class=false 是否根据合约类型匹配
    * @param {boolean=} filterOption.symbol=true 是否根据合约ID匹配
    * @param {boolean=} filterOption.pinyin=true 是否根据拼音匹配

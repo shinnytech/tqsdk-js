@@ -4,7 +4,7 @@ const DB_NAME = 'his_settlements'
 const stores = {}
 let localforage = {}
 
-if (location.protocol === 'data:') {
+if (window.location.protocol === 'data:') {
   const _datas = {}
   localforage.createInstance = function ({
     name,
