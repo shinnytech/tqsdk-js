@@ -126,6 +126,7 @@ class Tqsdk extends EventEmitter {
     this.trade_accounts = {} // 添加账户
     this.subscribeQuotesSet = new Set() // 所有需要订阅的合约
     this.quotesWs = null
+    /** @type {Record<string, Quote>} */
     this.quotesInfo = {}
     if (autoInit) {
       // 自动执行初始化
