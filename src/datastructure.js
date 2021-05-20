@@ -118,4 +118,11 @@ class Chart {
   }
 }
 
-export { Quote, Kline, Tick, Chart }
+class Broker {
+  constructor () {
+    this.category = [] // ["TQ", "XQ"]
+    this.url = '' // "wss://otg-sim.shinnytech.com/trade"
+  }
+}
+
+export { Quote, Kline, Tick, Chart, Broker }
