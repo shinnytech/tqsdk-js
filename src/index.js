@@ -10,7 +10,7 @@ import { TqQuoteWebsocket, TqTradeWebsocket, TqRecvOnlyWebsocket } from './tqweb
 import DataManager from './datamanage'
 import EventEmitter from 'eventemitter3'
 import { RandomStr, ParseSettlementContent, IsEmptyObject } from './utils'
-import { Quote, Chart } from './datastructure'
+import { Quote, Chart, Broker } from './datastructure'
 
 // 支持多账户登录
 //    * @fires TQSDK#ready 收到合约基础数据（全局只出发一次）
@@ -120,6 +120,7 @@ class Tqsdk extends EventEmitter {
     })
 
     this.accessToken = accessToken
+    /** @type {Record<string, Broker>} */
     this.brokers_list = null
     this.brokers = null
     this.trade_accounts = {} // 添加账户
