@@ -799,6 +799,17 @@ class Tqsdk extends EventEmitter {
   }
 
   /**
+   * 获取支持的转账银行
+   * @param {object} payload
+   * @param {string} [payload.bid]
+   * @param {string} payload.user_id
+   * @returns {Record<string, any>|null}
+   */
+  getBanks (payload) {
+    return this._getAccountInfoByPaths(payload, ['banks'])
+  }
+
+  /**
    * 获取期货账户对象唯一 key 值
    * @private
    * @param {object} payload
