@@ -150,7 +150,10 @@ class Tqsdk extends EventEmitter {
     if (this.quotesWs) return
     const self = this
     axios.get(this._insUrl, {
-      headers: { Accept: 'application/json; charset=utf-8' }
+      headers: {
+        Accept: 'application/json; charset=utf-8',
+        'cache-control': 'no-cache'
+      }
     }).then(response => {
       self.quotesInfo = response.data
       /**
