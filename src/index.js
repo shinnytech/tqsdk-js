@@ -156,17 +156,17 @@ class Tqsdk extends EventEmitter {
        * @event TQSDK#ready
        * @type {null}
        */
-      self.emit('ready')
-      self.emit('rtn_data', null)
-    }).catch(error => {
+        self.emit('ready')
+        self.emit('rtn_data', null)
+      }).catch(error => {
       /**
        * @event TQSDK#error
        * @type {Error} error
        */
-      self.emit('error', error)
-      console.error('Error: ' + error.message)
-      return error
-    })
+        self.emit('error', error)
+        console.error('Error: ' + error.message)
+        return error
+      })
     this.quotesWs = new TqQuoteWebsocket(this._mdUrl, this.dm, this.wsOption)
   }
 
@@ -185,19 +185,28 @@ class Tqsdk extends EventEmitter {
     if (this.brokers) return
     const self = this
     // 支持分散部署的交易中继网关
+<<<<<<< HEAD
     this.requestMethod('https://files.shinnytech.com/broker-list.json').then(data => {
       self.brokers_list = data
       self.brokers = Object.keys(data).filter(x => !x.endsWith(' ')).sort()
       /**
+=======
+    fetch('https://files.shinnytech.com/broker-list.json', { cache: 'no-cache' })
+      .then(response => response.json())
+      .then(json => {
+        self.brokers_list = json
+        self.brokers = Object.keys(json).filter(x => !x.endsWith(' ')).sort()
+        /**
+>>>>>>> 7e71e33 (使用fetch下载合约服务文件和期货公司列表文件，配置缓存策略no-cache)
        * @event TQSDK#rtn_brokers
        * @type {Array} 期货公司列表
        */
-      self.emit('rtn_brokers', self.brokers)
-    }).catch(error => {
-      self.emit('error', error)
-      console.error('Error: ' + error.message)
-      return error
-    })
+        self.emit('rtn_brokers', self.brokers)
+      }).catch(error => {
+        self.emit('error', error)
+        console.error('Error: ' + error.message)
+        return error
+      })
   }
 
   /**
