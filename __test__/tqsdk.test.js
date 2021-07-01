@@ -1,10 +1,14 @@
 const TQSDK = require('../dist/umd/tqsdk-nocache')
 const WebSocket = require('ws')
+const fetch = require('node-fetch')
 let tqsdk = null
 const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
 
 describe('TQSDK init', () => {
   beforeEach(() => {
+    if (!globalThis.fetch) {
+      globalThis.fetch = fetch;
+    }
     tqsdk = new TQSDK({}, { WebSocket })
   })
 
