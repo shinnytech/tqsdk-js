@@ -1187,6 +1187,29 @@ class Tqsdk extends EventEmitter {
   }
 
   /**
+   * 获取账户全部转账信息
+   * @param {object} payload
+   * @param {string} [payload.bid] 期货公司
+   * @param {string} payload.user_id 账户名
+   * @returns {Record<string, any>|null}
+   */
+  getTransfers (payload) {
+    return this._getAccountInfoByPaths(payload, ['transfers'])
+  }
+
+  /**
+   * 获取账户某一编号的转账记录
+   * @param {object} payload
+   * @param {string} [payload.bid] 期货公司
+   * @param {string} payload.user_id 账户名
+   * @param {string} payload.key 转账记录的key
+   * @returns {Record<string, any>|null}
+   */
+  getTransferByKey (payload) {
+    return this._getAccountInfoByPaths(payload, ['transfers', payload.key])
+  }
+
+  /**
    * 获取账户 指定路径下的对象
    * @private
    * @param {object} payload
