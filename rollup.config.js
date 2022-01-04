@@ -10,31 +10,28 @@ const plugins = [
     fix: true,
     include: ['src/*']
   }),
-  resolve({ preferBuiltins: true }), // so Rollup can find `ms`
+  resolve({ preferBuiltins: true, browser: true }), // so Rollup can find `ms`
   commonjs(), // so Rollup can convert `ms` to an ES module
   babel()
 ]
 export default [
   {
-    // umd with cache axios
+    // umd with cache
     input: 'main-cache.js',
     output: [{
       file: 'dist/umd/tqsdk.js',
       name: 'TQSDK',
       format: 'umd', // Universal Module Definition, works as amd, cjs and iife all in one
       globals: {
-        axios: 'axios'
       }
     }, {
       file: 'dist/umd/tqsdk.min.js',
       name: 'TQSDK',
       format: 'umd',
       globals: {
-        axios: 'axios'
       },
       plugins: [terser()]
     }],
-    external: ['axios'],
     plugins
   },
   {
@@ -45,17 +42,14 @@ export default [
       name: 'TQSDK',
       format: 'esm', // Keep the bundle as an ES module file, suitable for other bundlers and inclusion as a <script type=module> tag in modern browsers
       globals: {
-        axios: 'axios'
       }
     }, {
       file: 'dist/umd/tqsdk-nocache.js',
       name: 'TQSDK',
       format: 'umd', // Keep the bundle as an ES module file, suitable for other bundlers and inclusion as a <script type=module> tag in modern browsers
       globals: {
-        axios: 'axios'
       }
     }],
-    external: ['axios'],
     plugins
   },
   {
@@ -66,10 +60,8 @@ export default [
       name: 'TQSDK',
       format: 'esm', // Keep the bundle as an ES module file, suitable for other bundlers and inclusion as a <script type=module> tag in modern browsers
       globals: {
-        axios: 'axios'
       }
     }],
-    external: ['axios'],
     plugins
   }
 ]

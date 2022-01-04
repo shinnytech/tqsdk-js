@@ -1,11 +1,9 @@
 // import "regenerator-runtime/runtime";
 import { version, db_version as dbVersion } from './package.json'
-import axios from 'axios'
 import TQSDK from './src/index'
 import { TqWebsocket } from './src/tqwebsocket'
 import DataManager from './src/datamanage'
 import localforage from 'localforage'
-TQSDK.axios = axios
 TQSDK.TqWebsocket = TqWebsocket
 TQSDK.TQData = DataManager
 TQSDK.version = version

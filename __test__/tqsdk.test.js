@@ -1,11 +1,24 @@
 const TQSDK = require('../dist/umd/tqsdk-nocache')
+const axios = require('axios')
 const WebSocket = require('ws')
+const requestMethod = (url) => {
+  return new Promise((resolve, reject) => {
+    axios.get(url, {
+      headers: { Accept: 'application/json; charset=utf-8' }
+    }).then((res) => {
+      resolve(res.data)
+    }).catch((err) => {
+      reject(err)
+    })
+  })
+}
+
 let tqsdk = null
 const account = { bid: '快期模拟', user_id: 'test123', password: '123456' }
 
 describe('TQSDK init', () => {
   beforeEach(() => {
-    tqsdk = new TQSDK({}, { WebSocket })
+    tqsdk = new TQSDK({ requestMethod }, { WebSocket })
   })
 
   afterEach(() => {

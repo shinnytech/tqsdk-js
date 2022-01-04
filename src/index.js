@@ -5,7 +5,6 @@
  */
 
 import 'core-js/stable/set-immediate'
-import axios from 'axios'
 import { TqQuoteWebsocket, TqTradeWebsocket, TqRecvOnlyWebsocket } from './tqwebsocket'
 import DataManager from './datamanage'
 import EventEmitter from 'eventemitter3'
@@ -88,6 +87,7 @@ class Tqsdk extends EventEmitter {
   constructor ({
     symbolsServerUrl = 'https://openmd.shinnytech.com/t/md/symbols/latest.json',
     wsQuoteUrl = 'wss://openmd.shinnytech.com/t/md/front/mobile',
+    requestMethod = null,
     clientSystemInfo = '',
     clientAppId = '',
     autoInit = true,
@@ -105,6 +105,7 @@ class Tqsdk extends EventEmitter {
     this.clientSystemInfo = clientSystemInfo
     this.clientAppId = clientAppId
     this.wsOption = wsOption
+    this.requestMethod = requestMethod || ((url) => fetch(url, { headers: { Accept: 'application/json; charset=utf-8' } }).then(res => res.json()))
     this._prefix = 'TQJS_'
 
     const self = this
@@ -144,10 +145,8 @@ class Tqsdk extends EventEmitter {
   initMdWebsocket () {
     if (this.quotesWs) return
     const self = this
-    axios.get(this._insUrl, {
-      headers: { Accept: 'application/json; charset=utf-8' }
-    }).then(response => {
-      self.quotesInfo = response.data
+    this.requestMethod(this._insUrl).then(data => {
+      self.quotesInfo = data
       /**
        * @event TQSDK#ready
        * @type {null}
@@ -181,11 +180,9 @@ class Tqsdk extends EventEmitter {
     if (this.brokers) return
     const self = this
     // 支持分散部署的交易中继网关
-    axios.get('https://files.shinnytech.com/broker-list.json', {
-      headers: { Accept: 'application/json; charset=utf-8' }
-    }).then(response => {
-      self.brokers_list = response.data
-      self.brokers = Object.keys(response.data).filter(x => !x.endsWith(' ')).sort()
+    this.requestMethod('https://files.shinnytech.com/broker-list.json').then(data => {
+      self.brokers_list = data
+      self.brokers = Object.keys(data).filter(x => !x.endsWith(' ')).sort()
       /**
        * @event TQSDK#rtn_brokers
        * @type {list} 期货公司列表

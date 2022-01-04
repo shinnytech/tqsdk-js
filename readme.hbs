@@ -41,7 +41,6 @@
 Html 文件添加
 
 ```html
-<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.1/axios.min.js"></script>
 <script src="dist/umd/tqsdk.min.js"></script>
 ```
 
