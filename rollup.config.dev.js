@@ -21,16 +21,13 @@ export default [
       name: 'TQSDK',
       format: 'esm', // Keep the bundle as an ES module file, suitable for other bundlers and inclusion as a <script type=module> tag in modern browsers
       globals: {
-        axios: 'axios'
       }
     }, {
       file: 'dist/umd/tqsdk-nocache.js',
       name: 'TQSDK',
       format: 'umd', // Keep the bundle as an ES module file, suitable for other bundlers and inclusion as a <script type=module> tag in modern browsers
       globals: {
-        axios: 'axios'
       }
     }],
-    external: ['axios'],
     plugins
   }]
