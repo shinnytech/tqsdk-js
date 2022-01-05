@@ -107,7 +107,7 @@ class Tqsdk extends EventEmitter {
     this.clientSystemInfo = clientSystemInfo
     this.clientAppId = clientAppId
     this.wsOption = wsOption
-    this.requestMethod = requestMethod || ((url) => fetch(url, { headers: { Accept: 'application/json; charset=utf-8' } }).then(res => res.json()))
+    this.requestMethod = requestMethod || ((url) => fetch(url, { headers: { Accept: 'application/json; charset=utf-8' }, cache: 'no-cache' }).then(res => res.json()))
     this._prefix = 'TQJS_'
 
     const self = this
