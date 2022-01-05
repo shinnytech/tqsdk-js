@@ -8,5 +8,8 @@ module.exports = {
         "browser": true,
         "node": true,
         "jest": true
+    },
+    "rules": {
+        "no-unused-vars": "warn"
     }
 }

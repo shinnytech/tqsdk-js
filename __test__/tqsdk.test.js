@@ -31,15 +31,15 @@ describe('TQSDK init', () => {
   test('TQSDK ready', done => {
     tqsdk.on('ready', function () {
       try {
-        const quote = tqsdk.getQuote('SHFE.cu2006')
-        expect(quote.ins_id).toBe('cu2006')
+        const quote = tqsdk.getQuote('SHFE.cu2106')
+        expect(quote.ins_id).toBe('cu2106')
         expect(quote.exchange_id).toBe('SHFE')
         done()
       } catch (error) {
         done(error)
       }
     })
-  }, 20000)
+  }, 30000)
 
   test('TQSDK rtn_brokers', done => {
     tqsdk.on('rtn_brokers', function (brokers) {

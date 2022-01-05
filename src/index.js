@@ -9,7 +9,7 @@ import { TqQuoteWebsocket, TqTradeWebsocket, TqRecvOnlyWebsocket } from './tqweb
 import DataManager from './datamanage'
 import EventEmitter from 'eventemitter3'
 import { RandomStr, ParseSettlementContent, IsEmptyObject } from './utils'
-import { Quote, Chart } from './datastructure'
+import { Quote, Chart, Broker } from './datastructure'
 
 // 支持多账户登录
 //    * @fires TQSDK#ready 收到合约基础数据（全局只出发一次）
@@ -31,6 +31,7 @@ class Tqsdk extends EventEmitter {
    * @param {string=} [opts.symbolsServerUrl=https://openmd.shinnytech.com/t/md/symbols/latest.json] 合约服务地址
    * @param {string=} [opts.wsQuoteUrl=wss://openmd.shinnytech.com/t/md/front/mobile] 行情连接地址
    * @param {boolean=} [opts.autoInit=true] TQSDK 初始化后立即开始行情连接
+   * @param {string=} [opts.accessToken=eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJobi1MZ3ZwbWlFTTJHZHAtRmlScjV5MUF5MnZrQmpLSFFyQVlnQ0UwR1JjIn0.eyJqdGkiOiJlZjgyYjBjNS02MDYwLTRjZTYtYjZhMS1kYjkxYmMxYjcyOTQiLCJleHAiOjE2NDIwNjc5NTYsIm5iZiI6MCwiaWF0IjoxNjEwNTMxOTU2LCJpc3MiOiJodHRwOi8vYXV0aC5zaGlubnl0ZWNoLmNvbS9hdXRoL3JlYWxtcy9zaGlubnl0ZWNoIiwic3ViIjoiNGJiMmEwZGMtMjZkMS00M2Y1LTlkNjctOTlkYzVkZGE4Y2ZlIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoic2hpbm55X3dlYiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjU0NmY5OWM4LWJmNjctNDhlYy1iNjFmLTY3MGUyZWZhYmQ4ZSIsImFjciI6IjEiLCJzY29wZSI6ImF0dHJpYnV0ZXMiLCJncmFudHMiOnsiZmVhdHVyZXMiOlsiIl0sImFjY291bnRzIjpbIioiXX19.B1pQIiu3iS6F7eusKSzjLZaZKtV084l4JYPNjkmBnNp2hBCEPfGwK4u-H4KMFXhbK5l4acvRY-QS7t3UMLEDbn-UQYEfcOeQVnWYlVDfSWUbSCGxLCIaQYHCct7VcWhcLgg0_xNmJMNdnnLvq44J8S1o4PFNbXJosScspenZUZmuZi75KTdFiA8KU_83X2-gJ7UjFuJ03YoaxFMBJhG7wpEXB5P_yjrgvjUGkD9oy-IRC2YH65ys0XpdzH5U4NzePi7gG01mh3mQM1DuyyS7YVkcxRrjvVUkx6lHChSjEMGtWWoC0aTg323dPTPQ8u4wPL650KOV3eGELBICUUVM8Q] Token
    * @param {string=} [opts.clientSystemInfo=] 客户端信息
    * @param {string=} [opts.clientAppId=] 客户端信息
    * @param {object=} [opts.data={}] 存储数据对象
@@ -91,6 +92,7 @@ class Tqsdk extends EventEmitter {
     clientSystemInfo = '',
     clientAppId = '',
     autoInit = true,
+    accessToken = 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJobi1MZ3ZwbWlFTTJHZHAtRmlScjV5MUF5MnZrQmpLSFFyQVlnQ0UwR1JjIn0.eyJqdGkiOiJlZjgyYjBjNS02MDYwLTRjZTYtYjZhMS1kYjkxYmMxYjcyOTQiLCJleHAiOjE2NDIwNjc5NTYsIm5iZiI6MCwiaWF0IjoxNjEwNTMxOTU2LCJpc3MiOiJodHRwOi8vYXV0aC5zaGlubnl0ZWNoLmNvbS9hdXRoL3JlYWxtcy9zaGlubnl0ZWNoIiwic3ViIjoiNGJiMmEwZGMtMjZkMS00M2Y1LTlkNjctOTlkYzVkZGE4Y2ZlIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoic2hpbm55X3dlYiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjU0NmY5OWM4LWJmNjctNDhlYy1iNjFmLTY3MGUyZWZhYmQ4ZSIsImFjciI6IjEiLCJzY29wZSI6ImF0dHJpYnV0ZXMiLCJncmFudHMiOnsiZmVhdHVyZXMiOlsiIl0sImFjY291bnRzIjpbIioiXX19.B1pQIiu3iS6F7eusKSzjLZaZKtV084l4JYPNjkmBnNp2hBCEPfGwK4u-H4KMFXhbK5l4acvRY-QS7t3UMLEDbn-UQYEfcOeQVnWYlVDfSWUbSCGxLCIaQYHCct7VcWhcLgg0_xNmJMNdnnLvq44J8S1o4PFNbXJosScspenZUZmuZi75KTdFiA8KU_83X2-gJ7UjFuJ03YoaxFMBJhG7wpEXB5P_yjrgvjUGkD9oy-IRC2YH65ys0XpdzH5U4NzePi7gG01mh3mQM1DuyyS7YVkcxRrjvVUkx6lHChSjEMGtWWoC0aTg323dPTPQ8u4wPL650KOV3eGELBICUUVM8Q',
     data = {
       klines: {},
       quotes: {},
@@ -105,7 +107,7 @@ class Tqsdk extends EventEmitter {
     this.clientSystemInfo = clientSystemInfo
     this.clientAppId = clientAppId
     this.wsOption = wsOption
-    this.requestMethod = requestMethod || ((url) => fetch(url, { headers: { Accept: 'application/json; charset=utf-8' } }).then(res => res.json()))
+    this.requestMethod = requestMethod || ((url) => fetch(url, { headers: { Accept: 'application/json; charset=utf-8' }, cache: 'no-cache' }).then(res => res.json()))
     this._prefix = 'TQJS_'
 
     const self = this
@@ -118,11 +120,14 @@ class Tqsdk extends EventEmitter {
       self.emit('rtn_data', null)
     })
 
+    this.accessToken = accessToken
+    /** @type {Record<string, Broker>} */
     this.brokers_list = null
     this.brokers = null
     this.trade_accounts = {} // 添加账户
     this.subscribeQuotesSet = new Set() // 所有需要订阅的合约
     this.quotesWs = null
+    /** @type {Record<string, Quote>} */
     this.quotesInfo = {}
     if (autoInit) {
       // 自动执行初始化
@@ -185,7 +190,7 @@ class Tqsdk extends EventEmitter {
       self.brokers = Object.keys(data).filter(x => !x.endsWith(' ')).sort()
       /**
        * @event TQSDK#rtn_brokers
-       * @type {list} 期货公司列表
+       * @type {Array} 期货公司列表
        */
       self.emit('rtn_brokers', self.brokers)
     }).catch(error => {
@@ -271,7 +276,7 @@ class Tqsdk extends EventEmitter {
 
   /**
    * 获取数据对象
-   * @param {list} pathArray
+   * @param {Array} pathArray
    * @param {object} dm 获取对象数据源，默认为当前实例的 datamanager
    * @returns {object|null}
    *
@@ -292,6 +297,8 @@ class Tqsdk extends EventEmitter {
    * 根据输入字符串查询合约列表
    * @param {string} input
    * @param {object} filterOption 查询合约列表条件限制
+   * @param {boolean=} filterOption.exchange_id=false 是否根据交易所匹配
+   * @param {boolean=} filterOption.class=false 是否根据合约类型匹配
    * @param {boolean=} filterOption.symbol=true 是否根据合约ID匹配
    * @param {boolean=} filterOption.pinyin=true 是否根据拼音匹配
    * @param {boolean=} filterOption.include_expired=false 匹配结果是否包含已下市合约
@@ -300,7 +307,7 @@ class Tqsdk extends EventEmitter {
    * @param {boolean=} filterOption.future_cont=false 匹配结果是否包含期货主连
    * @param {boolean=} filterOption.option=false 匹配结果是否包含期权
    * @param {boolean=} filterOption.combine=false 匹配结果是否包含组合
-   * @returns {list} [symbol, ...]
+   * @returns {Array} [symbol, ...]
    *
    * @example
    * const tqsdk = new TQSDK()
@@ -314,6 +321,8 @@ class Tqsdk extends EventEmitter {
     if (typeof input !== 'string') return []
     const option = {
       input: input.toLowerCase(),
+      exchange_id: typeof filterOption.exchange_id === 'boolean' ? filterOption.exchange_id : false, // 是否根据合约交易所匹配
+      class: typeof filterOption.class === 'boolean' ? filterOption.class : false, // 是否根据合约类型匹配
       symbol: typeof filterOption.symbol === 'boolean' ? filterOption.symbol : true, // 是否根据合约ID匹配
       pinyin: typeof filterOption.pinyin === 'boolean' ? filterOption.pinyin : true, // 是否根据拼音匹配
       include_expired: typeof filterOption.include_expired === 'boolean' ? filterOption.include_expired : false, // 匹配结果是否包含已下市合约
@@ -336,10 +345,20 @@ class Tqsdk extends EventEmitter {
    * @private
    * @param {object} filterOption 筛选条件
    * @param {object} quote 合约对象
-   * @returns {list}
+   * @returns {Array}
    */
   _filterSymbol (filterOption, quote) {
     if (filterOption[quote.class] && (filterOption.include_expired || (!filterOption.include_expired && !quote.expired))) {
+      if (filterOption.exchange_id) {
+        if (filterOption.input === quote.exchange_id.toLowerCase()) {
+          return true
+        }
+      }
+      if (filterOption.class) {
+        if (filterOption.input === quote.class.toLowerCase()) {
+          return true
+        }
+      }
       if (filterOption.symbol) {
         if (quote.underlying_product) {
           const [ex_id, product_id] = quote.underlying_product.toLowerCase().split('.')
@@ -441,7 +460,7 @@ class Tqsdk extends EventEmitter {
   /**
    * 获取 chart 对象
    * @param {string} chart_id
-   * @returns {object} {}
+   * @returns {any} {}
    */
   getChart (chart_id) {
     if (chart_id === '') return null
@@ -452,7 +471,7 @@ class Tqsdk extends EventEmitter {
    * 获取 K 线序列
    * @param {string} symbol
    * @param {number} dur
-   * @returns {object} {data, last_id}
+   * @returns {any} {data, last_id}
    */
   getKlines (symbol, dur) {
     if (symbol === '') return null
@@ -497,7 +516,7 @@ class Tqsdk extends EventEmitter {
 
   /**
    * 判断某个对象是否最近一次有变动
-   * @param {object|list} target|pathArray 检查变动的对象或者路径数组
+   * @param {object|Array} target|pathArray 检查变动的对象或者路径数组
    * @returns {boolean}
    *
    * @example
@@ -521,7 +540,7 @@ class Tqsdk extends EventEmitter {
 
   /**
    * 订阅合约, 手动订阅合约
-   * @param {list|string} quotes=[]
+   * @param {Array|string} quotes=[]
    *
    * @example
    * let tqsdk = new TQSDK()
@@ -600,7 +619,7 @@ class Tqsdk extends EventEmitter {
           }
         })
         const urls = [
-          this.brokers_list[payload.bid].url + '?access_token=eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJobi1MZ3ZwbWlFTTJHZHAtRmlScjV5MUF5MnZrQmpLSFFyQVlnQ0UwR1JjIn0.eyJqdGkiOiJlZjgyYjBjNS02MDYwLTRjZTYtYjZhMS1kYjkxYmMxYjcyOTQiLCJleHAiOjE2NDIwNjc5NTYsIm5iZiI6MCwiaWF0IjoxNjEwNTMxOTU2LCJpc3MiOiJodHRwOi8vYXV0aC5zaGlubnl0ZWNoLmNvbS9hdXRoL3JlYWxtcy9zaGlubnl0ZWNoIiwic3ViIjoiNGJiMmEwZGMtMjZkMS00M2Y1LTlkNjctOTlkYzVkZGE4Y2ZlIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoic2hpbm55X3dlYiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjU0NmY5OWM4LWJmNjctNDhlYy1iNjFmLTY3MGUyZWZhYmQ4ZSIsImFjciI6IjEiLCJzY29wZSI6ImF0dHJpYnV0ZXMiLCJncmFudHMiOnsiZmVhdHVyZXMiOlsiIl0sImFjY291bnRzIjpbIioiXX19.B1pQIiu3iS6F7eusKSzjLZaZKtV084l4JYPNjkmBnNp2hBCEPfGwK4u-H4KMFXhbK5l4acvRY-QS7t3UMLEDbn-UQYEfcOeQVnWYlVDfSWUbSCGxLCIaQYHCct7VcWhcLgg0_xNmJMNdnnLvq44J8S1o4PFNbXJosScspenZUZmuZi75KTdFiA8KU_83X2-gJ7UjFuJ03YoaxFMBJhG7wpEXB5P_yjrgvjUGkD9oy-IRC2YH65ys0XpdzH5U4NzePi7gG01mh3mQM1DuyyS7YVkcxRrjvVUkx6lHChSjEMGtWWoC0aTg323dPTPQ8u4wPL650KOV3eGELBICUUVM8Q',
+          this.brokers_list[payload.bid].url + '?access_token=' + this.accessToken,
           this.brokers_list[payload.bid].url
         ]
         const ws = new TqTradeWebsocket(urls, dm, this.wsOption)
@@ -732,7 +751,7 @@ class Tqsdk extends EventEmitter {
 
   /**
    * 获取全部账户信息
-   * @returns {list}
+   * @returns {Array}
    *
    * @example
    * const tqsdk = new TQSDK()
@@ -746,7 +765,7 @@ class Tqsdk extends EventEmitter {
    *   console.log(accounts)
    * })
    */
-  getAllAccounts (payload) {
+  getAllAccounts () {
     const result = []
     Object.values(this.trade_accounts).forEach(function (v) {
       result.push({ bid: v.bid, user_id: v.user_id, password: v.password })
@@ -759,7 +778,7 @@ class Tqsdk extends EventEmitter {
    * @param {object} payload
    * @param {string} [payload.bid]
    * @param {string} payload.user_id
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    *
    * @example
    * const tqsdk = new TQSDK()
@@ -777,6 +796,17 @@ class Tqsdk extends EventEmitter {
    */
   getAccount (payload) {
     return this._getAccountInfoByPaths(payload, ['accounts', 'CNY'])
+  }
+
+  /**
+   * 获取支持的转账银行
+   * @param {object} payload
+   * @param {string} [payload.bid]
+   * @param {string} payload.user_id
+   * @returns {Record<string, any>|null}
+   */
+  getBanks (payload) {
+    return this._getAccountInfoByPaths(payload, ['banks'])
   }
 
   /**
@@ -904,7 +934,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} payload.price_type=LIMIT 限价 [`LIMIT` | `ANY`]
    * @param {number} payload.limit_price 价格
    * @param {number} payload.volume 手数
-   * @returns {list} list=[{order_id, status, ...}, ...] 返回委托单数组，可能拆分为多个单
+   * @returns {Array} Array=[{order_id, status, ...}, ...] 返回委托单数组，可能拆分为多个单
    */
   autoInsertOrder (payload) {
     if (!this.is_logined(payload)) return null
@@ -981,7 +1011,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @param {string} payload.symbol 合约名称
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    *
    * @example
    * const tqsdk = new TQSDK()
@@ -1006,7 +1036,7 @@ class Tqsdk extends EventEmitter {
    * @param {object} payload
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    *
    * @example
    * const tqsdk = new TQSDK()
@@ -1032,7 +1062,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @param {string} payload.order_id 委托单 id
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getOrder (payload) {
     return this._getAccountInfoByPaths(payload, ['orders', payload.order_id])
@@ -1043,7 +1073,7 @@ class Tqsdk extends EventEmitter {
    * @param {object} payload
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getOrders (payload) {
     return this._getAccountInfoByPaths(payload, ['orders'])
@@ -1055,7 +1085,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.symbol 合约名称
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getOrdersBySymbol (payload) {
     const orders = this._getAccountInfoByPaths(payload, ['orders'])
@@ -1075,7 +1105,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid]
    * @param {string} payload.user_id
    * @param {string} payload.trade_id 成交记录 id
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getTrade (payload) {
     return this._getAccountInfoByPaths(payload, ['trades', payload.trade_id])
@@ -1086,7 +1116,7 @@ class Tqsdk extends EventEmitter {
    * @param {object} payload
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getTrades (payload) {
     return this._getAccountInfoByPaths(payload, ['trades'])
@@ -1098,7 +1128,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.order_id 委托单 id
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getTradesByOrder (payload) {
     const trades = this._getAccountInfoByPaths(payload, ['trades'])
@@ -1117,7 +1147,7 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.symbol 合约名称
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getTradesBySymbol (payload) {
     const trades = this._getAccountInfoByPaths(payload, ['trades'])
@@ -1136,7 +1166,7 @@ class Tqsdk extends EventEmitter {
    * @param {object} payload
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getHisSettlements (payload) {
     return this._getAccountInfoByPaths(payload, ['his_settlements'])
@@ -1148,10 +1178,33 @@ class Tqsdk extends EventEmitter {
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
    * @param {string} payload.trading_day 查询日期
-   * @returns {object|null}
+   * @returns {Record<string, any>|null}
    */
   getHisSettlement (payload) {
     return this._getAccountInfoByPaths(payload, ['his_settlements', payload.trading_day])
+  }
+
+  /**
+   * 获取账户全部转账信息
+   * @param {object} payload
+   * @param {string} [payload.bid] 期货公司
+   * @param {string} payload.user_id 账户名
+   * @returns {Record<string, any>|null}
+   */
+  getTransfers (payload) {
+    return this._getAccountInfoByPaths(payload, ['transfers'])
+  }
+
+  /**
+   * 获取账户某一编号的转账记录
+   * @param {object} payload
+   * @param {string} [payload.bid] 期货公司
+   * @param {string} payload.user_id 账户名
+   * @param {string} payload.key 转账记录的key
+   * @returns {Record<string, any>|null}
+   */
+  getTransferByKey (payload) {
+    return this._getAccountInfoByPaths(payload, ['transfers', payload.key])
   }
 
   /**
@@ -1160,7 +1213,7 @@ class Tqsdk extends EventEmitter {
    * @param {object} payload
    * @param {string} [payload.bid] 期货公司
    * @param {string} payload.user_id 账户名
-   * @param {list} [pathArray]
+   * @param {Array} [pathArray]
    */
   _getAccountInfoByPaths (payload, pathArray = []) {
     const account = this._getAccountRef(payload)
