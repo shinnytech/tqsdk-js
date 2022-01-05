@@ -39,7 +39,7 @@ describe('TQSDK init', () => {
         done(error)
       }
     })
-  }, 20000)
+  }, 30000)
 
   test('TQSDK rtn_brokers', done => {
     tqsdk.on('rtn_brokers', function (brokers) {
