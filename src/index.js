@@ -91,6 +91,7 @@ class Tqsdk extends EventEmitter {
     clientSystemInfo = '',
     clientAppId = '',
     autoInit = true,
+    accessToken = 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJobi1MZ3ZwbWlFTTJHZHAtRmlScjV5MUF5MnZrQmpLSFFyQVlnQ0UwR1JjIn0.eyJqdGkiOiJlZGFmNDllMy03MjVhLTQwNDMtOGY3OS0yMGU4NWRhZTVlZGEiLCJleHAiOjE2NzM2ODI5MzgsIm5iZiI6MCwiaWF0IjoxNjQyMTQ2OTM4LCJpc3MiOiJodHRwOi8vYXV0aC5zaGlubnl0ZWNoLmNvbS9hdXRoL3JlYWxtcy9zaGlubnl0ZWNoIiwic3ViIjoiNGJiMmEwZGMtMjZkMS00M2Y1LTlkNjctOTlkYzVkZGE4Y2ZlIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoic2hpbm55X3dlYiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjRkYmM1NzU2LWY0OTMtNDRiMi05MDA1LWNlMGU2NzhiOTRhYiIsImFjciI6IjEiLCJzY29wZSI6ImF0dHJpYnV0ZXMiLCJncmFudHMiOnsiZmVhdHVyZXMiOlsiIl0sImFjY291bnRzIjpbIioiXX19.F1DHbKSbFt4lEBcjI3Qt1qFuPXUFAOxtjWDk53dY2JIrpk4scQwqYfhU5I34kiaMBrsFNj9bnmnXHbJhCa2ktcP82yb1p2rRH3goaoFUYEAqX0SBCR_58a3b4h165CqF3K1TsUqJYWbngo25MqElgq37StaSzJGsTKPF2GzWMghFsBPwDL8fVhJnTq3vzwPcxI1EARmyGImc8OHPHSPFTQchb3J5YVG6K_me1mM9PqNTiWracEB9R_ID6PfDVbzU-mzTmtFZjw3tLFqVC9nWtPcoCHZmfSfiRkdrKsq0QLh-NLg6CTIVB4QQ8T5BXH58micbhgAEW6ly1GFGgrVkug',
     data = {
       klines: {},
       quotes: {},
@@ -106,6 +107,7 @@ class Tqsdk extends EventEmitter {
     this.clientAppId = clientAppId
     this.wsOption = wsOption
     this.requestMethod = requestMethod || ((url) => fetch(url, { headers: { Accept: 'application/json; charset=utf-8' } }).then(res => res.json()))
+    this._accessToken = accessToken
     this._prefix = 'TQJS_'
 
     const self = this
@@ -600,7 +602,7 @@ class Tqsdk extends EventEmitter {
           }
         })
         const urls = [
-          this.brokers_list[payload.bid].url + '?access_token=eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJobi1MZ3ZwbWlFTTJHZHAtRmlScjV5MUF5MnZrQmpLSFFyQVlnQ0UwR1JjIn0.eyJqdGkiOiJlZjgyYjBjNS02MDYwLTRjZTYtYjZhMS1kYjkxYmMxYjcyOTQiLCJleHAiOjE2NDIwNjc5NTYsIm5iZiI6MCwiaWF0IjoxNjEwNTMxOTU2LCJpc3MiOiJodHRwOi8vYXV0aC5zaGlubnl0ZWNoLmNvbS9hdXRoL3JlYWxtcy9zaGlubnl0ZWNoIiwic3ViIjoiNGJiMmEwZGMtMjZkMS00M2Y1LTlkNjctOTlkYzVkZGE4Y2ZlIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoic2hpbm55X3dlYiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjU0NmY5OWM4LWJmNjctNDhlYy1iNjFmLTY3MGUyZWZhYmQ4ZSIsImFjciI6IjEiLCJzY29wZSI6ImF0dHJpYnV0ZXMiLCJncmFudHMiOnsiZmVhdHVyZXMiOlsiIl0sImFjY291bnRzIjpbIioiXX19.B1pQIiu3iS6F7eusKSzjLZaZKtV084l4JYPNjkmBnNp2hBCEPfGwK4u-H4KMFXhbK5l4acvRY-QS7t3UMLEDbn-UQYEfcOeQVnWYlVDfSWUbSCGxLCIaQYHCct7VcWhcLgg0_xNmJMNdnnLvq44J8S1o4PFNbXJosScspenZUZmuZi75KTdFiA8KU_83X2-gJ7UjFuJ03YoaxFMBJhG7wpEXB5P_yjrgvjUGkD9oy-IRC2YH65ys0XpdzH5U4NzePi7gG01mh3mQM1DuyyS7YVkcxRrjvVUkx6lHChSjEMGtWWoC0aTg323dPTPQ8u4wPL650KOV3eGELBICUUVM8Q',
+          this.brokers_list[payload.bid].url + '?access_token=' + this._accessToken,
           this.brokers_list[payload.bid].url
         ]
         const ws = new TqTradeWebsocket(urls, dm, this.wsOption)
