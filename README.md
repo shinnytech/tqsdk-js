@@ -1,5 +1,5 @@
 
-# TQSDK - JS 
+# TQSDK - JS
 
 天勤 [DIFF 协议 (https://www.shinnytech.com/diff/)](https://www.shinnytech.com/diff/) 的封装（JavaScript 语言版本）。
 
@@ -81,7 +81,7 @@ const tqsdk = new TQSDK({
 })
 ```
 
-### 2.2 on 事件监听 
+### 2.2 on 事件监听
 
 ```js
 // 添加事件监听
@@ -105,56 +105,16 @@ tqsdk.off(eventName, cb)
 
 ## 3. API Reference
 
-<a name="module_TQSDK..Tqsdk"></a>
+<a name="exp_module_TQSDK--Tqsdk"></a>
 
-#### TQSDK~Tqsdk
-**Kind**: inner class of [<code>TQSDK</code>](#module_TQSDK)  
+#### Tqsdk ⇐ <code>EventEmitter</code> ⏏
+**Kind**: Exported class  
+**Extends**: <code>EventEmitter</code>  
 **Emits**: [<code>ready</code>](#TQSDK+event_ready), [<code>rtn\_data</code>](#TQSDK+event_rtn_data), [<code>rtn\_brokers</code>](#TQSDK+event_rtn_brokers), [<code>notify</code>](#TQSDK+event_notify), [<code>error</code>](#TQSDK+event_error)  
-
-* [~Tqsdk](#module_TQSDK..Tqsdk)
-    * [new Tqsdk([opts], [wsOption])](#new_module_TQSDK..Tqsdk_new)
-    * [.initMdWebsocket()](#module_TQSDK..Tqsdk+initMdWebsocket)
-    * [.initTdWebsocket()](#module_TQSDK..Tqsdk+initTdWebsocket)
-    * [.get(payload)](#module_TQSDK..Tqsdk+get) ⇒ <code>object</code> \| <code>null</code>
-    * [.getByPath(pathArray, dm)](#module_TQSDK..Tqsdk+getByPath) ⇒ <code>object</code> \| <code>null</code>
-    * [.getQuotesByInput(input, filterOption)](#module_TQSDK..Tqsdk+getQuotesByInput) ⇒ <code>list</code>
-    * [.getQuote(symbol)](#module_TQSDK..Tqsdk+getQuote) ⇒ <code>Quote</code>
-    * [.setChart(payload)](#module_TQSDK..Tqsdk+setChart) ⇒ <code>object</code>
-    * [.getChart(chart_id)](#module_TQSDK..Tqsdk+getChart) ⇒ <code>object</code>
-    * [.getKlines(symbol, dur)](#module_TQSDK..Tqsdk+getKlines) ⇒ <code>object</code>
-    * [.getTicks(symbol)](#module_TQSDK..Tqsdk+getTicks) ⇒ <code>object</code>
-    * [.isChanging(target|pathArray)](#module_TQSDK..Tqsdk+isChanging) ⇒ <code>boolean</code>
-    * [.subscribeQuote(quotes)](#module_TQSDK..Tqsdk+subscribeQuote)
-    * [.addAccount(payload)](#module_TQSDK..Tqsdk+addAccount) ⇒ <code>object</code>
-    * [.removeAccount(payload)](#module_TQSDK..Tqsdk+removeAccount)
-    * [.login(payload)](#module_TQSDK..Tqsdk+login)
-    * [.isLogined(payload)](#module_TQSDK..Tqsdk+isLogined) ⇒ <code>boolean</code>
-    * [.refreshAccount(payload)](#module_TQSDK..Tqsdk+refreshAccount)
-    * [.refreshAccounts()](#module_TQSDK..Tqsdk+refreshAccounts)
-    * [.getAllAccounts()](#module_TQSDK..Tqsdk+getAllAccounts) ⇒ <code>list</code>
-    * [.getAccount(payload)](#module_TQSDK..Tqsdk+getAccount) ⇒ <code>object</code> \| <code>null</code>
-    * [.insertOrder(payload)](#module_TQSDK..Tqsdk+insertOrder) ⇒ <code>object</code>
-    * [.autoInsertOrder(payload)](#module_TQSDK..Tqsdk+autoInsertOrder) ⇒ <code>list</code>
-    * [.cancelOrder(payload)](#module_TQSDK..Tqsdk+cancelOrder)
-    * [.getPosition(payload)](#module_TQSDK..Tqsdk+getPosition) ⇒ <code>object</code> \| <code>null</code>
-    * [.getPositions(payload)](#module_TQSDK..Tqsdk+getPositions) ⇒ <code>object</code> \| <code>null</code>
-    * [.getOrder(payload)](#module_TQSDK..Tqsdk+getOrder) ⇒ <code>object</code> \| <code>null</code>
-    * [.getOrders(payload)](#module_TQSDK..Tqsdk+getOrders) ⇒ <code>object</code> \| <code>null</code>
-    * [.getOrdersBySymbol(payload)](#module_TQSDK..Tqsdk+getOrdersBySymbol) ⇒ <code>object</code> \| <code>null</code>
-    * [.getTrade(payload)](#module_TQSDK..Tqsdk+getTrade) ⇒ <code>object</code> \| <code>null</code>
-    * [.getTrades(payload)](#module_TQSDK..Tqsdk+getTrades) ⇒ <code>object</code> \| <code>null</code>
-    * [.getTradesByOrder(payload)](#module_TQSDK..Tqsdk+getTradesByOrder) ⇒ <code>object</code> \| <code>null</code>
-    * [.getTradesBySymbol(payload)](#module_TQSDK..Tqsdk+getTradesBySymbol) ⇒ <code>object</code> \| <code>null</code>
-    * [.getHisSettlements(payload)](#module_TQSDK..Tqsdk+getHisSettlements) ⇒ <code>object</code> \| <code>null</code>
-    * [.getHisSettlement(payload)](#module_TQSDK..Tqsdk+getHisSettlement) ⇒ <code>object</code> \| <code>null</code>
-    * [.confirmSettlement(payload)](#module_TQSDK..Tqsdk+confirmSettlement)
-    * [.transfer(payload)](#module_TQSDK..Tqsdk+transfer)
-    * [.hisSettlement(payload)](#module_TQSDK..Tqsdk+hisSettlement)
-
 
 * * *
 
-<a name="new_module_TQSDK..Tqsdk_new"></a>
+<a name="new_module_TQSDK--Tqsdk_new"></a>
 
 ##### new Tqsdk([opts], [wsOption])
 
@@ -217,12 +177,12 @@ tqsdk.on('ready', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+initMdWebsocket"></a>
+<a name="module_TQSDK--Tqsdk+initMdWebsocket"></a>
 
 ##### tqsdk.initMdWebsocket()
 初始化行情链接
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 **Emits**: [<code>ready</code>](#TQSDK+event_ready)  
 **Example**  
 ```js
@@ -235,12 +195,12 @@ tqsdk.on('ready', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+initTdWebsocket"></a>
+<a name="module_TQSDK--Tqsdk+initTdWebsocket"></a>
 
 ##### tqsdk.initTdWebsocket()
 初始化交易链接
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 **Emits**: [<code>rtn\_brokers</code>](#TQSDK+event_rtn_brokers)  
 **Example**  
 ```js
@@ -254,12 +214,12 @@ tqsdk.on('rtn_brokers', function(brokers){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+get"></a>
+<a name="module_TQSDK--Tqsdk+get"></a>
 
 ##### tqsdk.get(payload) ⇒ <code>object</code> \| <code>null</code>
 获取数据
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -279,12 +239,12 @@ tqsdk.on('rtn_brokers', function(brokers){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getByPath"></a>
+<a name="module_TQSDK--Tqsdk+getByPath"></a>
 
 ##### tqsdk.getByPath(pathArray, dm) ⇒ <code>object</code> \| <code>null</code>
 获取数据对象
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -304,12 +264,12 @@ let dt = tqsdk.getByPath(['quotes', 'SHFE.au2006', 'expire_datetime'])
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getQuotesByInput"></a>
+<a name="module_TQSDK--Tqsdk+getQuotesByInput"></a>
 
 ##### tqsdk.getQuotesByInput(input, filterOption) ⇒ <code>list</code>
 根据输入字符串查询合约列表
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 **Returns**: <code>list</code> - [symbol, ...]  
 
 | Param | Type | Default | Description |
@@ -337,12 +297,12 @@ tqsdk.on('ready', function () {
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getQuote"></a>
+<a name="module_TQSDK--Tqsdk+getQuote"></a>
 
 ##### tqsdk.getQuote(symbol) ⇒ <code>Quote</code>
 根据合约代码获取合约对象
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -359,12 +319,12 @@ tqsdk.on('rtn_data', function () {
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+setChart"></a>
+<a name="module_TQSDK--Tqsdk+setChart"></a>
 
 ##### tqsdk.setChart(payload) ⇒ <code>object</code>
 请求 K 线图表
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 **Returns**: <code>object</code> - chart  
 
 | Param | Type | Description |
@@ -391,12 +351,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getChart"></a>
+<a name="module_TQSDK--Tqsdk+getChart"></a>
 
 ##### tqsdk.getChart(chart_id) ⇒ <code>object</code>
 获取 chart 对象
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 **Returns**: <code>object</code> - {}  
 
 | Param | Type |
@@ -406,12 +366,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getKlines"></a>
+<a name="module_TQSDK--Tqsdk+getKlines"></a>
 
 ##### tqsdk.getKlines(symbol, dur) ⇒ <code>object</code>
 获取 K 线序列
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 **Returns**: <code>object</code> - {data, last_id}  
 
 | Param | Type |
@@ -422,12 +382,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getTicks"></a>
+<a name="module_TQSDK--Tqsdk+getTicks"></a>
 
 ##### tqsdk.getTicks(symbol) ⇒ <code>object</code>
 获取 Ticks 序列
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 **Returns**: <code>object</code> - {data, last_id}  
 
 | Param | Type |
@@ -437,12 +397,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+isChanging"></a>
+<a name="module_TQSDK--Tqsdk+isChanging"></a>
 
 ##### tqsdk.isChanging(target|pathArray) ⇒ <code>boolean</code>
 判断某个对象是否最近一次有变动
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -465,12 +425,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+subscribeQuote"></a>
+<a name="module_TQSDK--Tqsdk+subscribeQuote"></a>
 
 ##### tqsdk.subscribeQuote(quotes)
 订阅合约, 手动订阅合约
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Default |
 | --- | --- | --- |
@@ -485,12 +445,12 @@ tqsdk.subscribeQuote(['SHFE.au2006', 'DCE.m2008'])
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+addAccount"></a>
+<a name="module_TQSDK--Tqsdk+addAccount"></a>
 
 ##### tqsdk.addAccount(payload) ⇒ <code>object</code>
 添加期货账户
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 **Returns**: <code>object</code> - account {bid, user_id, password, ws, dm}  
 
 | Param | Type | Description |
@@ -515,12 +475,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+removeAccount"></a>
+<a name="module_TQSDK--Tqsdk+removeAccount"></a>
 
 ##### tqsdk.removeAccount(payload)
 删除期货账户
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -531,12 +491,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+login"></a>
+<a name="module_TQSDK--Tqsdk+login"></a>
 
 ##### tqsdk.login(payload)
 登录期货账户
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -559,12 +519,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+isLogined"></a>
+<a name="module_TQSDK--Tqsdk+isLogined"></a>
 
 ##### tqsdk.isLogined(payload) ⇒ <code>boolean</code>
 判断账户是否登录 [x]
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type |
 | --- | --- |
@@ -575,12 +535,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+refreshAccount"></a>
+<a name="module_TQSDK--Tqsdk+refreshAccount"></a>
 
 ##### tqsdk.refreshAccount(payload)
 刷新账户信息，用于账户资金没有同步正确
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -591,21 +551,21 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+refreshAccounts"></a>
+<a name="module_TQSDK--Tqsdk+refreshAccounts"></a>
 
 ##### tqsdk.refreshAccounts()
 刷新全部账户信息，用于账户资金没有同步正确
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getAllAccounts"></a>
+<a name="module_TQSDK--Tqsdk+getAllAccounts"></a>
 
 ##### tqsdk.getAllAccounts() ⇒ <code>list</code>
 获取全部账户信息
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 **Example**  
 ```js
 const tqsdk = new TQSDK()
@@ -622,12 +582,12 @@ tqsdk.on('rtn_brokers', function(brokers){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getAccount"></a>
+<a name="module_TQSDK--Tqsdk+getAccount"></a>
 
 ##### tqsdk.getAccount(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户资金信息
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type |
 | --- | --- |
@@ -653,12 +613,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+insertOrder"></a>
+<a name="module_TQSDK--Tqsdk+insertOrder"></a>
 
 ##### tqsdk.insertOrder(payload) ⇒ <code>object</code>
 下单
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 **Returns**: <code>object</code> - order={order_id, status, ...}  
 
 | Param | Type | Default | Description |
@@ -699,12 +659,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+autoInsertOrder"></a>
+<a name="module_TQSDK--Tqsdk+autoInsertOrder"></a>
 
 ##### tqsdk.autoInsertOrder(payload) ⇒ <code>list</code>
 下单，但是平仓单会自动先平今再平昨，不需要用户区分 CLOSE | CLOSETODAY
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 **Returns**: <code>list</code> - list=[{order_id, status, ...}, ...] 返回委托单数组，可能拆分为多个单  
 
 | Param | Type | Default | Description |
@@ -723,12 +683,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+cancelOrder"></a>
+<a name="module_TQSDK--Tqsdk+cancelOrder"></a>
 
 ##### tqsdk.cancelOrder(payload)
 撤销委托单
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -740,12 +700,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getPosition"></a>
+<a name="module_TQSDK--Tqsdk+getPosition"></a>
 
 ##### tqsdk.getPosition(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户某个合约的持仓信息
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -772,12 +732,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getPositions"></a>
+<a name="module_TQSDK--Tqsdk+getPositions"></a>
 
 ##### tqsdk.getPositions(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户全部持仓信息
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -803,12 +763,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getOrder"></a>
+<a name="module_TQSDK--Tqsdk+getOrder"></a>
 
 ##### tqsdk.getOrder(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户某个合约的委托单信息
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -820,12 +780,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getOrders"></a>
+<a name="module_TQSDK--Tqsdk+getOrders"></a>
 
 ##### tqsdk.getOrders(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户全部委托单信息
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -836,12 +796,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getOrdersBySymbol"></a>
+<a name="module_TQSDK--Tqsdk+getOrdersBySymbol"></a>
 
 ##### tqsdk.getOrdersBySymbol(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户下某个合约对应的全部委托单信息
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -853,12 +813,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getTrade"></a>
+<a name="module_TQSDK--Tqsdk+getTrade"></a>
 
 ##### tqsdk.getTrade(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户某个合约的成交记录
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -870,12 +830,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getTrades"></a>
+<a name="module_TQSDK--Tqsdk+getTrades"></a>
 
 ##### tqsdk.getTrades(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户全部成交记录
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -886,12 +846,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getTradesByOrder"></a>
+<a name="module_TQSDK--Tqsdk+getTradesByOrder"></a>
 
 ##### tqsdk.getTradesByOrder(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户下某个委托单对应的全部成交记录
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -903,12 +863,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getTradesBySymbol"></a>
+<a name="module_TQSDK--Tqsdk+getTradesBySymbol"></a>
 
 ##### tqsdk.getTradesBySymbol(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户下某个合约对应的全部成交记录
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -920,12 +880,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getHisSettlements"></a>
+<a name="module_TQSDK--Tqsdk+getHisSettlements"></a>
 
 ##### tqsdk.getHisSettlements(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户的历史结算单
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -936,12 +896,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+getHisSettlement"></a>
+<a name="module_TQSDK--Tqsdk+getHisSettlement"></a>
 
 ##### tqsdk.getHisSettlement(payload) ⇒ <code>object</code> \| <code>null</code>
 获取账户某一日历史结算单
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -953,12 +913,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+confirmSettlement"></a>
+<a name="module_TQSDK--Tqsdk+confirmSettlement"></a>
 
 ##### tqsdk.confirmSettlement(payload)
 确认结算单， 每个交易日需要确认一次
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -984,12 +944,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+transfer"></a>
+<a name="module_TQSDK--Tqsdk+transfer"></a>
 
 ##### tqsdk.transfer(payload)
 银期转账
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -1006,12 +966,12 @@ tqsdk.on('rtn_data', function(){
 
 * * *
 
-<a name="module_TQSDK..Tqsdk+hisSettlement"></a>
+<a name="module_TQSDK--Tqsdk+hisSettlement"></a>
 
 ##### tqsdk.hisSettlement(payload)
 查询历史结算单
 
-**Kind**: instance method of [<code>Tqsdk</code>](#module_TQSDK..Tqsdk)  
+**Kind**: instance method of [<code>Tqsdk</code>](#exp_module_TQSDK--Tqsdk)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -1097,4 +1057,4 @@ Vue.prototype.$tqsdk = tqsdk
 export default tqsdk;
 ```
 
-&copy; 2017-2020 [Shinnytech](https://www.shinnytech.com/). Documented by [jsdoc-to-markdown](https://github.com/jsdoc2md/jsdoc-to-markdown).
+&copy; 2017-2022 [Shinnytech](https://www.shinnytech.com/). Documented by [jsdoc-to-markdown](https://github.com/jsdoc2md/jsdoc-to-markdown).
