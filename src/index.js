@@ -148,6 +148,11 @@ class Tqsdk extends EventEmitter {
     if (this.quotesWs) return
     const self = this
     this.requestMethod(this._insUrl).then(data => {
+      for (const s in data) {
+        if (data[s].class === 'FUTURE_OPTION') {
+          data[s].class = 'OPTION'
+        }
+      }
       self.quotesInfo = data
       /**
        * @event TQSDK#ready
